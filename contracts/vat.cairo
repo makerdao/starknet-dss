@@ -2,37 +2,14 @@
 %builtins pedersen range_check
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin
-
-# # Define a storage variable.
-# @storage_var
-# func balance() -> (res : felt):
-# end
-
-# # Increases the balance by the given amount.
-# @external
-# func increase_balance{
-#         syscall_ptr : felt*, pedersen_ptr : HashBuiltin*,
-#         range_check_ptr}(amount : felt):
-#     let (res) = balance.read()
-#     balance.write(res + amount)
-#     return ()
-# end
-
-# # Returns the current balance.
-# @view
-# func get_balance{
-#         syscall_ptr : felt*, pedersen_ptr : HashBuiltin*,
-#         range_check_ptr}() -> (res : felt):
-#     let (res) = balance.read()
-#     return (res)
-# end
-
-# pragma solidity >=0.5.12;
-
-# // FIXME: This contract was altered compared to the production version.
-# // It doesn't use LibNote anymore.
-# // New deployments of this contract will need to include custom events (TO DO).
-
+from starkware.cairo.common.uint256 import (
+  Uint256,
+  uint256_add,
+  uint256_sub,
+  uint256_eq,
+  uint256_le,
+  uint256_check
+)
 # contract Vat {
 #     // --- Auth ---
 #     mapping (address => uint) public wards;
@@ -50,7 +27,6 @@ from starkware.cairo.common.cairo_builtins import HashBuiltin
 #         return either(bit == usr, can[bit][usr] == 1);
 #     }
 
-#     // --- Data ---
 #     struct Ilk {
 #         uint256 Art;   // Total Normalised Debt     [wad]
 #         uint256 rate;  // Accumulated Rates         [ray]
@@ -58,21 +34,67 @@ from starkware.cairo.common.cairo_builtins import HashBuiltin
 #         uint256 line;  // Debt Ceiling              [rad]
 #         uint256 dust;  // Urn Debt Floor            [rad]
 #     }
+struct Ilk:
+    member Art: Uint256   # Total Normalised Debt     [wad]
+    member rate: Uint256  # Accumulated Rates         [ray]
+    member spot: Uint256  # Price with Safety Margin  [ray]
+    member line: Uint256  # Debt Ceiling              [rad]
+    member dust: Uint256  # Urn Debt Floor            [rad]
+end
+
 #     struct Urn {
 #         uint256 ink;   // Locked Collateral  [wad]
 #         uint256 art;   // Normalised Debt    [wad]
 #     }
+struct Urn:
+    member ink: Uint256 # Locked Collateral  [wad]
+    member art: Uint256 # Normalised Debt    [wad]
+end
 
 #     mapping (bytes32 => Ilk)                       public ilks;
+@storage_var
+func _ilks(i: felt) -> (ilk : Ilk):
+end
+
 #     mapping (bytes32 => mapping (address => Urn )) public urns;
+@storage_var
+func _urns(i: felt) -> (urn : Ilk):
+end
+
 #     mapping (bytes32 => mapping (address => uint)) public gem;  // [wad]
+@storage_var
+func _gem(i: felt, u: felt) -> (gem : Uint256):
+end
+
 #     mapping (address => uint256)                   public dai;  // [rad]
+@storage_var
+func _dai(u: felt) -> (dai : Uint256):
+end
+
 #     mapping (address => uint256)                   public sin;  // [rad]
+@storage_var
+func _sin(u: felt) -> (sin : Uint256):
+end
 
 #     uint256 public debt;  // Total Dai Issued    [rad]
+@storage_var
+func _debt() -> (debt : Uint256):
+end
+
 #     uint256 public vice;  // Total Unbacked Dai  [rad]
+@storage_var
+func _vice() -> (vice: Uint256):
+end
+
 #     uint256 public Line;  // Total Debt Ceiling  [rad]
+@storage_var
+func _Line() -> (Line: Uint256):
+end
+
 #     uint256 public live;  // Active Flag
+@storage_var
+func _live() -> (live: Uint256):
+end
 
 #     // --- Init ---
 #     constructor() public {
@@ -188,6 +210,13 @@ from starkware.cairo.common.cairo_builtins import HashBuiltin
 #         urns[i][u] = urn;
 #         ilks[i]    = ilk;
 #     }
+
+# TODO: how to represent int256?
+@external
+func frob{}(i: felt, u: felt, v: felt, w: felt, dink: Uint256, dart: Uint256) -> ():
+    return ()
+end
+
 #     // --- CDP Fungibility ---
 #     function fork(bytes32 ilk, address src, address dst, int dink, int dart) external {
 #         Urn storage u = urns[ilk][src];
