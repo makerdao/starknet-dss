@@ -189,19 +189,30 @@ end
 
 # TODO: how to represent int256?
 
-func uint256_not_zero(x: Uint256) -> (res: felt):
+func not_zero(x: Uint256) -> (res: felt):
     # TODO: implement
     return (1)
 end
 
-func uint256_safe_add{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
+func gt_zero(x: Uint256) -> (res: felt):
+    # TODO: implement
+    return (1)
+end
+
+func le(a: Uint256, b: Uint256) -> (res: felt):
+    # TODO: implement
+    return (1)
+end
+
+# unsigned wad + signed wad -> unsigned wad
+func add{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
     let (res, carry) = uint256_add(a, b)
     assert carry = 0
     return (res)
 end
 
-func uint256_safe_mul{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
-    # TODO: implement
+func mul{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
+    assert 0 = 1
     let res = Uint256(0, 0)
     return (res)
 end
@@ -224,39 +235,48 @@ func frob{
 
 #         Urn memory urn = urns[i][u];
 #         Ilk memory ilk = ilks[i];
-    let (local urn) = _urns.read(i, u)
+    let (urn) = _urns.read(i, u)
     let (local ilk) = _ilks.read(i)
 
 #         // ilk has been initialised
 #         require(ilk.rate != 0, "Vat/ilk-not-init");
-    uint256_not_zero(ilk.rate)
+    not_zero(ilk.rate)
 
     # TODO: signed/unsigned?
 
 #         urn.ink = add(urn.ink, dink);
 #         urn.art = add(urn.art, dart);
 #         ilk.Art = add(ilk.Art, dart);
-    let (ink) = uint256_safe_add(urn.ink, dink)
-    let (art) = uint256_safe_add(urn.art, dart)
-    let (Art) = uint256_safe_add(ilk.Art, dart)
+    let (ink) = add(urn.ink, dink)
+    let (art) = add(urn.art, dart)
+    let (Art) = add(ilk.Art, dart)
 
 #         int dtab = mul(ilk.rate, dart);
 #         uint tab = mul(ilk.rate, urn.art);
 #         debt     = add(debt, dtab);
     let (debt) = _debt.read()
-    let (dtab) = uint256_safe_mul(ilk.rate, dart)
-    let (tab) = uint256_safe_mul(ilk.rate, art)
-    let (debt) = uint256_safe_add(debt, dtab)
+    let (dtab) = mul(ilk.rate, dart)
+    let (tab)  = mul(ilk.rate, art)
+    let (debt) = add(debt, dtab)
 
 #         // either debt has decreased, or debt ceilings are not exceeded
 #         require(either(dart <= 0, both(mul(ilk.Art, ilk.rate) <= ilk.line, debt <= Line)), "Vat/ceiling-exceeded");
 
-    let (Line) = _Line.read()
-    let (ilk_debt) = uint256_safe_mul(Art, ilk.rate)
-    let (line_ok) = uint256_le(ilk_debt, ilk.line)
-    let (Line_ok) = uint256_le(debt, Line)
-    assert line_ok + Line_ok = 2
+    with_attr error_message("Vat/ceiling-exceeded"):
+        let (debt_increased) = gt_zero(dart)
+        if debt_increased == 1:
+            let (Line) = _Line.read()
+            let (ilk_debt) = mul(Art, ilk.rate)
+            let (line_ok) = le(ilk_debt, ilk.line)
+            assert line_ok = 1
+            let (Line_ok) = le(debt, Line)
+            assert Line_ok = 1
+        end
+    end
 
+
+    # let ink_decreased = lt_zero(dink)
+    # if either(debt_increased, ink_decreased)
 #         // urn is either less risky than before, or it is safe
 #         require(either(both(dart <= 0, dink >= 0), tab <= mul(urn.ink, ilk.spot)), "Vat/not-safe");
 
