@@ -204,6 +204,12 @@ func le(a: Uint256, b: Uint256) -> (res: felt):
     return (1)
 end
 
+func assert_le(a: Uint256, b: Uint256):
+    # TODO: implement
+    return ()
+end
+
+
 # unsigned wad + signed wad -> unsigned wad
 func add{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
     let (res, carry) = uint256_add(a, b)
@@ -261,16 +267,23 @@ func frob{
 
 #         // either debt has decreased, or debt ceilings are not exceeded
 #         require(either(dart <= 0, both(mul(ilk.Art, ilk.rate) <= ilk.line, debt <= Line)), "Vat/ceiling-exceeded");
-
+    let (debt_increased) = gt_zero(dart)
     with_attr error_message("Vat/ceiling-exceeded"):
-        let (debt_increased) = gt_zero(dart)
+
         if debt_increased == 1:
-            let (Line) = _Line.read()
             let (ilk_debt) = mul(Art, ilk.rate)
-            let (line_ok) = le(ilk_debt, ilk.line)
-            assert line_ok = 1
-            let (Line_ok) = le(debt, Line)
-            assert Line_ok = 1
+            assert_le(ilk_debt, ilk.line)
+
+            let (Line) = _Line.read()
+            assert_le(debt, Line)
+
+            tempvar syscall_ptr = syscall_ptr
+            tempvar pedersen_ptr = pedersen_ptr
+            tempvar range_check_ptr = range_check_ptr
+        else:
+            tempvar syscall_ptr = syscall_ptr
+            tempvar pedersen_ptr = pedersen_ptr
+            tempvar range_check_ptr = range_check_ptr
         end
     end
 
