@@ -291,10 +291,7 @@ func frob{
         syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
-    }(
-        i: felt, u: felt, v: felt, w: felt,
-        dink: Uint256, dart: Uint256
-    ):
+    }(i: felt, u: felt, v: felt, w: felt, dink: Uint256, dart: Uint256):
     alloc_locals
 
 #   // system is live
@@ -484,20 +481,47 @@ end
 
 # // --- CDP Confiscation ---
 # function grab(bytes32 i, address u, address v, address w, int dink, int dart) external auth {
+@external
+func grab{
+        syscall_ptr : felt*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(
+        i: felt, u: felt, v: felt, w: felt, dink: Uint256, dart: Uint256
+    ):
+
 #   Urn storage urn = urns[i][u];
 #   Ilk storage ilk = ilks[i];
+    let (urn) = _urns.read(i, u)
+    let (ilk) = _ilks.read(i)
 
 #   urn.ink = add(urn.ink, dink);
 #   urn.art = add(urn.art, dart);
 #   ilk.Art = add(ilk.Art, dart);
+    let (ink) = add(urn.ink, dink)
+    let (art) = add(urn.art, dart)
+    let (Art) = add(ilk.Art, dart)
 
 #   int dtab = mul(ilk.rate, dart);
+    let (dtab) = mul(ilk.rate, dart)
 
 #   gem[i][v] = sub(gem[i][v], dink);
-#   sin[w]    = sub(sin[w],    dtab);
-#   vice      = sub(vice,      dtab);
-# }
+    let (gem) = _gem.read(i, v)
+    let (gem) = add(gem, dink)
+    _gem.write(i, v, gem)
 
+#   sin[w]    = sub(sin[w],    dtab);
+    let (sin) = _sin.read(w)
+    let (sin) = sub(sin, dtab)
+    _sin.write(w, sin)
+
+#   vice      = sub(vice,      dtab);
+    let (vice) = _vice.read()
+    let (vice) = sub(vice, dtab)
+    _vice.write(vice)
+
+    return ()
+end
 
 
 # // --- Settlement ---
