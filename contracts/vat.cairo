@@ -11,14 +11,16 @@ from starkware.cairo.common.uint256 import (
   uint256_le,
   uint256_check
 )
+from starkware.starknet.common.syscalls import (get_caller_address)
+
 # contract Vat {
 #     // --- Auth ---
 #     mapping (address => uint) public wards;
 #     function rely(address usr) external auth { require(live == 1, "Vat/not-live"); wards[usr] = 1; }
 #     function deny(address usr) external auth { require(live == 1, "Vat/not-live"); wards[usr] = 0; }
 #     modifier auth {
-#         require(wards[msg.sender] == 1, "Vat/not-authorized");
-#         _;
+#   require(wards[msg.sender] == 1, "Vat/not-authorized");
+#   _;
 #     }
 
 #     mapping(address => mapping (address => uint)) public can;
@@ -28,16 +30,23 @@ end
 
 #     function hope(address usr) external { can[msg.sender][usr] = 1; }
 #     function nope(address usr) external { can[msg.sender][usr] = 0; }
+
 #     function wish(address bit, address usr) internal view returns (bool) {
-#         return either(bit == usr, can[bit][usr] == 1);
+#   return either(bit == usr, can[bit][usr] == 1);
 #     }
+func wish(bit: felt, usr: felt) -> (res: felt):
+    # TODO: implement
+    return (1)
+end
+
+
 
 #     struct Ilk {
-#         uint256 Art;   // Total Normalised Debt     [wad]
-#         uint256 rate;  // Accumulated Rates         [ray]
-#         uint256 spot;  // Price with Safety Margin  [ray]
-#         uint256 line;  // Debt Ceiling              [rad]
-#         uint256 dust;  // Urn Debt Floor            [rad]
+#   uint256 Art;   // Total Normalised Debt     [wad]
+#   uint256 rate;  // Accumulated Rates         [ray]
+#   uint256 spot;  // Price with Safety Margin  [ray]
+#   uint256 line;  // Debt Ceiling              [rad]
+#   uint256 dust;  // Urn Debt Floor            [rad]
 #     }
 struct Ilk:
     member Art: Uint256   # Total Normalised Debt     [wad]
@@ -48,8 +57,8 @@ struct Ilk:
 end
 
 #     struct Urn {
-#         uint256 ink;   // Locked Collateral  [wad]
-#         uint256 art;   // Normalised Debt    [wad]
+#   uint256 ink;   // Locked Collateral  [wad]
+#   uint256 art;   // Normalised Debt    [wad]
 #     }
 struct Urn:
     member ink: Uint256 # Locked Collateral  [wad]
@@ -113,88 +122,120 @@ end
 
 #     // --- Init ---
 #     constructor() public {
-#         wards[msg.sender] = 1;
-#         live = 1;
+#   wards[msg.sender] = 1;
+#   live = 1;
 #     }
 
 #     // --- Math ---
 #     function add(uint x, int y) internal pure returns (uint z) {
-#         z = x + uint(y);
-#         require(y >= 0 || z <= x);
-#         require(y <= 0 || z >= x);
+#   z = x + uint(y);
+#   require(y >= 0 || z <= x);
+#   require(y <= 0 || z >= x);
 #     }
 #     function sub(uint x, int y) internal pure returns (uint z) {
-#         z = x - uint(y);
-#         require(y <= 0 || z <= x);
-#         require(y >= 0 || z >= x);
+#   z = x - uint(y);
+#   require(y <= 0 || z <= x);
+#   require(y >= 0 || z >= x);
 #     }
 #     function mul(uint x, int y) internal pure returns (int z) {
-#         z = int(x) * y;
-#         require(int(x) >= 0);
-#         require(y == 0 || z / y == int(x));
+#   z = int(x) * y;
+#   require(int(x) >= 0);
+#   require(y == 0 || z / y == int(x));
 #     }
 #     function add(uint x, uint y) internal pure returns (uint z) {
-#         require((z = x + y) >= x);
+#   require((z = x + y) >= x);
 #     }
 #     function sub(uint x, uint y) internal pure returns (uint z) {
-#         require((z = x - y) <= x);
+#   require((z = x - y) <= x);
 #     }
 #     function mul(uint x, uint y) internal pure returns (uint z) {
-#         require(y == 0 || (z = x * y) / y == x);
+#   require(y == 0 || (z = x * y) / y == x);
 #     }
 
 #     // --- Administration ---
 #     function init(bytes32 ilk) external auth {
-#         require(ilks[ilk].rate == 0, "Vat/ilk-already-init");
-#         ilks[ilk].rate = 10 ** 27;
+#   require(ilks[ilk].rate == 0, "Vat/ilk-already-init");
+#   ilks[ilk].rate = 10 ** 27;
 #     }
+
 #     function file(bytes32 what, uint data) external auth {
-#         require(live == 1, "Vat/not-live");
-#         if (what == "Line") Line = data;
-#         else revert("Vat/file-unrecognized-param");
+#   require(live == 1, "Vat/not-live");
+#   if (what == "Line") Line = data;
+#   else revert("Vat/file-unrecognized-param");
 #     }
+
 #     function file(bytes32 ilk, bytes32 what, uint data) external auth {
-#         require(live == 1, "Vat/not-live");
-#         if (what == "spot") ilks[ilk].spot = data;
-#         else if (what == "line") ilks[ilk].line = data;
-#         else if (what == "dust") ilks[ilk].dust = data;
-#         else revert("Vat/file-unrecognized-param");
+#   require(live == 1, "Vat/not-live");
+#   if (what == "spot") ilks[ilk].spot = data;
+#   else if (what == "line") ilks[ilk].line = data;
+#   else if (what == "dust") ilks[ilk].dust = data;
+#   else revert("Vat/file-unrecognized-param");
 #     }
 #     function cage() external auth {
-#         live = 0;
+#   live = 0;
 #     }
 
 #     // --- Fungibility ---
 #     function slip(bytes32 ilk, address usr, int256 wad) external auth {
-#         gem[ilk][usr] = add(gem[ilk][usr], wad);
+#   gem[ilk][usr] = add(gem[ilk][usr], wad);
 #     }
+
 #     function flux(bytes32 ilk, address src, address dst, uint256 wad) external {
-#         require(wish(src, msg.sender), "Vat/not-allowed");
-#         gem[ilk][src] = sub(gem[ilk][src], wad);
-#         gem[ilk][dst] = add(gem[ilk][dst], wad);
+#   require(wish(src, msg.sender), "Vat/not-allowed");
+#   gem[ilk][src] = sub(gem[ilk][src], wad);
+#   gem[ilk][dst] = add(gem[ilk][dst], wad);
 #     }
+
+
 #     function move(address src, address dst, uint256 rad) external {
-#         require(wish(src, msg.sender), "Vat/not-allowed");
-#         dai[src] = sub(dai[src], rad);
-#         dai[dst] = add(dai[dst], rad);
+#   require(wish(src, msg.sender), "Vat/not-allowed");
+#   dai[src] = sub(dai[src], rad);
+#   dai[dst] = add(dai[dst], rad);
 #     }
 
 #     function either(bool x, bool y) internal pure returns (bool z) {
-#         assembly{ z := or(x, y)}
+#   assembly{ z := or(x, y)}
 #     }
+func assert_either(a: felt, b: felt):
+    # TODO: implement
+    return ()
+end
+
+
 #     function both(bool x, bool y) internal pure returns (bool z) {
-#         assembly{ z := and(x, y)}
+#   assembly{ z := and(x, y)}
 #     }
-
-
-# TODO: how to represent int256?
-
-func not_zero(x: Uint256) -> (res: felt):
+func both(a: felt, b: felt) -> (res: felt):
     # TODO: implement
     return (1)
 end
 
-func gt_zero(x: Uint256) -> (res: felt):
+
+
+# TODO: how to represent int256?
+
+func not_0(a: Uint256) -> (res: felt):
+    # TODO: implement
+    return (1)
+end
+
+func assert_not_0(a: Uint256):
+    # TODO: implement
+    return ()
+end
+
+func ge(a: Uint256, b: Uint256) -> (res: felt):
+    # TODO: implement
+    return (1)
+end
+
+
+func gt_0(a: Uint256) -> (res: felt):
+    # TODO: implement
+    return (1)
+end
+
+func ge_0(a: Uint256) -> (res: felt):
     # TODO: implement
     return (1)
 end
@@ -204,9 +245,9 @@ func le(a: Uint256, b: Uint256) -> (res: felt):
     return (1)
 end
 
-func assert_le(a: Uint256, b: Uint256):
+func le_0(a: Uint256) -> (res: felt):
     # TODO: implement
-    return ()
+    return (1)
 end
 
 
@@ -230,158 +271,195 @@ func frob{
         syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
-    }(i: felt, u: felt, v: felt, w: felt, dink: Uint256, dart: Uint256) -> ():
+    }(
+        i: felt, u: felt, v: felt, w: felt,
+        dink: Uint256, dart: Uint256
+    ):
     alloc_locals
 
-#         // system is live
-#         require(live == 1, "Vat/not-live");
-    let (live) = _live.read()
-    assert live = 1
+#   // system is live
+#   require(live == 1, "Vat/not-live");
+    with_attr error_message("Vat/not-live"):
+        let (live) = _live.read()
+        assert live = 1
+    end
 
-
-#         Urn memory urn = urns[i][u];
-#         Ilk memory ilk = ilks[i];
+#   Urn memory urn = urns[i][u];
+#   Ilk memory ilk = ilks[i];
     let (urn) = _urns.read(i, u)
     let (local ilk) = _ilks.read(i)
 
-#         // ilk has been initialised
-#         require(ilk.rate != 0, "Vat/ilk-not-init");
-    not_zero(ilk.rate)
+#   // ilk has been initialised
+#   require(ilk.rate != 0, "Vat/ilk-not-init");
+    assert_not_0(ilk.rate)
 
     # TODO: signed/unsigned?
 
-#         urn.ink = add(urn.ink, dink);
-#         urn.art = add(urn.art, dart);
-#         ilk.Art = add(ilk.Art, dart);
+#   urn.ink = add(urn.ink, dink);
+#   urn.art = add(urn.art, dart);
+#   ilk.Art = add(ilk.Art, dart);
     let (ink) = add(urn.ink, dink)
     let (art) = add(urn.art, dart)
     let (Art) = add(ilk.Art, dart)
 
-#         int dtab = mul(ilk.rate, dart);
-#         uint tab = mul(ilk.rate, urn.art);
-#         debt     = add(debt, dtab);
-    let (debt) = _debt.read()
+#   int dtab = mul(ilk.rate, dart);
+#   uint tab = mul(ilk.rate, urn.art);
+#   debt     = add(debt, dtab);
     let (dtab) = mul(ilk.rate, dart)
     let (tab)  = mul(ilk.rate, art)
+    let (debt) = _debt.read()
     let (debt) = add(debt, dtab)
 
-#         // either debt has decreased, or debt ceilings are not exceeded
-#         require(either(dart <= 0, both(mul(ilk.Art, ilk.rate) <= ilk.line, debt <= Line)), "Vat/ceiling-exceeded");
-    let (debt_increased) = gt_zero(dart)
+#   // either debt has decreased, or debt ceilings are not exceeded
+#   require(either(dart <= 0, both(mul(ilk.Art, ilk.rate) <= ilk.line, debt <= Line)), "Vat/ceiling-exceeded");
     with_attr error_message("Vat/ceiling-exceeded"):
-
-        if debt_increased == 1:
-            let (ilk_debt) = mul(Art, ilk.rate)
-            assert_le(ilk_debt, ilk.line)
-
-            let (Line) = _Line.read()
-            assert_le(debt, Line)
-
-            tempvar syscall_ptr = syscall_ptr
-            tempvar pedersen_ptr = pedersen_ptr
-            tempvar range_check_ptr = range_check_ptr
-        else:
-            tempvar syscall_ptr = syscall_ptr
-            tempvar pedersen_ptr = pedersen_ptr
-            tempvar range_check_ptr = range_check_ptr
-        end
+        let (debt_decreased) = le_0(dart)
+        let (ilk_debt) = mul(Art, ilk.rate)
+        let (line_ok) = le(ilk_debt, ilk.line)
+        let (Line_ok) = le(debt, ilk.line)
+        let (lines_ok) = both(line_ok, Line_ok)
+        assert_either(debt_decreased, lines_ok)
     end
 
+#   // urn is either less risky than before, or it is safe
+#   require(either(both(dart <= 0, dink >= 0), tab <= mul(urn.ink, ilk.spot)), "Vat/not-safe");
+    with_attr error_message("Vat/not-safe"):
+        let (dart_le_0) = le_0(dart)
+        let (dink_ge_0) = ge_0(dink)
+        let (less_risky) = both(dart_le_0, dink_ge_0)
+        let (brim) = mul(urn.ink, ilk.spot)
+        let (safe) = le(tab, brim)
+        assert_either(less_risky, safe)
+    end
 
-    # let ink_decreased = lt_zero(dink)
-    # if either(debt_increased, ink_decreased)
-#         // urn is either less risky than before, or it is safe
-#         require(either(both(dart <= 0, dink >= 0), tab <= mul(urn.ink, ilk.spot)), "Vat/not-safe");
+    let(caller) = get_caller_address()
 
-#         // urn is either more safe, or the owner consents
-#         require(either(both(dart <= 0, dink >= 0), wish(u, msg.sender)), "Vat/not-allowed-u");
-#         // collateral src consents
-#         require(either(dink <= 0, wish(v, msg.sender)), "Vat/not-allowed-v");
-#         // debt dst consents
-#         require(either(dart >= 0, wish(w, msg.sender)), "Vat/not-allowed-w");
+#   // urn is either more safe, or the owner consents
+#   require(either(both(dart <= 0, dink >= 0), wish(u, msg.sender)), "Vat/not-allowed-u");
+    with_attr error_message("Vat/not-allowed-u"):
+        let (dart_le_0) = le_0(dart)
+        let (dink_ge_0) = ge_0(dink)
+        let (less_risky) = both(dart_le_0, dink_ge_0)
+        let (owner_consents) = wish(u, caller)
+        assert_either(less_risky, owner_consents)
+    end
 
-#         // urn has no debt, or a non-dusty amount
-#         require(either(urn.art == 0, tab >= ilk.dust), "Vat/dust");
+#   // collateral src consents
+#   require(either(dink <= 0, wish(v, msg.sender)), "Vat/not-allowed-v");
+    with_attr error_message("Vat/not-allowed-v"):
+        let (dink_le_0) = le_0(dink)
+        let (src_consents) = wish(v, caller)
+        assert_either(dink_le_0, src_consents)
+    end
 
-#         gem[i][v] = sub(gem[i][v], dink);
-#         dai[w]    = add(dai[w],    dtab);
+#   // debt dst consents
+#   require(either(dart >= 0, wish(w, msg.sender)), "Vat/not-allowed-w");
+    with_attr error_message("Vat/not-allowed-w"):
+        let (dart_ge_0) = ge_0(dart)
+        let (dst_consents) = wish(w, caller)
+        assert_either(dart_ge_0, dst_consents)
+    end
 
-#         urns[i][u] = urn;
+#   // urn has no debt, or a non-dusty amount
+#   require(either(urn.art == 0, tab >= ilk.dust), "Vat/dust");
+#   TODO: how to manage underwater dusty vaults?
+    with_attr error_message("Vat/dust"):
+        let (no_debt) = not_0(art)
+        let (non_dusty) = ge(tab, ilk.dust)
+        assert_either(no_debt, non_dusty)
+    end
+
+#   gem[i][v] = sub(gem[i][v], dink);
+    let (gem) = _gem.read(i, v)
+    let (gem) = add(gem, dink)
+    _gem.write(i, v, gem)
+
+#   dai[w]    = add(dai[w],    dtab);
+    let (dai) = _dai.read(w)
+    let (dai) = add(dai, dtab)
+    _dai.write(w, dai)
+
+#   urns[i][u] = urn;
     let urn = Urn(ink, art)
     _urns.write(i, u, urn)
 
-#         ilks[i]    = ilk;
-    let ilk = Ilk(Art, rate = ilk.rate, spot = ilk.spot, line = ilk.line, dust = ilk.dust)
+#   ilks[i]    = ilk;
+    let ilk = Ilk(Art = Art, rate = ilk.rate, spot = ilk.spot, line = ilk.line, dust = ilk.dust)
     _ilks.write(i, ilk)
 
     return ()
-
-#     }
 end
 
-#     // --- CDP Fungibility ---
-#     function fork(bytes32 ilk, address src, address dst, int dink, int dart) external {
-#         Urn storage u = urns[ilk][src];
-#         Urn storage v = urns[ilk][dst];
-#         Ilk storage i = ilks[ilk];
+# // --- CDP Fungibility ---
+# function fork(bytes32 ilk, address src, address dst, int dink, int dart) external {
+#   Urn storage u = urns[ilk][src];
+#   Urn storage v = urns[ilk][dst];
+#   Ilk storage i = ilks[ilk];
 
-#         u.ink = sub(u.ink, dink);
-#         u.art = sub(u.art, dart);
-#         v.ink = add(v.ink, dink);
-#         v.art = add(v.art, dart);
+#   u.ink = sub(u.ink, dink);
+#   u.art = sub(u.art, dart);
+#   v.ink = add(v.ink, dink);
+#   v.art = add(v.art, dart);
 
-#         uint utab = mul(u.art, i.rate);
-#         uint vtab = mul(v.art, i.rate);
+#   uint utab = mul(u.art, i.rate);
+#   uint vtab = mul(v.art, i.rate);
 
-#         // both sides consent
-#         require(both(wish(src, msg.sender), wish(dst, msg.sender)), "Vat/not-allowed");
+#   // both sides consent
+#   require(both(wish(src, msg.sender), wish(dst, msg.sender)), "Vat/not-allowed");
 
-#         // both sides safe
-#         require(utab <= mul(u.ink, i.spot), "Vat/not-safe-src");
-#         require(vtab <= mul(v.ink, i.spot), "Vat/not-safe-dst");
+#   // both sides safe
+#   require(utab <= mul(u.ink, i.spot), "Vat/not-safe-src");
+#   require(vtab <= mul(v.ink, i.spot), "Vat/not-safe-dst");
 
-#         // both sides non-dusty
-#         require(either(utab >= i.dust, u.art == 0), "Vat/dust-src");
-#         require(either(vtab >= i.dust, v.art == 0), "Vat/dust-dst");
-#     }
-#     // --- CDP Confiscation ---
-#     function grab(bytes32 i, address u, address v, address w, int dink, int dart) external auth {
-#         Urn storage urn = urns[i][u];
-#         Ilk storage ilk = ilks[i];
+#   // both sides non-dusty
+#   require(either(utab >= i.dust, u.art == 0), "Vat/dust-src");
+#   require(either(vtab >= i.dust, v.art == 0), "Vat/dust-dst");
+# }
 
-#         urn.ink = add(urn.ink, dink);
-#         urn.art = add(urn.art, dart);
-#         ilk.Art = add(ilk.Art, dart);
 
-#         int dtab = mul(ilk.rate, dart);
+# // --- CDP Confiscation ---
+# function grab(bytes32 i, address u, address v, address w, int dink, int dart) external auth {
+#   Urn storage urn = urns[i][u];
+#   Ilk storage ilk = ilks[i];
 
-#         gem[i][v] = sub(gem[i][v], dink);
-#         sin[w]    = sub(sin[w],    dtab);
-#         vice      = sub(vice,      dtab);
-#     }
+#   urn.ink = add(urn.ink, dink);
+#   urn.art = add(urn.art, dart);
+#   ilk.Art = add(ilk.Art, dart);
 
-#     // --- Settlement ---
-#     function heal(uint rad) external {
-#         address u = msg.sender;
-#         sin[u] = sub(sin[u], rad);
-#         dai[u] = sub(dai[u], rad);
-#         vice   = sub(vice,   rad);
-#         debt   = sub(debt,   rad);
-#     }
-#     function suck(address u, address v, uint rad) external auth {
-#         sin[u] = add(sin[u], rad);
-#         dai[v] = add(dai[v], rad);
-#         vice   = add(vice,   rad);
-#         debt   = add(debt,   rad);
-#     }
+#   int dtab = mul(ilk.rate, dart);
 
-#     // --- Rates ---
-#     function fold(bytes32 i, address u, int rate) external auth {
-#         require(live == 1, "Vat/not-live");
-#         Ilk storage ilk = ilks[i];
-#         ilk.rate = add(ilk.rate, rate);
-#         int rad  = mul(ilk.Art, rate);
-#         dai[u]   = add(dai[u], rad);
-#         debt     = add(debt,   rad);
-#     }
+#   gem[i][v] = sub(gem[i][v], dink);
+#   sin[w]    = sub(sin[w],    dtab);
+#   vice      = sub(vice,      dtab);
+# }
+
+
+
+# // --- Settlement ---
+# function heal(uint rad) external {
+#   address u = msg.sender;
+#   sin[u] = sub(sin[u], rad);
+#   dai[u] = sub(dai[u], rad);
+#   vice   = sub(vice,   rad);
+#   debt   = sub(debt,   rad);
+# }
+
+
+
+# function suck(address u, address v, uint rad) external auth {
+#   sin[u] = add(sin[u], rad);
+#   dai[v] = add(dai[v], rad);
+#   vice   = add(vice,   rad);
+#   debt   = add(debt,   rad);
+# }
+
+
+# // --- Rates ---
+# function fold(bytes32 i, address u, int rate) external auth {
+#   require(live == 1, "Vat/not-live");
+#   Ilk storage ilk = ilks[i];
+#   ilk.rate = add(ilk.rate, rate);
+#   int rad  = mul(ilk.Art, rate);
+#   dai[u]   = add(dai[u], rad);
+#   debt     = add(debt,   rad);
 # }
