@@ -14,6 +14,8 @@ from starkware.cairo.common.uint256 import (
 from starkware.starknet.common.syscalls import (get_caller_address)
 
 # contract Vat {
+
+
 #     // --- Auth ---
 #     mapping (address => uint) public wards;
 #     function rely(address usr) external auth { require(live == 1, "Vat/not-live"); wards[usr] = 1; }
@@ -22,6 +24,66 @@ from starkware.starknet.common.syscalls import (get_caller_address)
 #   require(wards[msg.sender] == 1, "Vat/not-authorized");
 #   _;
 #     }
+
+@event
+func Rely(user : felt):
+end
+
+@event
+func Deny(user : felt):
+end
+
+@storage_var
+func _wards(user : felt) -> (res : felt):
+end
+
+@view
+func wards{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }(user : felt) -> (res : felt):
+    let (res) = _wards.read(user)
+    return (res)
+end
+
+func auth{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }():
+    let (caller) = get_caller_address()
+    let (ward) = _wards.read(caller)
+    with_attr error_message("l2_dai_bridge/not-authorized"):
+      assert ward = 1
+    end
+    return ()
+end
+
+@external
+func rely{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }(user : felt):
+    auth()
+    _wards.write(user, 1)
+    Rely.emit(user)
+    return ()
+end
+
+@external
+func deny{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }(user : felt):
+    auth()
+    _wards.write(user, 0)
+    Deny.emit(user)
+    return ()
+end
+
 
 #     mapping(address => mapping (address => uint)) public can;
 @storage_var
@@ -288,47 +350,47 @@ end
 #     function frob(bytes32 i, address u, address v, address w, int dink, int dart) external {
 @external
 func frob{
-        syscall_ptr : felt*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }(i: felt, u: felt, v: felt, w: felt, dink: Uint256, dart: Uint256):
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+    }(
+        i: felt, u: felt, v: felt, w: felt, dink: Uint256, dart: Uint256
+    ):
     alloc_locals
 
-#   // system is live
-#   require(live == 1, "Vat/not-live");
+    # // system is live
+    # require(live == 1, "Vat/not-live");
     with_attr error_message("Vat/not-live"):
         let (live) = _live.read()
         assert live = 1
     end
 
-#   Urn memory urn = urns[i][u];
-#   Ilk memory ilk = ilks[i];
+    # Urn memory urn = urns[i][u];
+    # Ilk memory ilk = ilks[i];
     let (urn) = _urns.read(i, u)
     let (local ilk) = _ilks.read(i)
 
-#   // ilk has been initialised
-#   require(ilk.rate != 0, "Vat/ilk-not-init");
+    # // ilk has been initialised
+    # require(ilk.rate != 0, "Vat/ilk-not-init");
     assert_not_0(ilk.rate)
 
     # TODO: signed/unsigned?
 
-#   urn.ink = add(urn.ink, dink);
-#   urn.art = add(urn.art, dart);
-#   ilk.Art = add(ilk.Art, dart);
+    # urn.ink = add(urn.ink, dink);
+    # urn.art = add(urn.art, dart);
+    # ilk.Art = add(ilk.Art, dart);
     let (ink) = add(urn.ink, dink)
     let (art) = add(urn.art, dart)
     let (Art) = add(ilk.Art, dart)
 
-#   int dtab = mul(ilk.rate, dart);
-#   uint tab = mul(ilk.rate, urn.art);
-#   debt     = add(debt, dtab);
+    # int dtab = mul(ilk.rate, dart);
+    # uint tab = mul(ilk.rate, urn.art);
+    # debt     = add(debt, dtab);
     let (dtab) = mul(ilk.rate, dart)
     let (tab)  = mul(ilk.rate, art)
     let (debt) = _debt.read()
     let (debt) = add(debt, dtab)
 
-#   // either debt has decreased, or debt ceilings are not exceeded
-#   require(either(dart <= 0, both(mul(ilk.Art, ilk.rate) <= ilk.line, debt <= Line)), "Vat/ceiling-exceeded");
+    # // either debt has decreased, or debt ceilings are not exceeded
+    # require(either(dart <= 0, both(mul(ilk.Art, ilk.rate) <= ilk.line, debt <= Line)), "Vat/ceiling-exceeded");
     with_attr error_message("Vat/ceiling-exceeded"):
         let (debt_decreased) = le_0(dart)
         let (ilk_debt) = mul(Art, ilk.rate)
@@ -338,8 +400,8 @@ func frob{
         assert_either(debt_decreased, lines_ok)
     end
 
-#   // urn is either less risky than before, or it is safe
-#   require(either(both(dart <= 0, dink >= 0), tab <= mul(urn.ink, ilk.spot)), "Vat/not-safe");
+    # // urn is either less risky than before, or it is safe
+    # require(either(both(dart <= 0, dink >= 0), tab <= mul(urn.ink, ilk.spot)), "Vat/not-safe");
     with_attr error_message("Vat/not-safe"):
         let (dart_le_0) = le_0(dart)
         let (dink_ge_0) = ge_0(dink)
@@ -351,8 +413,8 @@ func frob{
 
     let(caller) = get_caller_address()
 
-#   // urn is either more safe, or the owner consents
-#   require(either(both(dart <= 0, dink >= 0), wish(u, msg.sender)), "Vat/not-allowed-u");
+    # // urn is either more safe, or the owner consents
+    # require(either(both(dart <= 0, dink >= 0), wish(u, msg.sender)), "Vat/not-allowed-u");
     with_attr error_message("Vat/not-allowed-u"):
         let (dart_le_0) = le_0(dart)
         let (dink_ge_0) = ge_0(dink)
@@ -361,48 +423,46 @@ func frob{
         assert_either(less_risky, owner_consents)
     end
 
-#   // collateral src consents
-#   require(either(dink <= 0, wish(v, msg.sender)), "Vat/not-allowed-v");
+    # // collateral src consents
+    # require(either(dink <= 0, wish(v, msg.sender)), "Vat/not-allowed-v");
     with_attr error_message("Vat/not-allowed-v"):
         let (dink_le_0) = le_0(dink)
         let (src_consents) = wish(v, caller)
         assert_either(dink_le_0, src_consents)
     end
 
-#   // debt dst consents
-#   require(either(dart >= 0, wish(w, msg.sender)), "Vat/not-allowed-w");
+    # // debt dst consents
+    # require(either(dart >= 0, wish(w, msg.sender)), "Vat/not-allowed-w");
     with_attr error_message("Vat/not-allowed-w"):
         let (dart_ge_0) = ge_0(dart)
         let (dst_consents) = wish(w, caller)
         assert_either(dart_ge_0, dst_consents)
     end
 
-#   // urn has no debt, or a non-dusty amount
-#   require(either(urn.art == 0, tab >= ilk.dust), "Vat/dust");
-#   TODO: how to manage underwater dusty vaults?
+    # // urn has no debt, or a non-dusty amount
+    # require(either(urn.art == 0, tab >= ilk.dust), "Vat/dust");
+    # TODO: how to manage underwater dusty vaults?
     with_attr error_message("Vat/dust"):
         let (no_debt) = not_0(art)
         let (non_dusty) = ge(tab, ilk.dust)
         assert_either(no_debt, non_dusty)
     end
 
-#   gem[i][v] = sub(gem[i][v], dink);
+    # gem[i][v] = sub(gem[i][v], dink);
     let (gem) = _gem.read(i, v)
     let (gem) = add(gem, dink)
     _gem.write(i, v, gem)
 
-#   dai[w]    = add(dai[w],    dtab);
+    # dai[w]    = add(dai[w],    dtab);
     let (dai) = _dai.read(w)
     let (dai) = add(dai, dtab)
     _dai.write(w, dai)
 
-#   urns[i][u] = urn;
-    let urn = Urn(ink, art)
-    _urns.write(i, u, urn)
+    # urns[i][u] = urn;
+    _urns.write(i, u, Urn(ink, art))
 
-#   ilks[i]    = ilk;
-    let ilk = Ilk(Art = Art, rate = ilk.rate, spot = ilk.spot, line = ilk.line, dust = ilk.dust)
-    _ilks.write(i, ilk)
+    # ilks[i]    = ilk;
+    _ilks.write(i, Ilk(Art = Art, rate = ilk.rate, spot = ilk.spot, line = ilk.line, dust = ilk.dust))
 
     return ()
 end
@@ -411,37 +471,39 @@ end
 # function fork(bytes32 ilk, address src, address dst, int dink, int dart) external {
 @external
 func fork{
-        syscall_ptr : felt*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }(ilk: felt, src: felt, dst: felt, dink: Uint256, dart: Uint256):
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+    }(
+        ilk: felt, src: felt, dst: felt, dink: Uint256, dart: Uint256
+    ):
 
-#   Urn storage u = urns[ilk][src];
-#   Urn storage v = urns[ilk][dst];
-#   Ilk storage i = ilks[ilk];
+    # Urn storage u = urns[ilk][src];
+    # Urn storage v = urns[ilk][dst];
+    # Ilk storage i = ilks[ilk];
     let (u) = _urns.read(ilk, src)
     let (v) = _urns.read(ilk, dst)
     let (i) = _ilks.read(ilk)
 
-#   u.ink = sub(u.ink, dink);
-#   u.art = sub(u.art, dart);
-#   v.ink = add(v.ink, dink);
-#   v.art = add(v.art, dart);
+    # u.ink = sub(u.ink, dink);
+    # u.art = sub(u.art, dart);
+    # v.ink = add(v.ink, dink);
+    # v.art = add(v.art, dart);
     let (u_ink) = sub(u.ink, dink)
     let (u_art) = sub(u.art, dart)
     let (v_ink) = add(v.ink, dink)
     let (v_art) = add(v.art, dart)
 
+    _urns.write(ilk, src, Urn(ink=u_ink, art=u_art))
+    _urns.write(ilk, dst, Urn(ink=v_ink, art=v_art))
 
-#   uint utab = mul(u.art, i.rate);
-#   uint vtab = mul(v.art, i.rate);
+    # uint utab = mul(u.art, i.rate);
+    # uint vtab = mul(v.art, i.rate);
     let (u_tab) = mul(u_art, i.rate)
     let (v_tab) = mul(v_art, i.rate)
 
     let(caller) = get_caller_address()
 
-#   // both sides consent
-#   require(both(wish(src, msg.sender), wish(dst, msg.sender)), "Vat/not-allowed");
+    # // both sides consent
+    # require(both(wish(src, msg.sender), wish(dst, msg.sender)), "Vat/not-allowed");
     with_attr error_message("Vat/not-allowed"):
       let (src_consents) = wish(src, caller)
       let (dst_consents) = wish(src, caller)
@@ -460,15 +522,15 @@ func fork{
         assert_le(v_tab, brim)
     end
 
-#   // both sides non-dusty
-#   require(either(utab >= i.dust, u.art == 0), "Vat/dust-src");
+    # // both sides non-dusty
+    # require(either(utab >= i.dust, u.art == 0), "Vat/dust-src");
     with_attr error_message("Vat/dust-src"):
         let (u_tab_le_i_dust) = le(u_tab, i.dust)
         let (u_art_eq_0) = eq_0(u_art)
         assert_either(u_tab_le_i_dust, u_art_eq_0)
     end
 
-#   require(either(vtab >= i.dust, v.art == 0), "Vat/dust-dst");
+    # require(either(vtab >= i.dust, v.art == 0), "Vat/dust-dst");
     with_attr error_message("Vat/dust-dst"):
         let (v_tab_le_i_dust) = le(v_tab, i.dust)
         let (v_art_eq_0) = eq_0(v_art)
@@ -489,33 +551,36 @@ func grab{
     }(
         i: felt, u: felt, v: felt, w: felt, dink: Uint256, dart: Uint256
     ):
-
-#   Urn storage urn = urns[i][u];
-#   Ilk storage ilk = ilks[i];
+    # Urn storage urn = urns[i][u];
+    # Ilk storage ilk = ilks[i];
     let (urn) = _urns.read(i, u)
     let (ilk) = _ilks.read(i)
 
-#   urn.ink = add(urn.ink, dink);
-#   urn.art = add(urn.art, dart);
-#   ilk.Art = add(ilk.Art, dart);
+    # urn.ink = add(urn.ink, dink);
+    # urn.art = add(urn.art, dart);
     let (ink) = add(urn.ink, dink)
     let (art) = add(urn.art, dart)
-    let (Art) = add(ilk.Art, dart)
+    let urn = Urn(ink = ink, art = art)
+    _urns.write(i, u, urn)
 
-#   int dtab = mul(ilk.rate, dart);
+    # ilk.Art = add(ilk.Art, dart);
+    let (Art) = add(ilk.Art, dart)
+    _ilks.write(i, Ilk(Art = Art, rate = ilk.rate, spot = ilk.spot, line = ilk.line, dust = ilk.dust))
+
+    # int dtab = mul(ilk.rate, dart);
     let (dtab) = mul(ilk.rate, dart)
 
-#   gem[i][v] = sub(gem[i][v], dink);
+    # gem[i][v] = sub(gem[i][v], dink);
     let (gem) = _gem.read(i, v)
     let (gem) = add(gem, dink)
     _gem.write(i, v, gem)
 
-#   sin[w]    = sub(sin[w],    dtab);
+    # sin[w]    = sub(sin[w],    dtab);
     let (sin) = _sin.read(w)
     let (sin) = sub(sin, dtab)
     _sin.write(w, sin)
 
-#   vice      = sub(vice,      dtab);
+    # vice      = sub(vice,      dtab);
     let (vice) = _vice.read()
     let (vice) = sub(vice, dtab)
     _vice.write(vice)
@@ -526,29 +591,110 @@ end
 
 # // --- Settlement ---
 # function heal(uint rad) external {
-#   address u = msg.sender;
-#   sin[u] = sub(sin[u], rad);
-#   dai[u] = sub(dai[u], rad);
-#   vice   = sub(vice,   rad);
-#   debt   = sub(debt,   rad);
-# }
+@external
+func heal{
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+    }(
+        rad: Uint256
+    ):
 
+    # address u = msg.sender;
+    let(u) = get_caller_address()
 
+    # sin[u] = sub(sin[u], rad);
+    let (sin) = _sin.read(u)
+    let (sin) = sub(sin, rad)
+    _sin.write(u, sin)
+
+    # dai[u] = sub(dai[u], rad);
+    let (dai) = _dai.read(u)
+    let (dai) = sub(dai, rad)
+    _dai.write(u, dai)
+
+    # vice   = sub(vice,   rad);
+    let (vice) = _vice.read()
+    let (vice) = sub(vice, rad)
+    _vice.write(vice)
+
+    # debt   = sub(debt,   rad);
+    let (debt) = _debt.read()
+    let (debt) = sub(debt, rad)
+    _debt.write(debt)
+
+    return ()
+end
 
 # function suck(address u, address v, uint rad) external auth {
-#   sin[u] = add(sin[u], rad);
-#   dai[v] = add(dai[v], rad);
-#   vice   = add(vice,   rad);
-#   debt   = add(debt,   rad);
-# }
+@external
+func suck{
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+    }(
+        u: felt, v: felt, rad: Uint256
+    ):
+
+    auth()
+
+    # sin[u] = add(sin[u], rad);
+    let (sin) = _sin.read(u)
+    let (sin) = sub(sin, rad)
+    _sin.write(u, sin)
+
+    # dai[v] = add(dai[v], rad);
+    let (dai) = _dai.read(v)
+    let (dai) = sub(dai, rad)
+    _dai.write(v, dai)
+
+    # vice   = add(vice,   rad);
+    let (vice) = _vice.read()
+    let (vice) = sub(vice, rad)
+    _vice.write(vice)
+
+    # debt   = add(debt,   rad);
+    let (debt) = _debt.read()
+    let (debt) = sub(debt, rad)
+    _debt.write(debt)
+
+    return ()
+end
 
 
 # // --- Rates ---
 # function fold(bytes32 i, address u, int rate) external auth {
-#   require(live == 1, "Vat/not-live");
-#   Ilk storage ilk = ilks[i];
-#   ilk.rate = add(ilk.rate, rate);
-#   int rad  = mul(ilk.Art, rate);
-#   dai[u]   = add(dai[u], rad);
-#   debt     = add(debt,   rad);
-# }
+@external
+func fold{
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+    }(
+        i: felt, u: felt, rate: Uint256
+    ):
+
+    auth()
+
+    # require(live == 1, "Vat/not-live");
+    with_attr error_message("Vat/not-live"):
+        let (live) = _live.read()
+        assert live = 1
+    end
+
+    # Ilk storage ilk = ilks[i];
+    let (ilk) = _ilks.read(i)
+
+    # ilk.rate = add(ilk.rate, rate);
+    let (ilk_rate) = add(ilk.rate, rate)
+
+    _ilks.write(i, Ilk(Art = ilk.Art, rate = ilk_rate, spot = ilk.spot, line = ilk.line, dust = ilk.dust))
+
+    # int rad  = mul(ilk.Art, rate);
+    let (rad) = mul(ilk.Art, rate)
+
+    # dai[u]   = add(dai[u], rad);
+    let (dai) = _dai.read(u)
+    let (dai) = sub(dai, rad)
+    _dai.write(u, dai)
+
+    # debt     = add(debt,   rad);
+    let (debt) = _debt.read()
+    let (debt) = sub(debt, rad)
+    _debt.write(debt)
+
+    return ()
+end
