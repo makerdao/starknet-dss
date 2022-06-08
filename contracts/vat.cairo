@@ -210,6 +210,10 @@ func both(a: felt, b: felt) -> (res: felt):
     return (1)
 end
 
+func assert_both(a: felt, b: felt):
+    # TODO: implement
+    return ()
+end
 
 
 # TODO: how to represent int256?
@@ -245,11 +249,20 @@ func le(a: Uint256, b: Uint256) -> (res: felt):
     return (1)
 end
 
+func assert_le(a: Uint256, b: Uint256) -> ():
+    # TODO: implement
+    return ()
+end
+
 func le_0(a: Uint256) -> (res: felt):
     # TODO: implement
     return (1)
 end
 
+func eq_0(a: Uint256) -> (res: felt):
+    # TODO: implement
+    return (1)
+end
 
 # unsigned wad + signed wad -> unsigned wad
 func add{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
@@ -257,6 +270,13 @@ func add{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
     assert carry = 0
     return (res)
 end
+
+func sub{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
+    # TODO: implement
+    let (res) = uint256_sub(a, b)
+    return (res)
+end
+
 
 func mul{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
     assert 0 = 1
@@ -392,29 +412,74 @@ end
 
 # // --- CDP Fungibility ---
 # function fork(bytes32 ilk, address src, address dst, int dink, int dart) external {
+@external
+func fork{
+        syscall_ptr : felt*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(ilk: felt, src: felt, dst: felt, dink: Uint256, dart: Uint256):
+
 #   Urn storage u = urns[ilk][src];
 #   Urn storage v = urns[ilk][dst];
 #   Ilk storage i = ilks[ilk];
+    let (u) = _urns.read(ilk, src)
+    let (v) = _urns.read(ilk, dst)
+    let (i) = _ilks.read(ilk)
 
 #   u.ink = sub(u.ink, dink);
 #   u.art = sub(u.art, dart);
 #   v.ink = add(v.ink, dink);
 #   v.art = add(v.art, dart);
+    let (u_ink) = sub(u.ink, dink)
+    let (u_art) = sub(u.art, dart)
+    let (v_ink) = add(v.ink, dink)
+    let (v_art) = add(v.art, dart)
+
 
 #   uint utab = mul(u.art, i.rate);
 #   uint vtab = mul(v.art, i.rate);
+    let (u_tab) = mul(u_art, i.rate)
+    let (v_tab) = mul(v_art, i.rate)
+
+    let(caller) = get_caller_address()
 
 #   // both sides consent
 #   require(both(wish(src, msg.sender), wish(dst, msg.sender)), "Vat/not-allowed");
+    with_attr error_message("Vat/not-allowed"):
+      let (src_consents) = wish(src, caller)
+      let (dst_consents) = wish(src, caller)
+      assert_both(src_consents, dst_consents)
+    end
 
-#   // both sides safe
-#   require(utab <= mul(u.ink, i.spot), "Vat/not-safe-src");
-#   require(vtab <= mul(v.ink, i.spot), "Vat/not-safe-dst");
+    # // both sides safe
+    # require(utab <= mul(u.ink, i.spot), "Vat/not-safe-src");
+    with_attr error_message("Vat/not-safe-src"):
+        let (brim) = mul(u_ink, i.spot)
+        assert_le(u_tab, brim)
+    end
+    # require(vtab <= mul(v.ink, i.spot), "Vat/not-safe-dst");
+    with_attr error_message("Vat/not-safe-dst"):
+        let (brim) = mul(v_ink, i.spot)
+        assert_le(v_tab, brim)
+    end
 
 #   // both sides non-dusty
 #   require(either(utab >= i.dust, u.art == 0), "Vat/dust-src");
+    with_attr error_message("Vat/dust-src"):
+        let (u_tab_le_i_dust) = le(u_tab, i.dust)
+        let (u_art_eq_0) = eq_0(u_art)
+        assert_either(u_tab_le_i_dust, u_art_eq_0)
+    end
+
 #   require(either(vtab >= i.dust, v.art == 0), "Vat/dust-dst");
-# }
+    with_attr error_message("Vat/dust-dst"):
+        let (v_tab_le_i_dust) = le(v_tab, i.dust)
+        let (v_art_eq_0) = eq_0(v_art)
+        assert_either(v_tab_le_i_dust, v_art_eq_0)
+    end
+
+    return ()
+end
 
 
 # // --- CDP Confiscation ---
