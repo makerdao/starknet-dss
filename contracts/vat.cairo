@@ -239,8 +239,22 @@ end
 
 #     // --- Fungibility ---
 #     function slip(bytes32 ilk, address usr, int256 wad) external auth {
-#   gem[ilk][usr] = add(gem[ilk][usr], wad);
-#     }
+func slip{
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+    }(
+        ilk: felt, usr: felt, wad: Uint256
+    ):
+    alloc_locals
+
+    auth()
+
+    # gem[ilk][usr] = add(gem[ilk][usr], wad);
+    let (gem) = _gem.read(ilk, usr)
+    let (gem) = sub(gem, wad)
+    _gem.write(ilk, usr, gem)
+
+    return ()
+end
 
 #     function flux(bytes32 ilk, address src, address dst, uint256 wad) external {
 func flux{
@@ -250,17 +264,17 @@ func flux{
     ):
     alloc_locals
 
-#   require(wish(src, msg.sender), "Vat/not-allowed");
+    # require(wish(src, msg.sender), "Vat/not-allowed");
     let (caller) = get_caller_address()
     let (src_consents) = wish(src, caller)
     assert src_consents = 1
 
-#   gem[ilk][src] = sub(gem[ilk][src], wad);
+    # gem[ilk][src] = sub(gem[ilk][src], wad);
     let (gem_src) = _gem.read(ilk, src)
     let (gem_src) = sub(gem_src, wad)
     _gem.write(ilk, src, gem_src)
 
-#   gem[ilk][dst] = add(gem[ilk][dst], wad);
+    # gem[ilk][dst] = add(gem[ilk][dst], wad);
     let (gem_dst) = _gem.read(ilk, dst)
     let (gem_dst) = sub(gem_dst, wad)
     _gem.write(ilk, dst, gem_dst)
@@ -278,17 +292,17 @@ func move{
     ):
     alloc_locals
 
-#   require(wish(src, msg.sender), "Vat/not-allowed");
+    # require(wish(src, msg.sender), "Vat/not-allowed");
     let (caller) = get_caller_address()
     let (src_consents) = wish(src, caller)
     assert src_consents = 1
 
-#   dai[src] = sub(dai[src], rad);
+    # dai[src] = sub(dai[src], rad);
     let (dai_src) = _dai.read(src)
     let (dai_src) = sub(dai_src, rad)
     _dai.write(src, dai_src)
 
-#   dai[dst] = add(dai[dst], rad);
+    # dai[dst] = add(dai[dst], rad);
     let (dai_dst) = _dai.read(dst)
     let (dai_dst) = sub(dai_dst, rad)
     _dai.write(dst, dai_dst)
@@ -592,6 +606,9 @@ func grab{
     }(
         i: felt, u: felt, v: felt, w: felt, dink: Uint256, dart: Uint256
     ):
+
+    auth()
+
     # Urn storage urn = urns[i][u];
     # Ilk storage ilk = ilks[i];
     let (urn) = _urns.read(i, u)
