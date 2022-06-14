@@ -243,10 +243,30 @@ end
 #     }
 
 #     function flux(bytes32 ilk, address src, address dst, uint256 wad) external {
+func flux{
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+    }(
+        ilk: felt, src: felt, dst: felt, wad: Uint256
+    ):
+    alloc_locals
+
 #   require(wish(src, msg.sender), "Vat/not-allowed");
+    let (caller) = get_caller_address()
+    let (src_consents) = wish(src, caller)
+    assert src_consents = 1
+
 #   gem[ilk][src] = sub(gem[ilk][src], wad);
+    let (gem_src) = _gem.read(ilk, src)
+    let (gem_src) = sub(gem_src, wad)
+    _gem.write(ilk, src, gem_src)
+
 #   gem[ilk][dst] = add(gem[ilk][dst], wad);
-#     }
+    let (gem_dst) = _gem.read(ilk, dst)
+    let (gem_dst) = sub(gem_dst, wad)
+    _gem.write(ilk, dst, gem_dst)
+
+    return ()
+end
 
 
 #     function move(address src, address dst, uint256 rad) external {
