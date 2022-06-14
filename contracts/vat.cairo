@@ -184,9 +184,25 @@ end
 
 #     // --- Init ---
 #     constructor() public {
-#   wards[msg.sender] = 1;
-#   live = 1;
-#     }
+@constructor
+func constructor{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }(
+    ward : felt
+  ):
+    # wards[msg.sender] = 1;
+    _wards.write(ward, 1)
+    Rely.emit(ward)
+
+    # live = 1;
+    _live.write(1)
+
+    return ()
+end
+
+
 
 #     // --- Math ---
 #     function add(uint x, int y) internal pure returns (uint z) {
