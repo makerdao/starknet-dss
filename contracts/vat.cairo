@@ -233,9 +233,17 @@ end
 #   else if (what == "dust") ilks[ilk].dust = data;
 #   else revert("Vat/file-unrecognized-param");
 #     }
+
+
 #     function cage() external auth {
-#   live = 0;
-#     }
+func cage{
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+    }():
+    auth()
+
+    _live.write(0)
+    return ()
+end
 
 #     // --- Fungibility ---
 #     function slip(bytes32 ilk, address usr, int256 wad) external auth {
