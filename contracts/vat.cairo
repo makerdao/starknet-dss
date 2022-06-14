@@ -250,10 +250,31 @@ end
 
 
 #     function move(address src, address dst, uint256 rad) external {
+@external
+func move{
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+    }(
+        src: felt, dst: felt, rad: Uint256
+    ):
+    alloc_locals
+
 #   require(wish(src, msg.sender), "Vat/not-allowed");
+    let (caller) = get_caller_address()
+    let (src_consents) = wish(src, caller)
+    assert src_consents = 1
+
 #   dai[src] = sub(dai[src], rad);
+    let (dai_src) = _dai.read(src)
+    let (dai_src) = sub(dai_src, rad)
+    _dai.write(src, dai_src)
+
 #   dai[dst] = add(dai[dst], rad);
-#     }
+    let (dai_dst) = _dai.read(dst)
+    let (dai_dst) = sub(dai_dst, rad)
+    _dai.write(dst, dai_dst)
+
+    return ()
+end
 
 #     function either(bool x, bool y) internal pure returns (bool z) {
 #   assembly{ z := or(x, y)}
@@ -411,7 +432,7 @@ func frob{
         assert_either(less_risky, safe)
     end
 
-    let(caller) = get_caller_address()
+    let (caller) = get_caller_address()
 
     # // urn is either more safe, or the owner consents
     # require(either(both(dart <= 0, dink >= 0), wish(u, msg.sender)), "Vat/not-allowed-u");
@@ -500,7 +521,7 @@ func fork{
     let (u_tab) = mul(u_art, i.rate)
     let (v_tab) = mul(v_art, i.rate)
 
-    let(caller) = get_caller_address()
+    let (caller) = get_caller_address()
 
     # // both sides consent
     # require(both(wish(src, msg.sender), wish(dst, msg.sender)), "Vat/not-allowed");
