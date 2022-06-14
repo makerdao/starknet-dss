@@ -13,18 +13,15 @@ from starkware.cairo.common.uint256 import (
 )
 from starkware.starknet.common.syscalls import (get_caller_address)
 
-# contract Vat {
 
-
-#     // --- Auth ---
-#     mapping (address => uint) public wards;
-#     function rely(address usr) external auth { require(live == 1, "Vat/not-live"); wards[usr] = 1; }
-#     function deny(address usr) external auth { require(live == 1, "Vat/not-live"); wards[usr] = 0; }
-#     modifier auth {
+# // --- Auth ---
+# mapping (address => uint) public wards;
+# function rely(address usr) external auth { require(live == 1, "Vat/not-live"); wards[usr] = 1; }
+# function deny(address usr) external auth { require(live == 1, "Vat/not-live"); wards[usr] = 0; }
+# modifier auth {
 #   require(wards[msg.sender] == 1, "Vat/not-authorized");
 #   _;
-#     }
-
+# }
 @event
 func Rely(user : felt):
 end
@@ -84,32 +81,54 @@ func deny{
     return ()
 end
 
-
-#     mapping(address => mapping (address => uint)) public can;
+# mapping(address => mapping (address => uint)) public can;
 @storage_var
-func _can(u: felt) -> (res : felt):
+func _can(b: felt, u: felt) -> (res : felt):
 end
 
-#     function hope(address usr) external { can[msg.sender][usr] = 1; }
-#     function nope(address usr) external { can[msg.sender][usr] = 0; }
+# function hope(address usr) external { can[msg.sender][usr] = 1; }
+@external
+func hope{
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+    }(usr: felt):
+    let (caller) = get_caller_address()
+    _can.write(caller, usr, 1)
 
-#     function wish(address bit, address usr) internal view returns (bool) {
-#   return either(bit == usr, can[bit][usr] == 1);
-#     }
-func wish(bit: felt, usr: felt) -> (res: felt):
-    # TODO: implement
-    return (1)
+    return ()
+end
+
+# function nope(address usr) external { can[msg.sender][usr] = 0; }
+@external
+func nope{
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+    }(usr: felt):
+    let (caller) = get_caller_address()
+    _can.write(caller, usr, 0)
+
+    return ()
+end
+
+# function wish(address bit, address usr) internal view returns (bool) {
+@external
+func wish{
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+    }(bit: felt, usr: felt) -> (res: felt):
+    # return either(bit == usr, can[bit][usr] == 1);
+    if bit == usr:
+        return (res = 1)
+    end
+    let (res) = _can.read(bit, usr)
+    return (res)
 end
 
 
-
-#     struct Ilk {
+# struct Ilk {
 #   uint256 Art;   // Total Normalised Debt     [wad]
 #   uint256 rate;  // Accumulated Rates         [ray]
 #   uint256 spot;  // Price with Safety Margin  [ray]
 #   uint256 line;  // Debt Ceiling              [rad]
 #   uint256 dust;  // Urn Debt Floor            [rad]
-#     }
+# }
 struct Ilk:
     member Art: Uint256   # Total Normalised Debt     [wad]
     member rate: Uint256  # Accumulated Rates         [ray]
@@ -118,56 +137,56 @@ struct Ilk:
     member dust: Uint256  # Urn Debt Floor            [rad]
 end
 
-#     struct Urn {
+# struct Urn {
 #   uint256 ink;   // Locked Collateral  [wad]
 #   uint256 art;   // Normalised Debt    [wad]
-#     }
+# }
 struct Urn:
     member ink: Uint256 # Locked Collateral  [wad]
     member art: Uint256 # Normalised Debt    [wad]
 end
 
-#     mapping (bytes32 => Ilk)                       public ilks;
+# mapping (bytes32 => Ilk)                       public ilks;
 @storage_var
 func _ilks(i: felt) -> (ilk : Ilk):
 end
 
-#     mapping (bytes32 => mapping (address => Urn )) public urns;
+# mapping (bytes32 => mapping (address => Urn )) public urns;
 @storage_var
 func _urns(i: felt, u: felt) -> (urn : Urn):
 end
 
-#     mapping (bytes32 => mapping (address => uint)) public gem;  // [wad]
+# mapping (bytes32 => mapping (address => uint)) public gem;  // [wad]
 @storage_var
 func _gem(i: felt, u: felt) -> (gem : Uint256):
 end
 
-#     mapping (address => uint256)                   public dai;  // [rad]
+# mapping (address => uint256)                   public dai;  // [rad]
 @storage_var
 func _dai(u: felt) -> (dai : Uint256):
 end
 
-#     mapping (address => uint256)                   public sin;  // [rad]
+# mapping (address => uint256)                   public sin;  // [rad]
 @storage_var
 func _sin(u: felt) -> (sin : Uint256):
 end
 
-#     uint256 public debt;  // Total Dai Issued    [rad]
+# uint256 public debt;  // Total Dai Issued    [rad]
 @storage_var
 func _debt() -> (debt : Uint256):
 end
 
-#     uint256 public vice;  // Total Unbacked Dai  [rad]
+# uint256 public vice;  // Total Unbacked Dai  [rad]
 @storage_var
 func _vice() -> (vice: Uint256):
 end
 
-#     uint256 public Line;  // Total Debt Ceiling  [rad]
+# uint256 public Line;  // Total Debt Ceiling  [rad]
 @storage_var
 func _Line() -> (Line: Uint256):
 end
 
-#     uint256 public live;  // Active Flag
+# uint256 public live;  // Active Flag
 @storage_var
 func _live() -> (live: felt):
 end
@@ -182,8 +201,16 @@ func ilks{
     return (ilk)
 end
 
-#     // --- Init ---
-#     constructor() public {
+@event
+func File(what : felt, data : Uint256):
+end
+
+@event
+func File_ilk(ilk: felt, what : felt, data : Uint256):
+end
+
+# // --- Init ---
+# constructor() public {
 @constructor
 func constructor{
     syscall_ptr : felt*,
@@ -204,54 +231,133 @@ end
 
 
 
-#     // --- Math ---
-#     function add(uint x, int y) internal pure returns (uint z) {
+# // --- Math ---
+# function add(uint x, int y) internal pure returns (uint z) {
 #   z = x + uint(y);
 #   require(y >= 0 || z <= x);
 #   require(y <= 0 || z >= x);
-#     }
-#     function sub(uint x, int y) internal pure returns (uint z) {
+# }
+# function sub(uint x, int y) internal pure returns (uint z) {
 #   z = x - uint(y);
 #   require(y <= 0 || z <= x);
 #   require(y >= 0 || z >= x);
-#     }
-#     function mul(uint x, int y) internal pure returns (int z) {
+# }
+# function mul(uint x, int y) internal pure returns (int z) {
 #   z = int(x) * y;
 #   require(int(x) >= 0);
 #   require(y == 0 || z / y == int(x));
-#     }
-#     function add(uint x, uint y) internal pure returns (uint z) {
+# }
+# function add(uint x, uint y) internal pure returns (uint z) {
 #   require((z = x + y) >= x);
-#     }
-#     function sub(uint x, uint y) internal pure returns (uint z) {
+# }
+# function sub(uint x, uint y) internal pure returns (uint z) {
 #   require((z = x - y) <= x);
-#     }
-#     function mul(uint x, uint y) internal pure returns (uint z) {
+# }
+# function mul(uint x, uint y) internal pure returns (uint z) {
 #   require(y == 0 || (z = x * y) / y == x);
-#     }
+# }
 
-#     // --- Administration ---
-#     function init(bytes32 ilk) external auth {
+# // --- Administration ---
+# function init(bytes32 ilk) external auth {
+@external
+func init{
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+    }(ilk: felt):
+    alloc_locals
+
+    auth()
+
 #   require(ilks[ilk].rate == 0, "Vat/ilk-already-init");
 #   ilks[ilk].rate = 10 ** 27;
-#     }
+    let (local i) = _ilks.read(ilk)
+    with_attr error_message("Vat/ilk-already-init"):
+        assert_0(i.rate)
+    end
+    _ilks.write(ilk, Ilk(Art = i.Art, rate = Uint256(low = 10 ** 27, high = 0), spot = i.spot, line = i.line, dust = i.dust))
 
-#     function file(bytes32 what, uint data) external auth {
-#   require(live == 1, "Vat/not-live");
-#   if (what == "Line") Line = data;
-#   else revert("Vat/file-unrecognized-param");
-#     }
-
-#     function file(bytes32 ilk, bytes32 what, uint data) external auth {
-#   require(live == 1, "Vat/not-live");
-#   if (what == "spot") ilks[ilk].spot = data;
-#   else if (what == "line") ilks[ilk].line = data;
-#   else if (what == "dust") ilks[ilk].dust = data;
-#   else revert("Vat/file-unrecognized-param");
-#     }
+    return ()
+end
 
 
-#     function cage() external auth {
+# function file(bytes32 what, uint data) external auth {
+@external
+func file{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }(
+    what : felt, data : Uint256,
+  ):
+    auth()
+
+    # require(live == 1, "Vat/not-live");
+    with_attr error_message("Vat/not-live"):
+        let (live) = _live.read()
+        assert live = 1
+    end
+
+    # if (what == "Line") Line = data;
+    # else revert("Vat/file-unrecognized-param");
+    with_attr error_message("Vat/file-unrecognized-param"):
+        assert what = 'Line'
+    end
+
+    _Line.write(data)
+
+    File.emit(what, data)
+
+    return ()
+end
+
+# function file(bytes32 ilk, bytes32 what, uint data) external auth {
+@external
+func file_ilk{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }(
+    ilk: felt, what : felt, data : Uint256,
+  ):
+    alloc_locals
+
+    auth()
+
+    # require(live == 1, "Vat/not-live");
+    with_attr error_message("Vat/not-live"):
+        let (live) = _live.read()
+        assert live = 1
+    end
+
+    let (local i) = _ilks.read(ilk)
+
+    # if (what == "spot") ilks[ilk].spot = data;
+    if what == 'spot':
+        _ilks.write(ilk, Ilk(Art = i.Art, rate = i.rate, spot = data, line = i.line, dust = i.dust))
+        return ()
+    end
+
+    # else if (what == "line") ilks[ilk].line = data;
+    if what == 'line':
+        _ilks.write(ilk, Ilk(Art = i.Art, rate = i.rate, spot = i.spot, line = data, dust = i.dust))
+        return ()
+    end
+
+    # else if (what == "dust") ilks[ilk].dust = data;
+    if what == 'dust':
+        _ilks.write(ilk, Ilk(Art = i.Art, rate = i.rate, spot = i.spot, line = i.line, dust = data))
+        return ()
+    end
+
+    # else revert("Vat/file-unrecognized-param");
+    with_attr error_message("Vat/file-unrecognized-param"):
+        assert 1 = 0
+    end
+
+    return ()
+end
+
+# function cage() external auth {
+@external
 func cage{
         syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
     }():
@@ -261,8 +367,9 @@ func cage{
     return ()
 end
 
-#     // --- Fungibility ---
-#     function slip(bytes32 ilk, address usr, int256 wad) external auth {
+# // --- Fungibility ---
+# function slip(bytes32 ilk, address usr, int256 wad) external auth {
+@external
 func slip{
         syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
     }(
@@ -280,7 +387,8 @@ func slip{
     return ()
 end
 
-#     function flux(bytes32 ilk, address src, address dst, uint256 wad) external {
+# function flux(bytes32 ilk, address src, address dst, uint256 wad) external {
+@external
 func flux{
         syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
     }(
@@ -307,7 +415,7 @@ func flux{
 end
 
 
-#     function move(address src, address dst, uint256 rad) external {
+# function move(address src, address dst, uint256 rad) external {
 @external
 func move{
         syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
@@ -334,18 +442,24 @@ func move{
     return ()
 end
 
-#     function either(bool x, bool y) internal pure returns (bool z) {
+# function either(bool x, bool y) internal pure returns (bool z) {
 #   assembly{ z := or(x, y)}
-#     }
+# }
 func assert_either(a: felt, b: felt):
     # TODO: implement
     return ()
 end
 
+func either(a: felt, b: felt) -> (res: felt):
+    # TODO: implement
+    let res = 0
+    return (res)
+end
 
-#     function both(bool x, bool y) internal pure returns (bool z) {
+
+# function both(bool x, bool y) internal pure returns (bool z) {
 #   assembly{ z := and(x, y)}
-#     }
+# }
 func both(a: felt, b: felt) -> (res: felt):
     # TODO: implement
     return (1)
@@ -368,6 +482,12 @@ func assert_not_0(a: Uint256):
     # TODO: implement
     return ()
 end
+
+func assert_0(a: Uint256):
+    # TODO: implement
+    return ()
+end
+
 
 func ge(a: Uint256, b: Uint256) -> (res: felt):
     # TODO: implement
@@ -425,8 +545,8 @@ func mul{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
     return (res)
 end
 
-#     // --- CDP Manipulation ---
-#     function frob(bytes32 i, address u, address v, address w, int dink, int dart) external {
+# // --- CDP Manipulation ---
+# function frob(bytes32 i, address u, address v, address w, int dink, int dart) external {
 @external
 func frob{
         syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
@@ -449,9 +569,9 @@ func frob{
 
     # // ilk has been initialised
     # require(ilk.rate != 0, "Vat/ilk-not-init");
-    assert_not_0(ilk.rate)
-
-    # TODO: signed/unsigned?
+    with_attr error_message("Vat/ilk-not-init"):
+        assert_not_0(ilk.rate)
+    end
 
     # urn.ink = add(urn.ink, dink);
     # urn.art = add(urn.art, dart);
@@ -554,6 +674,7 @@ func fork{
     }(
         ilk: felt, src: felt, dst: felt, dink: Uint256, dart: Uint256
     ):
+    alloc_locals
 
     # Urn storage u = urns[ilk][src];
     # Urn storage v = urns[ilk][dst];
