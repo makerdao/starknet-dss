@@ -12,6 +12,14 @@ from starkware.cairo.common.uint256 import (
   uint256_check
 )
 from starkware.starknet.common.syscalls import (get_caller_address)
+from safe_math import (
+    add, _add, sub, _sub, mul, _mul
+)
+from assertions import (
+    assert_either, either, both, assert_both,
+    not_0, assert_not_0, assert_0, ge, gt_0,
+    ge_0, le, assert_le, le_0, eq_0
+)
 
 # Solidity code based on: https://github.com/makerdao/xdomain-dss/commit/5e91f8fbea66200f29037f4dcc4065a4062eb14f
 
@@ -248,48 +256,7 @@ end
 # function _int256(uint256 x) internal pure returns (int256 y) {
 #     require((y = int256(x)) >= 0);
 # }
-# unsigned wad + signed wad -> unsigned wad
-func add{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
-    # TODO: implement
-    let (res, carry) = uint256_add(a, b)
-    assert carry = 0
-    return (res)
-end
 
-# unsigned wad + signed wad -> unsigned wad
-func add_signed{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
-    # TODO: implement
-    let (res, carry) = uint256_add(a, b)
-    assert carry = 0
-    return (res)
-end
-
-
-func sub{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
-    # TODO: implement
-    let (res) = uint256_sub(a, b)
-    return (res)
-end
-
-func sub_signed{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
-    # TODO: implement
-    let (res) = uint256_sub(a, b)
-    return (res)
-end
-
-func mul{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
-    # TODO: implement
-    assert 0 = 1
-    let res = Uint256(0, 0)
-    return (res)
-end
-
-func mul_signed{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
-    # TODO: implement
-    assert 0 = 1
-    let res = Uint256(0, 0)
-    return (res)
-end
 
 
 func require_live{
@@ -544,7 +511,7 @@ func slip{
 
     # gem[ilk][usr] = _add(gem[ilk][usr], wad);
     let (gem) = _gem.read(ilk, usr)
-    let (gem) = add_signed(gem, wad)
+    let (gem) = _add(gem, wad)
     _gem.write(ilk, usr, gem)
 
     # TODO
@@ -622,85 +589,6 @@ end
 #     assembly{ z := and(x, y)}
 # }
 
-func assert_either(a: felt, b: felt):
-    # TODO: implement
-    return ()
-end
-
-func either(a: felt, b: felt) -> (res: felt):
-    # TODO: implement
-    let res = 0
-    return (res)
-end
-
-
-# function both(bool x, bool y) internal pure returns (bool z) {
-#   assembly{ z := and(x, y)}
-# }
-func both(a: felt, b: felt) -> (res: felt):
-    # TODO: implement
-    return (1)
-end
-
-func assert_both(a: felt, b: felt):
-    # TODO: implement
-    return ()
-end
-
-
-# TODO: how to represent int256?
-
-func not_0(a: Uint256) -> (res: felt):
-    # TODO: implement
-    return (1)
-end
-
-func assert_not_0(a: Uint256):
-    # TODO: implement
-    return ()
-end
-
-func assert_0(a: Uint256):
-    # TODO: implement
-    return ()
-end
-
-
-func ge(a: Uint256, b: Uint256) -> (res: felt):
-    # TODO: implement
-    return (1)
-end
-
-
-func gt_0(a: Uint256) -> (res: felt):
-    # TODO: implement
-    return (1)
-end
-
-func ge_0(a: Uint256) -> (res: felt):
-    # TODO: implement
-    return (1)
-end
-
-func le(a: Uint256, b: Uint256) -> (res: felt):
-    # TODO: implement
-    return (1)
-end
-
-func assert_le(a: Uint256, b: Uint256) -> ():
-    # TODO: implement
-    return ()
-end
-
-func le_0(a: Uint256) -> (res: felt):
-    # TODO: implement
-    return (1)
-end
-
-func eq_0(a: Uint256) -> (res: felt):
-    # TODO: implement
-    return (1)
-end
 
 # // --- CDP Manipulation ---
 # function frob(bytes32 i, address u, address v, address w, int256 dink, int256 dart) external {
@@ -730,17 +618,17 @@ func frob{
     # urn.ink = _add(urn.ink, dink);
     # urn.art = _add(urn.art, dart);
     # ilk.Art = _add(ilk.Art, dart);
-    let (ink) = add_signed(urn.ink, dink)
-    let (art) = add_signed(urn.art, dart)
-    let (Art) = add_signed(ilk.Art, dart)
+    let (ink) = _add(urn.ink, dink)
+    let (art) = _add(urn.art, dart)
+    let (Art) = _add(ilk.Art, dart)
 
     # int256 dtab = _int256(ilk.rate) * dart;
     # uint256 tab = ilk.rate * urn.art;
     # debt     = _add(debt, dtab);
-    let (dtab) = mul_signed(ilk.rate, dart)
+    let (dtab) = _mul(ilk.rate, dart)
     let (tab)  = mul(ilk.rate, art)
     let (debt) = _debt.read()
-    let (debt) = add_signed(debt, dtab)
+    let (debt) = _add(debt, dtab)
 
     # // either debt has decreased, or debt ceilings are not exceeded
     # require(either(dart <= 0, both(ilk.Art * ilk.rate <= ilk.line, debt <= Line)), "Vat/ceiling-exceeded");
@@ -803,12 +691,12 @@ func frob{
 
     # gem[i][v] = sub(gem[i][v], dink);
     let (gem) = _gem.read(i, v)
-    let (gem) = sub_signed(gem, dink)
+    let (gem) = _sub(gem, dink)
     _gem.write(i, v, gem)
 
     # dai[w]    = add(dai[w],    dtab);
     let (dai) = _dai.read(w)
-    let (dai) = add_signed(dai, dtab)
+    let (dai) = _add(dai, dtab)
     _dai.write(w, dai)
 
     # urns[i][u] = urn;
@@ -839,14 +727,14 @@ func fork{
     let (v) = _urns.read(ilk, dst)
     let (i) = _ilks.read(ilk)
 
-    # u.ink = sub(u.ink, dink);
-    # u.art = sub(u.art, dart);
-    # v.ink = add(v.ink, dink);
-    # v.art = add(v.art, dart);
-    let (u_ink) = sub_signed(u.ink, dink)
-    let (u_art) = sub_signed(u.art, dart)
-    let (v_ink) = add_signed(v.ink, dink)
-    let (v_art) = add_signed(v.art, dart)
+    # u.ink = _sub(u.ink, dink);
+    # u.art = _sub(u.art, dart);
+    # v.ink = _add(v.ink, dink);
+    # v.art = _add(v.art, dart);
+    let (u_ink) = _sub(u.ink, dink)
+    let (u_art) = _sub(u.art, dart)
+    let (v_ink) = _add(v.ink, dink)
+    let (v_art) = _add(v.art, dart)
 
     _urns.write(ilk, src, Urn(ink=u_ink, art=u_art))
     _urns.write(ilk, dst, Urn(ink=v_ink, art=v_art))
@@ -919,30 +807,30 @@ func grab{
 
     # urn.ink = _add(urn.ink, dink);
     # urn.art = _add(urn.art, dart);
-    let (ink) = add_signed(urn.ink, dink)
-    let (art) = add_signed(urn.art, dart)
+    let (ink) = _add(urn.ink, dink)
+    let (art) = _add(urn.art, dart)
     _urns.write(i, u, Urn(ink = ink, art = art))
 
     # ilk.Art = _add(ilk.Art, dart);
-    let (Art) = add_signed(ilk.Art, dart)
+    let (Art) = _add(ilk.Art, dart)
     _ilks.write(i, Ilk(Art = Art, rate = ilk.rate, spot = ilk.spot, line = ilk.line, dust = ilk.dust))
 
-    # int dtab = mul(ilk.rate, dart);
-    let (dtab) = mul_signed(ilk.rate, dart)
+    # int256 dtab = _int256(ilk.rate) * dart;
+    let (dtab) = _mul(ilk.rate, dart)
 
     # gem[i][v] = _sub(gem[i][v], dink);
     let (gem) = _gem.read(i, v)
-    let (gem) = sub_signed(gem, dink)
+    let (gem) = _sub(gem, dink)
     _gem.write(i, v, gem)
 
     # sin[w]    = _sub(sin[w],    dtab);
     let (sin) = _sin.read(w)
-    let (sin) = sub_signed(sin, dtab)
+    let (sin) = _sub(sin, dtab)
     _sin.write(w, sin)
 
     # vice      = _sub(vice,      dtab);
     let (vice) = _vice.read()
-    let (vice) = sub_signed(vice, dtab)
+    let (vice) = _sub(vice, dtab)
     _vice.write(vice)
 
     # TODO
@@ -1041,12 +929,12 @@ func fold{
     let (ilk) = _ilks.read(i)
 
     # ilk.rate = _add(ilk.rate, rate_);
-    let (ilk_rate) = add_signed(ilk.rate, rate)
+    let (ilk_rate) = _add(ilk.rate, rate)
 
     _ilks.write(i, Ilk(Art = ilk.Art, rate = ilk_rate, spot = ilk.spot, line = ilk.line, dust = ilk.dust))
 
     # int256 rad  = _int256(ilk.Art) * rate_;
-    let (rad) = mul_signed(ilk.Art, rate)
+    let (rad) = _mul(ilk.Art, rate)
 
     # dai[u]   = _add(dai[u], rad);
     let (dai) = _dai.read(u)
