@@ -13,121 +13,26 @@ from starkware.cairo.common.uint256 import (
 )
 from starkware.starknet.common.syscalls import (get_caller_address)
 
+# Solidity code based on: https://github.com/makerdao/xdomain-dss/commit/5e91f8fbea66200f29037f4dcc4065a4062eb14f
 
-# // --- Auth ---
-# mapping (address => uint) public wards;
-# function rely(address usr) external auth { require(live == 1, "Vat/not-live"); wards[usr] = 1; }
-# function deny(address usr) external auth { require(live == 1, "Vat/not-live"); wards[usr] = 0; }
-# modifier auth {
-#   require(wards[msg.sender] == 1, "Vat/not-authorized");
-#   _;
-# }
-@event
-func Rely(user : felt):
-end
-
-@event
-func Deny(user : felt):
-end
-
+# // --- Data ---
+# mapping (address => uint256) public wards;
 @storage_var
 func _wards(user : felt) -> (res : felt):
 end
 
-@view
-func wards{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(user : felt) -> (res : felt):
-    let (res) = _wards.read(user)
-    return (res)
-end
-
-func auth{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }():
-    let (caller) = get_caller_address()
-    let (ward) = _wards.read(caller)
-    with_attr error_message("l2_dai_bridge/not-authorized"):
-      assert ward = 1
-    end
-    return ()
-end
-
-@external
-func rely{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(user : felt):
-    auth()
-    _wards.write(user, 1)
-    Rely.emit(user)
-    return ()
-end
-
-@external
-func deny{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(user : felt):
-    auth()
-    _wards.write(user, 0)
-    Deny.emit(user)
-    return ()
-end
-
-# mapping(address => mapping (address => uint)) public can;
+# mapping(address => mapping (address => uint256)) public can;
 @storage_var
 func _can(b: felt, u: felt) -> (res : felt):
 end
 
-# function hope(address usr) external { can[msg.sender][usr] = 1; }
-@external
-func hope{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
-    }(usr: felt):
-    let (caller) = get_caller_address()
-    _can.write(caller, usr, 1)
-
-    return ()
-end
-
-# function nope(address usr) external { can[msg.sender][usr] = 0; }
-@external
-func nope{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
-    }(usr: felt):
-    let (caller) = get_caller_address()
-    _can.write(caller, usr, 0)
-
-    return ()
-end
-
-# function wish(address bit, address usr) internal view returns (bool) {
-@external
-func wish{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
-    }(bit: felt, usr: felt) -> (res: felt):
-    # return either(bit == usr, can[bit][usr] == 1);
-    if bit == usr:
-        return (res = 1)
-    end
-    let (res) = _can.read(bit, usr)
-    return (res)
-end
-
 
 # struct Ilk {
-#   uint256 Art;   // Total Normalised Debt     [wad]
-#   uint256 rate;  // Accumulated Rates         [ray]
-#   uint256 spot;  // Price with Safety Margin  [ray]
-#   uint256 line;  // Debt Ceiling              [rad]
-#   uint256 dust;  // Urn Debt Floor            [rad]
+#     uint256 Art;   // Total Normalised Debt     [wad]
+#     uint256 rate;  // Accumulated Rates         [ray]
+#     uint256 spot;  // Price with Safety Margin  [ray]
+#     uint256 line;  // Debt Ceiling              [rad]
+#     uint256 dust;  // Urn Debt Floor            [rad]
 # }
 struct Ilk:
     member Art: Uint256   # Total Normalised Debt     [wad]
@@ -191,6 +96,28 @@ end
 func _live() -> (live: felt):
 end
 
+
+# views
+@view
+func wards{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }(user : felt) -> (res : felt):
+    let (res) = _wards.read(user)
+    return (res)
+end
+
+@view
+func can{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }(b: felt, u: felt) -> (res : felt):
+    let (res) = _can.read(b, u)
+    return (res)
+end
+
 @view
 func ilks{
         syscall_ptr : felt*,
@@ -201,16 +128,85 @@ func ilks{
     return (ilk)
 end
 
+# TODO: views
+# urns
+# gem
+# dai
+# sin
+# debt
+# vice
+# Line
+# live
+
+# // --- Events ---
+# event Rely(address indexed usr);
+@event
+func Rely(user : felt):
+end
+
+# event Deny(address indexed usr);
+@event
+func Deny(user : felt):
+end
+
+# event Init(bytes32 indexed ilk);
+# event File(bytes32 indexed what, uint256 data);
 @event
 func File(what : felt, data : Uint256):
 end
 
+# event File(bytes32 indexed ilk, bytes32 indexed what, uint256 data);
 @event
 func File_ilk(ilk: felt, what : felt, data : Uint256):
 end
 
+# event Cage();
+# event Hope(address indexed from, address indexed to);
+# event Nope(address indexed from, address indexed to);
+# event Slip(bytes32 indexed ilk, address indexed usr, int256 wad);
+# event Flux(bytes32 indexed ilk, address indexed src, address indexed dst, uint256 wad);
+# event Move(address indexed src, address indexed dst, uint256 rad);
+# event Frob(bytes32 indexed i, address indexed u, address v, address w, int256 dink, int256 dart);
+# event Fork(bytes32 indexed ilk, address indexed src, address indexed dst, int256 dink, int256 dart);
+# event Grab(bytes32 indexed i, address indexed u, address v, address w, int256 dink, int256 dart);
+# event Heal(address indexed u, uint256 rad);
+# event Suck(address indexed u, address indexed v, uint256 rad);
+# event Fold(bytes32 indexed i, address indexed u, int256 rate);
+
+# modifier auth {
+#     require(wards[msg.sender] == 1, "Vat/not-authorized");
+#     _;
+# }
+func auth{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }():
+    let (caller) = get_caller_address()
+    let (ward) = _wards.read(caller)
+    with_attr error_message("l2_dai_bridge/not-authorized"):
+      assert ward = 1
+    end
+    return ()
+end
+
+# function wish(address bit, address usr) internal view returns (bool) {
+#     return either(bit == usr, can[bit][usr] == 1);
+# }
+@external
+func wish{
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+    }(bit: felt, usr: felt) -> (res: felt):
+    # return either(bit == usr, can[bit][usr] == 1);
+    if bit == usr:
+        return (res = 1)
+    end
+    let (res) = _can.read(bit, usr)
+    return (res)
+end
+
 # // --- Init ---
-# constructor() public {
+# constructor() {
 @constructor
 func constructor{
     syscall_ptr : felt*,
@@ -221,43 +217,139 @@ func constructor{
   ):
     # wards[msg.sender] = 1;
     _wards.write(ward, 1)
-    Rely.emit(ward)
 
     # live = 1;
     _live.write(1)
+
+    # emit Rely(msg.sender);
+    Rely.emit(ward)
 
     return ()
 end
 
 
-
 # // --- Math ---
-# function add(uint x, int y) internal pure returns (uint z) {
-#   z = x + uint(y);
-#   require(y >= 0 || z <= x);
-#   require(y <= 0 || z >= x);
+# function _add(uint256 x, int256 y) internal pure returns (uint256 z) {
+#     unchecked {
+#         z = x + uint256(y);
+#     }
+#     require(y >= 0 || z <= x);
+#     require(y <= 0 || z >= x);
 # }
-# function sub(uint x, int y) internal pure returns (uint z) {
-#   z = x - uint(y);
-#   require(y <= 0 || z <= x);
-#   require(y >= 0 || z >= x);
+
+# function _sub(uint256 x, int256 y) internal pure returns (uint256 z) {
+#     unchecked {
+#         z = x - uint256(y);
+#     }
+#     require(y <= 0 || z <= x);
+#     require(y >= 0 || z >= x);
 # }
-# function mul(uint x, int y) internal pure returns (int z) {
-#   z = int(x) * y;
-#   require(int(x) >= 0);
-#   require(y == 0 || z / y == int(x));
+
+# function _int256(uint256 x) internal pure returns (int256 y) {
+#     require((y = int256(x)) >= 0);
 # }
-# function add(uint x, uint y) internal pure returns (uint z) {
-#   require((z = x + y) >= x);
-# }
-# function sub(uint x, uint y) internal pure returns (uint z) {
-#   require((z = x - y) <= x);
-# }
-# function mul(uint x, uint y) internal pure returns (uint z) {
-#   require(y == 0 || (z = x * y) / y == x);
-# }
+# unsigned wad + signed wad -> unsigned wad
+func add{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
+    # TODO: implement
+    let (res, carry) = uint256_add(a, b)
+    assert carry = 0
+    return (res)
+end
+
+# unsigned wad + signed wad -> unsigned wad
+func add_signed{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
+    # TODO: implement
+    let (res, carry) = uint256_add(a, b)
+    assert carry = 0
+    return (res)
+end
+
+
+func sub{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
+    # TODO: implement
+    let (res) = uint256_sub(a, b)
+    return (res)
+end
+
+func sub_signed{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
+    # TODO: implement
+    let (res) = uint256_sub(a, b)
+    return (res)
+end
+
+func mul{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
+    # TODO: implement
+    assert 0 = 1
+    let res = Uint256(0, 0)
+    return (res)
+end
+
+func mul_signed{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
+    # TODO: implement
+    assert 0 = 1
+    let res = Uint256(0, 0)
+    return (res)
+end
+
+
+func require_live{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }():
+    # require(live == 1, "Vat/not-live");
+    with_attr error_message("Vat/not-live"):
+        let (live) = _live.read()
+        assert live = 1
+    end
+
+    return ()
+end
 
 # // --- Administration ---
+# function rely(address usr) external auth {
+@external
+func rely{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }(usr : felt):
+    auth()
+
+    # require(live == 1, "Vat/not-live");
+    require_live()
+
+    # wards[usr] = 1;
+    _wards.write(usr, 1)
+
+    # emit Rely(usr);
+    Rely.emit(usr)
+
+    return ()
+end
+
+
+# function deny(address usr) external auth {
+@external
+func deny{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }(user : felt):
+    auth()
+
+    # require(live == 1, "Vat/not-live");
+    require_live()
+
+    # wards[usr] = 0;
+    _wards.write(user, 0)
+
+    # emit Deny(usr);
+    Deny.emit(user)
+
+    return ()
+end
+
 # function init(bytes32 ilk) external auth {
 @external
 func init{
@@ -267,19 +359,22 @@ func init{
 
     auth()
 
-#   require(ilks[ilk].rate == 0, "Vat/ilk-already-init");
-#   ilks[ilk].rate = 10 ** 27;
+    # require(ilks[ilk].rate == 0, "Vat/ilk-already-init");
+    # ilks[ilk].rate = 10 ** 27;
     let (local i) = _ilks.read(ilk)
     with_attr error_message("Vat/ilk-already-init"):
         assert_0(i.rate)
     end
     _ilks.write(ilk, Ilk(Art = i.Art, rate = Uint256(low = 10 ** 27, high = 0), spot = i.spot, line = i.line, dust = i.dust))
 
+    # TODO:
+    #     emit Init(ilk);
+
     return ()
 end
 
 
-# function file(bytes32 what, uint data) external auth {
+# function file(bytes32 what, uint256 data) external auth {
 @external
 func file{
     syscall_ptr : felt*,
@@ -290,11 +385,8 @@ func file{
   ):
     auth()
 
-    # require(live == 1, "Vat/not-live");
-    with_attr error_message("Vat/not-live"):
-        let (live) = _live.read()
-        assert live = 1
-    end
+#     require(live == 1, "Vat/not-live");
+    require_live()
 
     # if (what == "Line") Line = data;
     # else revert("Vat/file-unrecognized-param");
@@ -304,12 +396,14 @@ func file{
 
     _Line.write(data)
 
+    # emit File(what, data);
     File.emit(what, data)
 
     return ()
 end
 
-# function file(bytes32 ilk, bytes32 what, uint data) external auth {
+
+# function file(bytes32 ilk, bytes32 what, uint256 data) external auth {
 @external
 func file_ilk{
     syscall_ptr : felt*,
@@ -323,10 +417,8 @@ func file_ilk{
     auth()
 
     # require(live == 1, "Vat/not-live");
-    with_attr error_message("Vat/not-live"):
-        let (live) = _live.read()
-        assert live = 1
-    end
+    require_live()
+
 
     let (local i) = _ilks.read(ilk)
 
@@ -353,8 +445,12 @@ func file_ilk{
         assert 1 = 0
     end
 
+    # emit File(ilk, what, data);
+    File_ilk.emit(ilk, what, data)
+
     return ()
 end
+
 
 # function cage() external auth {
 @external
@@ -363,9 +459,76 @@ func cage{
     }():
     auth()
 
+    # live = 0;
     _live.write(0)
+
+    # TODO
+    # emit Cage();
+
     return ()
 end
+
+# TODO: not sure if getters make sense in Starknet?
+# // --- Structs getters ---
+# function Art(bytes32 ilk) external view returns (uint256 Art_) {
+#     Art_ = ilks[ilk].Art;
+# }
+
+# function rate(bytes32 ilk) external view returns (uint256 rate_) {
+#     rate_ = ilks[ilk].rate;
+# }
+
+# function spot(bytes32 ilk) external view returns (uint256 spot_) {
+#     spot_ = ilks[ilk].spot;
+# }
+
+# function line(bytes32 ilk) external view returns (uint256 line_) {
+#     line_ = ilks[ilk].line;
+# }
+
+# function dust(bytes32 ilk) external view returns (uint256 dust_) {
+#     dust_ = ilks[ilk].dust;
+# }
+
+# function ink(bytes32 ilk, address urn) external view returns (uint256 ink_) {
+#     ink_ = urns[ilk][urn].ink;
+# }
+
+# function art(bytes32 ilk, address urn) external view returns (uint256 art_) {
+#     art_ = urns[ilk][urn].art;
+# }
+
+# // --- Allowance ---
+# function hope(address usr) external {
+@external
+func hope{
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+    }(usr: felt):
+    # can[msg.sender][usr] = 1;
+    let (caller) = get_caller_address()
+    _can.write(caller, usr, 1)
+
+    # TODO:
+    # emit Hope(msg.sender, usr);
+
+    return ()
+end
+
+# function nope(address usr) external {
+@external
+func nope{
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+    }(usr: felt):
+    # can[msg.sender][usr] = 0;
+    let (caller) = get_caller_address()
+    _can.write(caller, usr, 0)
+
+    # TODO:
+    # emit Nope(msg.sender, usr);
+
+    return ()
+end
+
 
 # // --- Fungibility ---
 # function slip(bytes32 ilk, address usr, int256 wad) external auth {
@@ -379,10 +542,13 @@ func slip{
 
     auth()
 
-    # gem[ilk][usr] = add(gem[ilk][usr], wad);
+    # gem[ilk][usr] = _add(gem[ilk][usr], wad);
     let (gem) = _gem.read(ilk, usr)
-    let (gem) = sub(gem, wad)
+    let (gem) = add_signed(gem, wad)
     _gem.write(ilk, usr, gem)
+
+    # TODO
+    # emit Slip(ilk, usr, wad);
 
     return ()
 end
@@ -401,19 +567,21 @@ func flux{
     let (src_consents) = wish(src, caller)
     assert src_consents = 1
 
-    # gem[ilk][src] = sub(gem[ilk][src], wad);
+    # gem[ilk][src] = gem[ilk][src] - wad;
     let (gem_src) = _gem.read(ilk, src)
     let (gem_src) = sub(gem_src, wad)
     _gem.write(ilk, src, gem_src)
 
-    # gem[ilk][dst] = add(gem[ilk][dst], wad);
+    # gem[ilk][dst] = gem[ilk][dst] + wad;
     let (gem_dst) = _gem.read(ilk, dst)
-    let (gem_dst) = sub(gem_dst, wad)
+    let (gem_dst) = add(gem_dst, wad)
     _gem.write(ilk, dst, gem_dst)
+
+    # TODO
+    # emit Flux(ilk, src, dst, wad);
 
     return ()
 end
-
 
 # function move(address src, address dst, uint256 rad) external {
 @external
@@ -429,22 +597,31 @@ func move{
     let (src_consents) = wish(src, caller)
     assert src_consents = 1
 
-    # dai[src] = sub(dai[src], rad);
+    # dai[src] = dai[src] - rad;
     let (dai_src) = _dai.read(src)
     let (dai_src) = sub(dai_src, rad)
     _dai.write(src, dai_src)
 
-    # dai[dst] = add(dai[dst], rad);
+    # dai[dst] = dai[dst] + rad;
     let (dai_dst) = _dai.read(dst)
-    let (dai_dst) = sub(dai_dst, rad)
+    let (dai_dst) = add(dai_dst, rad)
     _dai.write(dst, dai_dst)
+
+    # TODO
+    # emit Move(src, dst, rad);
 
     return ()
 end
 
+# Helpers
 # function either(bool x, bool y) internal pure returns (bool z) {
-#   assembly{ z := or(x, y)}
+#     assembly{ z := or(x, y)}
 # }
+
+# function both(bool x, bool y) internal pure returns (bool z) {
+#     assembly{ z := and(x, y)}
+# }
+
 func assert_either(a: felt, b: felt):
     # TODO: implement
     return ()
@@ -525,28 +702,8 @@ func eq_0(a: Uint256) -> (res: felt):
     return (1)
 end
 
-# unsigned wad + signed wad -> unsigned wad
-func add{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
-    let (res, carry) = uint256_add(a, b)
-    assert carry = 0
-    return (res)
-end
-
-func sub{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
-    # TODO: implement
-    let (res) = uint256_sub(a, b)
-    return (res)
-end
-
-
-func mul{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
-    assert 0 = 1
-    let res = Uint256(0, 0)
-    return (res)
-end
-
 # // --- CDP Manipulation ---
-# function frob(bytes32 i, address u, address v, address w, int dink, int dart) external {
+# function frob(bytes32 i, address u, address v, address w, int256 dink, int256 dart) external {
 @external
 func frob{
         syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
@@ -557,10 +714,7 @@ func frob{
 
     # // system is live
     # require(live == 1, "Vat/not-live");
-    with_attr error_message("Vat/not-live"):
-        let (live) = _live.read()
-        assert live = 1
-    end
+    require_live()
 
     # Urn memory urn = urns[i][u];
     # Ilk memory ilk = ilks[i];
@@ -573,23 +727,23 @@ func frob{
         assert_not_0(ilk.rate)
     end
 
-    # urn.ink = add(urn.ink, dink);
-    # urn.art = add(urn.art, dart);
-    # ilk.Art = add(ilk.Art, dart);
-    let (ink) = add(urn.ink, dink)
-    let (art) = add(urn.art, dart)
-    let (Art) = add(ilk.Art, dart)
+    # urn.ink = _add(urn.ink, dink);
+    # urn.art = _add(urn.art, dart);
+    # ilk.Art = _add(ilk.Art, dart);
+    let (ink) = add_signed(urn.ink, dink)
+    let (art) = add_signed(urn.art, dart)
+    let (Art) = add_signed(ilk.Art, dart)
 
-    # int dtab = mul(ilk.rate, dart);
-    # uint tab = mul(ilk.rate, urn.art);
-    # debt     = add(debt, dtab);
-    let (dtab) = mul(ilk.rate, dart)
+    # int256 dtab = _int256(ilk.rate) * dart;
+    # uint256 tab = ilk.rate * urn.art;
+    # debt     = _add(debt, dtab);
+    let (dtab) = mul_signed(ilk.rate, dart)
     let (tab)  = mul(ilk.rate, art)
     let (debt) = _debt.read()
-    let (debt) = add(debt, dtab)
+    let (debt) = add_signed(debt, dtab)
 
     # // either debt has decreased, or debt ceilings are not exceeded
-    # require(either(dart <= 0, both(mul(ilk.Art, ilk.rate) <= ilk.line, debt <= Line)), "Vat/ceiling-exceeded");
+    # require(either(dart <= 0, both(ilk.Art * ilk.rate <= ilk.line, debt <= Line)), "Vat/ceiling-exceeded");
     with_attr error_message("Vat/ceiling-exceeded"):
         let (debt_decreased) = le_0(dart)
         let (ilk_debt) = mul(Art, ilk.rate)
@@ -600,7 +754,7 @@ func frob{
     end
 
     # // urn is either less risky than before, or it is safe
-    # require(either(both(dart <= 0, dink >= 0), tab <= mul(urn.ink, ilk.spot)), "Vat/not-safe");
+    # require(either(both(dart <= 0, dink >= 0), tab <= urn.ink * ilk.spot), "Vat/not-safe");
     with_attr error_message("Vat/not-safe"):
         let (dart_le_0) = le_0(dart)
         let (dink_ge_0) = ge_0(dink)
@@ -649,12 +803,12 @@ func frob{
 
     # gem[i][v] = sub(gem[i][v], dink);
     let (gem) = _gem.read(i, v)
-    let (gem) = add(gem, dink)
+    let (gem) = sub_signed(gem, dink)
     _gem.write(i, v, gem)
 
     # dai[w]    = add(dai[w],    dtab);
     let (dai) = _dai.read(w)
-    let (dai) = add(dai, dtab)
+    let (dai) = add_signed(dai, dtab)
     _dai.write(w, dai)
 
     # urns[i][u] = urn;
@@ -663,11 +817,13 @@ func frob{
     # ilks[i]    = ilk;
     _ilks.write(i, Ilk(Art = Art, rate = ilk.rate, spot = ilk.spot, line = ilk.line, dust = ilk.dust))
 
+    # emit Frob(i, u, v, w, dink, dart);
+
     return ()
 end
 
 # // --- CDP Fungibility ---
-# function fork(bytes32 ilk, address src, address dst, int dink, int dart) external {
+# function fork(bytes32 ilk, address src, address dst, int256 dink, int256 dart) external {
 @external
 func fork{
         syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
@@ -687,16 +843,16 @@ func fork{
     # u.art = sub(u.art, dart);
     # v.ink = add(v.ink, dink);
     # v.art = add(v.art, dart);
-    let (u_ink) = sub(u.ink, dink)
-    let (u_art) = sub(u.art, dart)
-    let (v_ink) = add(v.ink, dink)
-    let (v_art) = add(v.art, dart)
+    let (u_ink) = sub_signed(u.ink, dink)
+    let (u_art) = sub_signed(u.art, dart)
+    let (v_ink) = add_signed(v.ink, dink)
+    let (v_art) = add_signed(v.art, dart)
 
     _urns.write(ilk, src, Urn(ink=u_ink, art=u_art))
     _urns.write(ilk, dst, Urn(ink=v_ink, art=v_art))
 
-    # uint utab = mul(u.art, i.rate);
-    # uint vtab = mul(v.art, i.rate);
+    # uint256 utab = u.art * i.rate;
+    # uint256 vtab = v.art * i.rate;
     let (u_tab) = mul(u_art, i.rate)
     let (v_tab) = mul(v_art, i.rate)
 
@@ -711,12 +867,12 @@ func fork{
     end
 
     # // both sides safe
-    # require(utab <= mul(u.ink, i.spot), "Vat/not-safe-src");
+    # require(utab <= u.ink * i.spot, "Vat/not-safe-src")
     with_attr error_message("Vat/not-safe-src"):
         let (brim) = mul(u_ink, i.spot)
         assert_le(u_tab, brim)
     end
-    # require(vtab <= mul(v.ink, i.spot), "Vat/not-safe-dst");
+    # require(vtab <= v.ink * i.spot, "Vat/not-safe-dst");
     with_attr error_message("Vat/not-safe-dst"):
         let (brim) = mul(v_ink, i.spot)
         assert_le(v_tab, brim)
@@ -737,12 +893,14 @@ func fork{
         assert_either(v_tab_le_i_dust, v_art_eq_0)
     end
 
+    # TODO
+    # emit Fork(ilk, src, dst, dink, dart);
+
     return ()
 end
 
-
 # // --- CDP Confiscation ---
-# function grab(bytes32 i, address u, address v, address w, int dink, int dart) external auth {
+# function grab(bytes32 i, address u, address v, address w, int256 dink, int256 dart) external auth {
 @external
 func grab{
         syscall_ptr : felt*,
@@ -759,41 +917,42 @@ func grab{
     let (urn) = _urns.read(i, u)
     let (ilk) = _ilks.read(i)
 
-    # urn.ink = add(urn.ink, dink);
-    # urn.art = add(urn.art, dart);
-    let (ink) = add(urn.ink, dink)
-    let (art) = add(urn.art, dart)
-    let urn = Urn(ink = ink, art = art)
-    _urns.write(i, u, urn)
+    # urn.ink = _add(urn.ink, dink);
+    # urn.art = _add(urn.art, dart);
+    let (ink) = add_signed(urn.ink, dink)
+    let (art) = add_signed(urn.art, dart)
+    _urns.write(i, u, Urn(ink = ink, art = art))
 
-    # ilk.Art = add(ilk.Art, dart);
-    let (Art) = add(ilk.Art, dart)
+    # ilk.Art = _add(ilk.Art, dart);
+    let (Art) = add_signed(ilk.Art, dart)
     _ilks.write(i, Ilk(Art = Art, rate = ilk.rate, spot = ilk.spot, line = ilk.line, dust = ilk.dust))
 
     # int dtab = mul(ilk.rate, dart);
-    let (dtab) = mul(ilk.rate, dart)
+    let (dtab) = mul_signed(ilk.rate, dart)
 
-    # gem[i][v] = sub(gem[i][v], dink);
+    # gem[i][v] = _sub(gem[i][v], dink);
     let (gem) = _gem.read(i, v)
-    let (gem) = add(gem, dink)
+    let (gem) = sub_signed(gem, dink)
     _gem.write(i, v, gem)
 
-    # sin[w]    = sub(sin[w],    dtab);
+    # sin[w]    = _sub(sin[w],    dtab);
     let (sin) = _sin.read(w)
-    let (sin) = sub(sin, dtab)
+    let (sin) = sub_signed(sin, dtab)
     _sin.write(w, sin)
 
-    # vice      = sub(vice,      dtab);
+    # vice      = _sub(vice,      dtab);
     let (vice) = _vice.read()
-    let (vice) = sub(vice, dtab)
+    let (vice) = sub_signed(vice, dtab)
     _vice.write(vice)
+
+    # TODO
+    # emit Grab(i, u, v, w, dink, dart);
 
     return ()
 end
 
-
 # // --- Settlement ---
-# function heal(uint rad) external {
+# function heal(uint256 rad) external {
 @external
 func heal{
         syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
@@ -804,30 +963,32 @@ func heal{
     # address u = msg.sender;
     let(u) = get_caller_address()
 
-    # sin[u] = sub(sin[u], rad);
+    # sin[u] = sin[u] - rad;
     let (sin) = _sin.read(u)
     let (sin) = sub(sin, rad)
     _sin.write(u, sin)
 
-    # dai[u] = sub(dai[u], rad);
+    # dai[u] = dai[u] - rad;
     let (dai) = _dai.read(u)
     let (dai) = sub(dai, rad)
     _dai.write(u, dai)
 
-    # vice   = sub(vice,   rad);
+    # vice   = vice   - rad;
     let (vice) = _vice.read()
     let (vice) = sub(vice, rad)
     _vice.write(vice)
 
-    # debt   = sub(debt,   rad);
+    # debt   = debt   - rad;
     let (debt) = _debt.read()
     let (debt) = sub(debt, rad)
     _debt.write(debt)
 
+    # emit Heal(msg.sender, rad);
+
     return ()
 end
 
-# function suck(address u, address v, uint rad) external auth {
+# function suck(address u, address v, uint256 rad) external auth {
 @external
 func suck{
         syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
@@ -837,32 +998,33 @@ func suck{
 
     auth()
 
-    # sin[u] = add(sin[u], rad);
+    # sin[u] = sin[u] + rad;
     let (sin) = _sin.read(u)
     let (sin) = sub(sin, rad)
     _sin.write(u, sin)
 
-    # dai[v] = add(dai[v], rad);
+    # dai[v] = dai[v] + rad;
     let (dai) = _dai.read(v)
     let (dai) = sub(dai, rad)
     _dai.write(v, dai)
 
-    # vice   = add(vice,   rad);
+    # vice   = vice   + rad;
     let (vice) = _vice.read()
     let (vice) = sub(vice, rad)
     _vice.write(vice)
 
-    # debt   = add(debt,   rad);
+    # debt   = debt   + rad;
     let (debt) = _debt.read()
     let (debt) = sub(debt, rad)
     _debt.write(debt)
 
+    # emit Suck(u, v, rad);
+
     return ()
 end
 
-
 # // --- Rates ---
-# function fold(bytes32 i, address u, int rate) external auth {
+# function fold(bytes32 i, address u, int256 rate_) external auth {
 @external
 func fold{
         syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
@@ -873,31 +1035,30 @@ func fold{
     auth()
 
     # require(live == 1, "Vat/not-live");
-    with_attr error_message("Vat/not-live"):
-        let (live) = _live.read()
-        assert live = 1
-    end
+    require_live()
 
     # Ilk storage ilk = ilks[i];
     let (ilk) = _ilks.read(i)
 
-    # ilk.rate = add(ilk.rate, rate);
-    let (ilk_rate) = add(ilk.rate, rate)
+    # ilk.rate = _add(ilk.rate, rate_);
+    let (ilk_rate) = add_signed(ilk.rate, rate)
 
     _ilks.write(i, Ilk(Art = ilk.Art, rate = ilk_rate, spot = ilk.spot, line = ilk.line, dust = ilk.dust))
 
-    # int rad  = mul(ilk.Art, rate);
-    let (rad) = mul(ilk.Art, rate)
+    # int256 rad  = _int256(ilk.Art) * rate_;
+    let (rad) = mul_signed(ilk.Art, rate)
 
-    # dai[u]   = add(dai[u], rad);
+    # dai[u]   = _add(dai[u], rad);
     let (dai) = _dai.read(u)
-    let (dai) = sub(dai, rad)
+    let (dai) = add(dai, rad)
     _dai.write(u, dai)
 
-    # debt     = add(debt,   rad);
+    # debt     = _add(debt,   rad);
     let (debt) = _debt.read()
-    let (debt) = sub(debt, rad)
+    let (debt) = add(debt, rad)
     _debt.write(debt)
 
+    # TODO
+    # emit Fold(i, u, rate_);
     return ()
 end
