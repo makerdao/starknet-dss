@@ -1,7 +1,7 @@
 %lang starknet
-%builtins pedersen range_check
+%builtins pedersen range_check bitwise
 
-from starkware.cairo.common.cairo_builtins import HashBuiltin
+from starkware.cairo.common.cairo_builtins import (HashBuiltin, BitwiseBuiltin)
 from starkware.cairo.common.uint256 import (
   Uint256,
   uint256_add,
@@ -363,6 +363,7 @@ func file{
 
     _Line.write(data)
 
+    # TODO
     # emit File(what, data);
     File.emit(what, data)
 
@@ -412,6 +413,7 @@ func file_ilk{
         assert 1 = 0
     end
 
+    # TODO
     # emit File(ilk, what, data);
     File_ilk.emit(ilk, what, data)
 
@@ -501,7 +503,7 @@ end
 # function slip(bytes32 ilk, address usr, int256 wad) external auth {
 @external
 func slip{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
     }(
         ilk: felt, usr: felt, wad: Uint256
     ):
@@ -523,7 +525,7 @@ end
 # function flux(bytes32 ilk, address src, address dst, uint256 wad) external {
 @external
 func flux{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
     }(
         ilk: felt, src: felt, dst: felt, wad: Uint256
     ):
@@ -553,7 +555,7 @@ end
 # function move(address src, address dst, uint256 rad) external {
 @external
 func move{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
     }(
         src: felt, dst: felt, rad: Uint256
     ):
@@ -594,7 +596,7 @@ end
 # function frob(bytes32 i, address u, address v, address w, int256 dink, int256 dart) external {
 @external
 func frob{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
     }(
         i: felt, u: felt, v: felt, w: felt, dink: Uint256, dart: Uint256
     ):
@@ -705,6 +707,7 @@ func frob{
     # ilks[i]    = ilk;
     _ilks.write(i, Ilk(Art = Art, rate = ilk.rate, spot = ilk.spot, line = ilk.line, dust = ilk.dust))
 
+    # TODO
     # emit Frob(i, u, v, w, dink, dart);
 
     return ()
@@ -714,7 +717,7 @@ end
 # function fork(bytes32 ilk, address src, address dst, int256 dink, int256 dart) external {
 @external
 func fork{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
     }(
         ilk: felt, src: felt, dst: felt, dink: Uint256, dart: Uint256
     ):
@@ -793,10 +796,12 @@ end
 func grab{
         syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*,
-        range_check_ptr
+        range_check_ptr,
+        bitwise_ptr : BitwiseBuiltin*
     }(
         i: felt, u: felt, v: felt, w: felt, dink: Uint256, dart: Uint256
     ):
+    alloc_locals
 
     auth()
 
@@ -843,10 +848,11 @@ end
 # function heal(uint256 rad) external {
 @external
 func heal{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
     }(
         rad: Uint256
     ):
+    alloc_locals
 
     # address u = msg.sender;
     let(u) = get_caller_address()
@@ -871,6 +877,7 @@ func heal{
     let (debt) = sub(debt, rad)
     _debt.write(debt)
 
+    # TODO
     # emit Heal(msg.sender, rad);
 
     return ()
@@ -879,10 +886,11 @@ end
 # function suck(address u, address v, uint256 rad) external auth {
 @external
 func suck{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
     }(
         u: felt, v: felt, rad: Uint256
     ):
+    alloc_locals
 
     auth()
 
@@ -906,6 +914,7 @@ func suck{
     let (debt) = sub(debt, rad)
     _debt.write(debt)
 
+    # TODO
     # emit Suck(u, v, rad);
 
     return ()
@@ -915,10 +924,11 @@ end
 # function fold(bytes32 i, address u, int256 rate_) external auth {
 @external
 func fold{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
     }(
         i: felt, u: felt, rate: Uint256
     ):
+    alloc_locals
 
     auth()
 

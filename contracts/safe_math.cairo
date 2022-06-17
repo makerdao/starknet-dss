@@ -1,5 +1,3 @@
-%lang starknet
-
 from starkware.cairo.common.bitwise import bitwise_and
 from starkware.cairo.common.cairo_builtins import (HashBuiltin, BitwiseBuiltin)
 from starkware.cairo.common.uint256 import (
@@ -18,7 +16,38 @@ from starkware.cairo.common.uint256 import (
 const MASK128 = 2 ** 128 - 1
 const BOUND128 = 2 ** 128
 
-func warp__add256{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
+func add{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(lhs : Uint256, rhs : Uint256) -> (res : Uint256):
+    let (res : Uint256, carry : felt) = uint256_add(lhs, rhs)
+    assert carry = 0
+    return (res)
+end
+
+func sub{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(lhs : Uint256, rhs : Uint256) -> (
+    res : Uint256
+):
+    let (safe) = uint256_le(rhs, lhs)
+    assert safe = 1
+    # preemptively borrow from bit128
+    let (low_safe) = bitwise_and(BOUND128 + lhs.low - rhs.low, MASK128)
+    let low_unsafe = lhs.low - rhs.low
+    if low_safe == low_unsafe:
+        # the borrow was not used
+        return (Uint256(low_safe, lhs.high - rhs.high))
+    else:
+        # the borrow was used
+        return (Uint256(low_safe, lhs.high - rhs.high - 1))
+    end
+end
+
+func mul{range_check_ptr}(lhs : Uint256, rhs : Uint256) -> (res : Uint256):
+    let (result : Uint256, overflow : Uint256) = uint256_mul(lhs, rhs)
+    assert overflow.low = 0
+    assert overflow.high = 0
+    return (result)
+end
+
+# unsigned wad + signed wad -> unsigned wad
+func _add{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
         lhs : Uint256, rhs : Uint256) -> (res : Uint256):
     let (lhs_extend) = bitwise_and(lhs.high, 0x80000000000000000000000000000000)
     let (rhs_extend) = bitwise_and(rhs.high, 0x80000000000000000000000000000000)
@@ -30,13 +59,8 @@ func warp__add256{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
     return (res)
 end
 
-func warp_add256{range_check_ptr}(lhs : Uint256, rhs : Uint256) -> (res : Uint256):
-    let (res : Uint256, carry : felt) = uint256_add(lhs, rhs)
-    assert carry = 0
-    return (res)
-end
-
-func warp__sub256{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
+# unsigned - signed -> unsigned wad
+func _sub{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
         lhs : Uint256, rhs : Uint256) -> (res : Uint256):
     # First sign extend both operands
     let (left_msb : felt) = bitwise_and(lhs.high, 0x80000000000000000000000000000000)
@@ -60,25 +84,9 @@ func warp__sub256{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
     return (res)
 end
 
-func warp_sub256{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(lhs : Uint256, rhs : Uint256) -> (
-    res : Uint256
-):
-    let (safe) = uint256_le(rhs, lhs)
-    assert safe = 1
-    # preemptively borrow from bit128
-    let (low_safe) = bitwise_and(BOUND128 + lhs.low - rhs.low, MASK128)
-    let low_unsafe = lhs.low - rhs.low
-    if low_safe == low_unsafe:
-        # the borrow was not used
-        return (Uint256(low_safe, lhs.high - rhs.high))
-    else:
-        # the borrow was used
-        return (Uint256(low_safe, lhs.high - rhs.high - 1))
-    end
-end
-
-func warp__mul256{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
-        lhs : Uint256, rhs : Uint256) -> (result : Uint256):
+# unsigned * signed -> signed wad
+func _mul{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
+        lhs : Uint256, rhs : Uint256) -> (res : Uint256):
     alloc_locals
     let (lhs_nn) = uint256_signed_nn(lhs)
     let (local rhs_nn) = uint256_signed_nn(rhs)
@@ -90,55 +98,5 @@ func warp__mul256{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
     let (msb) = bitwise_and(res_abs.high, 0x80000000000000000000000000000000)
     assert msb = 0
     let (res) = uint256_cond_neg(res_abs, (lhs_nn + rhs_nn) * (2 - lhs_nn - rhs_nn))
-    return (res)
-end
-
-func warp_mul256{range_check_ptr}(lhs : Uint256, rhs : Uint256) -> (res : Uint256):
-    let (result : Uint256, overflow : Uint256) = uint256_mul(lhs, rhs)
-    assert overflow.low = 0
-    assert overflow.high = 0
-    return (result)
-end
-
-# unsigned wad + signed wad -> unsigned wad
-func add{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
-    # TODO: implement
-    let (res, carry) = uint256_add(a, b)
-    assert carry = 0
-    return (res)
-end
-
-# unsigned wad + signed wad -> unsigned wad
-func _add{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
-    # TODO: implement
-    let (res, carry) = uint256_add(a, b)
-    assert carry = 0
-    return (res)
-end
-
-
-func sub{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
-    # TODO: implement
-    let (res) = uint256_sub(a, b)
-    return (res)
-end
-
-func _sub{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
-    # TODO: implement
-    let (res) = uint256_sub(a, b)
-    return (res)
-end
-
-func mul{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
-    # TODO: implement
-    assert 0 = 1
-    let res = Uint256(0, 0)
-    return (res)
-end
-
-func _mul{range_check_ptr}(a: Uint256, b: Uint256) -> (res: Uint256):
-    # TODO: implement
-    assert 0 = 1
-    let res = Uint256(0, 0)
     return (res)
 end
