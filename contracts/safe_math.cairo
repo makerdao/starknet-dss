@@ -16,12 +16,14 @@ from starkware.cairo.common.uint256 import (
 const MASK128 = 2 ** 128 - 1
 const BOUND128 = 2 ** 128
 
+# unsigned wad + unsigned wad -> unsigned wad
 func add{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(lhs : Uint256, rhs : Uint256) -> (res : Uint256):
     let (res : Uint256, carry : felt) = uint256_add(lhs, rhs)
     assert carry = 0
     return (res)
 end
 
+# unsigned wad - unsigned wad -> unsigned wad
 func sub{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(lhs : Uint256, rhs : Uint256) -> (
     res : Uint256
 ):
@@ -39,6 +41,7 @@ func sub{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(lhs : Uint256, rhs : Ui
     end
 end
 
+# unsigned wad * unsigned wad -> unsigned wad
 func mul{range_check_ptr}(lhs : Uint256, rhs : Uint256) -> (res : Uint256):
     let (result : Uint256, overflow : Uint256) = uint256_mul(lhs, rhs)
     assert overflow.low = 0
@@ -49,6 +52,8 @@ end
 # unsigned wad + signed wad -> unsigned wad
 func _add{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
         lhs : Uint256, rhs : Uint256) -> (res : Uint256):
+    let (lhs_nn) = uint256_signed_nn(lhs)
+    assert lhs_nn = 1
     let (lhs_extend) = bitwise_and(lhs.high, 0x80000000000000000000000000000000)
     let (rhs_extend) = bitwise_and(rhs.high, 0x80000000000000000000000000000000)
     let (res : Uint256, carry : felt) = uint256_add(lhs, rhs)
@@ -62,6 +67,9 @@ end
 # unsigned - signed -> unsigned wad
 func _sub{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
         lhs : Uint256, rhs : Uint256) -> (res : Uint256):
+    let (lhs_nn) = uint256_signed_nn(lhs)
+    assert lhs_nn = 1
+
     # First sign extend both operands
     let (left_msb : felt) = bitwise_and(lhs.high, 0x80000000000000000000000000000000)
     let (right_msb : felt) = bitwise_and(rhs.high, 0x80000000000000000000000000000000)
@@ -89,7 +97,9 @@ func _mul{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
         lhs : Uint256, rhs : Uint256) -> (res : Uint256):
     alloc_locals
     let (lhs_nn) = uint256_signed_nn(lhs)
+    assert lhs_nn = 1
     let (local rhs_nn) = uint256_signed_nn(rhs)
+    # TODO: since lhs_nn = 1 line below is unnecesary
     let (lhs_abs) = uint256_cond_neg(lhs, 1 - lhs_nn)
     let (rhs_abs) = uint256_cond_neg(rhs, 1 - rhs_nn)
     let (res_abs, overflow) = uint256_mul(lhs_abs, rhs_abs)
