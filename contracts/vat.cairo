@@ -17,7 +17,7 @@ from safe_math import (
 )
 from assertions import (
     assert_either, either, both, assert_both,
-    not_0, assert_not_0, assert_0, ge, gt_0,
+    not_0, assert_not_0, assert_0, ge,
     ge_0, le, assert_le, le_0, eq_0
 )
 
@@ -328,7 +328,7 @@ func init{
 
     # require(ilks[ilk].rate == 0, "Vat/ilk-already-init");
     # ilks[ilk].rate = 10 ** 27;
-    let (local i) = _ilks.read(ilk)
+    let (local i) = _ilks.read(ilk) #TODO: is local necessary
     with_attr error_message("Vat/ilk-already-init"):
         assert_0(i.rate)
     end
@@ -686,7 +686,7 @@ func frob{
     # require(either(urn.art == 0, tab >= ilk.dust), "Vat/dust");
     # TODO: how to manage underwater dusty vaults?
     with_attr error_message("Vat/dust"):
-        let (no_debt) = not_0(art)
+        let (no_debt) = eq_0(art)
         let (non_dusty) = ge(tab, ilk.dust)
         assert_either(no_debt, non_dusty)
     end
