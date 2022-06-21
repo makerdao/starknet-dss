@@ -90,7 +90,7 @@ func auth{
   }():
     let (caller) = get_caller_address()
     let (ward) = _wards.read(caller)
-    with_attr error_message("gem_join/not-authorized"):
+    with_attr error_message("GemJoin/not-authorized"):
       assert ward = 1
     end
     return ()
@@ -144,11 +144,11 @@ func join{
     range_check_ptr
   }(user : felt, wad : Uint256):
     let (live) = get_caller_address()
-    with_attr error_message("gem_join/not-live"):
+    with_attr error_message("GemJoin/not-live"):
       assert live = 1
     end
 
-    with_attr error_message("gem_join/overflow"):
+    with_attr error_message("GemJoin/overflow"):
       # assert int128(wad) >= 0
       assert wad >= 0
     end
@@ -158,7 +158,7 @@ func join{
     # IVat(vat).slip(ilk, user, int256(wad))
     IVat(vat).slip(ilk, user, wad)
 
-    with_attr error_message("gem_join/failed-transfer"):
+    with_attr error_message("GemJoin/failed-transfer"):
       let (res,) = IGem(gem).transferFrom(caller, contract_address, wad)
       assert res = 1
     end
@@ -171,8 +171,8 @@ func exit{
     pedersen_ptr : HashBuiltin*,
     range_check_ptr
   }(user : felt, wad : Uint256):
-    with_attr error_message("gem_join/overflow"):
-      assert_uint256_le(wad, Uint256(low=2**128-1, high=2**128-1)) 
+    with_attr error_message("GemJoin/overflow"):
+      assert_uint256_le(wad, Uint256(low=2**128-1, high=2**128-1))
     end
     let (vat) = _vat.read()
     let (ilk) = _ilk.read()
@@ -180,7 +180,7 @@ func exit{
     # IVat(vat).slip(ilk, user, int256(wad))
     IVat(vat).slip(ilk, user, wad)
 
-    with_attr error_message("gem_join/failed-transfer"):
+    with_attr error_message("GemJoin/failed-transfer"):
       let (res,) = IGem(gem).transfer(user, wad)
       assert res = 1
     end

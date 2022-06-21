@@ -80,6 +80,7 @@ func join{
     let (contract_address) = get_contract_address()
     let (caller) = get_caller_address()
 
+    # TODO: safe math?
     let (value) = uint256_mul(RAY, wad)
 
     IVat(vat).move(contract_address, user, value)
@@ -102,6 +103,7 @@ func exit{
     let (contract_address) = get_contract_address()
     let (caller) = get_caller_address()
 
+    # TODO: safe math?
     let (value) = uint256_mul(RAY, wad)
 
     IVat(vat).move(caller, contract_address, value)
