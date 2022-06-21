@@ -15,12 +15,21 @@
 
 %lang starknet
 
-from starkware.starknet.common.syscalls import (get_contract_address)
-from starkware.cairo.common.uint256 import (Uint256, uint256_mul, split_64)
+from starkware.cairo.common.cairo_builtins import HashBuiltin
+from starkware.starknet.common.syscalls import (get_contract_address, get_caller_address)
+from starkware.cairo.common.math import (
+  assert_le,
+)
+from starkware.cairo.common.uint256 import (
+  Uint256,
+  uint256_mul,
+  split_64,
+  uint256_le
+)
 
 @contract_interface
 namespace IGem:
-  func decimals() -> (res : Uint256):
+  func decimals() -> (res : felt):
   end
 
   func transfer(to_address : felt, value : Uint256) -> (res: felt):
@@ -63,10 +72,6 @@ func _wards(user : felt) -> (res : felt):
 end
 
 @storage_var
-func _live() -> (res : felt):
-end
-
-@storage_var
 func _vat() -> (res : felt):
 end
 
@@ -80,6 +85,10 @@ end
 
 @storage_var
 func _dec() -> (res : felt):
+end
+
+@storage_var
+func _live() -> (res : felt):
 end
 
 
@@ -97,25 +106,49 @@ func auth{
 end
 
 @external
-func rely(user : felt):
+func rely{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }(user : felt):
     auth()
     _wards.write(user, 1)
     Rely.emit(user)
+    return ()
 end
 
 @external
-func deny(user : felt):
+func deny{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }(user : felt):
     auth()
     _wards.write(user, 0)
     Deny.emit(user)
+    return ()
 end
 
 @external
-func cage():
+func cage{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }():
     auth()
     Cage.emit()
+    return ()
 end
 
+# constructor(address vat_, bytes32 ilk_, address gem_) public {
+#     wards[msg.sender] = 1;
+#     live = 1;
+#     vat = VatLike(vat_);
+#     ilk = ilk_;
+#     gem = GemLike(gem_);
+#     dec = gem.decimals();
+#     emit Rely(msg.sender);
+# }
 @constructor
 func constructor{
     syscall_ptr : felt*,
@@ -123,7 +156,7 @@ func constructor{
     range_check_ptr
   }(
     vat : felt,
-    ilk : felt
+    ilk : felt,
     gem : felt
   ):
     let (caller) = get_caller_address()
@@ -131,40 +164,63 @@ func constructor{
     _live.write(1)
     _vat.write(vat)
     _ilk.write(ilk)
-    let (dec) = IGem(gem).decimals()
+    _gem.write(gem)
+    let (dec) = IGem.decimals(gem)
     _dec.write(dec)
     Rely.emit(caller)
+    return ()
 end
 
-
+# function join(address usr, uint wad) external {
+#     require(live == 1, "GemJoin/not-live");
+#     require(int(wad) >= 0, "GemJoin/overflow");
+#     vat.slip(ilk, usr, int(wad));
+#     require(gem.transferFrom(msg.sender, address(this), wad), "GemJoin/failed-transfer");
+#     emit Join(usr, wad);
+# }
 @external
 func join{
     syscall_ptr : felt*,
     pedersen_ptr : HashBuiltin*,
     range_check_ptr
   }(user : felt, wad : Uint256):
-    let (live) = get_caller_address()
+    alloc_locals
+    let (caller) = get_caller_address()
+    let (contract_address) = get_contract_address()
+    let (live) = _live.read()
     with_attr error_message("GemJoin/not-live"):
       assert live = 1
     end
 
-    with_attr error_message("GemJoin/overflow"):
-      # assert int128(wad) >= 0
-      assert wad >= 0
-    end
+    # local syscall_ptr: felt* = syscall_ptr
+    # assert int128(wad) >= 0
+    # let (res) = uint256_le(Uint256(0, 0), wad)
+    # with_attr error_message("gem_join/overflow"):
+    #   assert res = 1
+    # end
 
     let (vat) = _vat.read()
+    let (gem) = _gem.read()
     let (ilk) = _ilk.read()
     # IVat(vat).slip(ilk, user, int256(wad))
-    IVat(vat).slip(ilk, user, wad)
+    IVat.slip(vat, ilk, user, wad)
 
     with_attr error_message("GemJoin/failed-transfer"):
       let (res,) = IGem(gem).transferFrom(caller, contract_address, wad)
       assert res = 1
     end
+
     Join.emit(user, wad)
+
+    return ()
 end
 
+# function exit(address usr, uint wad) external {
+#     require(wad <= 2 ** 255, "GemJoin/overflow");
+#     vat.slip(ilk, msg.sender, -int(wad));
+#     require(gem.transfer(usr, wad), "GemJoin/failed-transfer");
+#     emit Exit(usr, wad);
+# }
 @external
 func exit{
     syscall_ptr : felt*,
@@ -178,11 +234,13 @@ func exit{
     let (ilk) = _ilk.read()
     let (gem) = _gem.read()
     # IVat(vat).slip(ilk, user, int256(wad))
-    IVat(vat).slip(ilk, user, wad)
+    IVat.slip(vat, ilk, user, wad)
 
     with_attr error_message("GemJoin/failed-transfer"):
       let (res,) = IGem(gem).transfer(user, wad)
       assert res = 1
     end
     Exit.emit(user, wad)
+
+    return ()
 end

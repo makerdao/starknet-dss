@@ -83,8 +83,8 @@ func join{
     # TODO: safe math?
     let (value) = uint256_mul(RAY, wad)
 
-    IVat(vat).move(contract_address, user, value)
-    IDAI(dai).burn(caller, wad)
+    IVat.move(vat, contract_address, user, value)
+    IDAI.burn(dai, caller, wad)
 
     Join.emit(user, wad)
 
@@ -106,8 +106,8 @@ func exit{
     # TODO: safe math?
     let (value) = uint256_mul(RAY, wad)
 
-    IVat(vat).move(caller, contract_address, value)
-    IDAI(dai).mint(urs, wad)
+    IVat.move(vat, caller, contract_address, value)
+    IDAI.mint(dai, urs, wad)
 
     Join.emit(user, wad)
 
