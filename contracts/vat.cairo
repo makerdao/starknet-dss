@@ -498,6 +498,13 @@ func nope{
     return ()
 end
 
+func check{range_check_ptr}(a: Uint256):
+    with_attr error_message("Vat/invalid amount"):
+      uint256_check(a)
+    end
+    return ()
+end
+
 
 # // --- Fungibility ---
 # function slip(bytes32 ilk, address usr, int256 wad) external auth {
@@ -510,6 +517,8 @@ func slip{
     alloc_locals
 
     auth()
+
+    check(wad)
 
     # gem[ilk][usr] = _add(gem[ilk][usr], wad);
     let (gem) = _gem.read(ilk, usr)
@@ -530,6 +539,8 @@ func flux{
         ilk: felt, src: felt, dst: felt, wad: Uint256
     ):
     alloc_locals
+
+    check(wad)
 
     # require(wish(src, msg.sender), "Vat/not-allowed");
     let (caller) = get_caller_address()
@@ -561,10 +572,14 @@ func move{
     ):
     alloc_locals
 
+    check(rad)
+
     # require(wish(src, msg.sender), "Vat/not-allowed");
     let (caller) = get_caller_address()
     let (src_consents) = wish(src, caller)
-    assert src_consents = 1
+    with_attr error_message("Vat/not-allowed"):
+        assert src_consents = 1
+    end
 
     # dai[src] = dai[src] - rad;
     let (dai_src) = _dai.read(src)
@@ -601,6 +616,9 @@ func frob{
         i: felt, u: felt, v: felt, w: felt, dink: Uint256, dart: Uint256
     ):
     alloc_locals
+
+    check(dink)
+    check(dart)
 
     # // system is live
     # require(live == 1, "Vat/not-live");
@@ -723,6 +741,9 @@ func fork{
     ):
     alloc_locals
 
+    check(dink)
+    check(dart)
+
     # Urn storage u = urns[ilk][src];
     # Urn storage v = urns[ilk][dst];
     # Ilk storage i = ilks[ilk];
@@ -805,6 +826,9 @@ func grab{
 
     auth()
 
+    check(dink)
+    check(dart)
+
     # Urn storage urn = urns[i][u];
     # Ilk storage ilk = ilks[i];
     let (urn) = _urns.read(i, u)
@@ -854,6 +878,8 @@ func heal{
     ):
     alloc_locals
 
+    check(rad)
+
     # address u = msg.sender;
     let(u) = get_caller_address()
 
@@ -894,6 +920,8 @@ func suck{
 
     auth()
 
+    check(rad)
+
     # sin[u] = sin[u] + rad;
     let (sin) = _sin.read(u)
     let (sin) = sub(sin, rad)
@@ -931,6 +959,8 @@ func fold{
     alloc_locals
 
     auth()
+
+    check(rate)
 
     # require(live == 1, "Vat/not-live");
     require_live()
