@@ -306,6 +306,7 @@ func deny{
     auth()
 
     # require(live == 1, "Vat/not-live");
+    # TODO: consider: https://github.com/makerdao/xdomain-dss/issues/4
     require_live()
 
     # wards[usr] = 0;
@@ -318,6 +319,7 @@ func deny{
 end
 
 # function init(bytes32 ilk) external auth {
+# TODO: consider: https://github.com/makerdao/xdomain-dss/issues/2
 @external
 func init{
         syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
