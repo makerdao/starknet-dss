@@ -12,10 +12,10 @@ from starkware.cairo.common.uint256 import (
   uint256_check
 )
 from starkware.starknet.common.syscalls import (get_caller_address)
-from safe_math import (
+from contracts.safe_math import (
     add, _add, sub, _sub, mul, _mul
 )
-from assertions import (
+from contracts.assertions import (
     assert_either, either, both, assert_both,
     not_0, assert_not_0, assert_0, ge,
     ge_0, le, assert_le, le_0, eq_0
@@ -464,6 +464,26 @@ end
 # function ink(bytes32 ilk, address urn) external view returns (uint256 ink_) {
 #     ink_ = urns[ilk][urn].ink;
 # }
+@view
+func ink{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }(i: felt, u: felt) -> (res: Uint256):
+    let (res: Urn) = _urns.read(i, u)
+    return (res.ink)
+end
+
+@view
+func gem{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }(i: felt, u: felt) -> (res: Uint256):
+    let (res: Uint256) = _gem.read(i, u)
+    return (res)
+end
+
 
 # function art(bytes32 ilk, address urn) external view returns (uint256 art_) {
 #     art_ = urns[ilk][urn].art;

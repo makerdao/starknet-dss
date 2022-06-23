@@ -171,13 +171,6 @@ func constructor{
     return ()
 end
 
-# function join(address usr, uint wad) external {
-#     require(live == 1, "GemJoin/not-live");
-#     require(int(wad) >= 0, "GemJoin/overflow");
-#     vat.slip(ilk, usr, int(wad));
-#     require(gem.transferFrom(msg.sender, address(this), wad), "GemJoin/failed-transfer");
-#     emit Join(usr, wad);
-# }
 @external
 func join{
     syscall_ptr : felt*,
@@ -185,13 +178,17 @@ func join{
     range_check_ptr
   }(user : felt, wad : Uint256):
     alloc_locals
+
     let (caller) = get_caller_address()
     let (contract_address) = get_contract_address()
+
+    # require(live == 1, "GemJoin/not-live");
     let (live) = _live.read()
     with_attr error_message("GemJoin/not-live"):
       assert live = 1
     end
 
+    # require(int(wad) >= 0, "GemJoin/overflow");
     # local syscall_ptr: felt* = syscall_ptr
     # assert int128(wad) >= 0
     # let (res) = uint256_le(Uint256(0, 0), wad)
@@ -199,47 +196,48 @@ func join{
     #   assert res = 1
     # end
 
+    # vat.slip(ilk, usr, int(wad));
     let (vat) = _vat.read()
     let (gem) = _gem.read()
     let (ilk) = _ilk.read()
-    # IVat(vat).slip(ilk, user, int256(wad))
     IVat.slip(vat, ilk, user, wad)
 
+    # require(gem.transferFrom(msg.sender, address(this), wad), "GemJoin/failed-transfer");
     with_attr error_message("GemJoin/failed-transfer"):
       let (res,) = IGem(gem).transferFrom(caller, contract_address, wad)
       assert res = 1
     end
 
+    # emit Join(usr, wad);
     Join.emit(user, wad)
 
     return ()
 end
 
-# function exit(address usr, uint wad) external {
-#     require(wad <= 2 ** 255, "GemJoin/overflow");
-#     vat.slip(ilk, msg.sender, -int(wad));
-#     require(gem.transfer(usr, wad), "GemJoin/failed-transfer");
-#     emit Exit(usr, wad);
-# }
 @external
 func exit{
     syscall_ptr : felt*,
     pedersen_ptr : HashBuiltin*,
     range_check_ptr
   }(user : felt, wad : Uint256):
+    # require(wad <= 2 ** 255, "GemJoin/overflow");
     with_attr error_message("GemJoin/overflow"):
       assert_uint256_le(wad, Uint256(low=2**128-1, high=2**128-1))
     end
+
+    # vat.slip(ilk, msg.sender, -int(wad)); TODO
     let (vat) = _vat.read()
     let (ilk) = _ilk.read()
     let (gem) = _gem.read()
-    # IVat(vat).slip(ilk, user, int256(wad))
     IVat.slip(vat, ilk, user, wad)
 
+    # require(gem.transfer(usr, wad), "GemJoin/failed-transfer");
     with_attr error_message("GemJoin/failed-transfer"):
       let (res,) = IGem(gem).transfer(user, wad)
       assert res = 1
     end
+
+    # emit Exit(usr, wad);
     Exit.emit(user, wad)
 
     return ()
