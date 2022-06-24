@@ -204,7 +204,7 @@ func join{
 
     # require(gem.transferFrom(msg.sender, address(this), wad), "GemJoin/failed-transfer");
     with_attr error_message("GemJoin/failed-transfer"):
-      let (res,) = IGem(gem).transferFrom(caller, contract_address, wad)
+      let (res,) = IGem.transferFrom(gem, caller, contract_address, wad)
       assert res = 1
     end
 
@@ -233,7 +233,7 @@ func exit{
 
     # require(gem.transfer(usr, wad), "GemJoin/failed-transfer");
     with_attr error_message("GemJoin/failed-transfer"):
-      let (res,) = IGem(gem).transfer(user, wad)
+      let (res,) = IGem.transfer(gem, user, wad)
       assert res = 1
     end
 
@@ -241,4 +241,14 @@ func exit{
     Exit.emit(user, wad)
 
     return ()
+end
+
+func assert_uint256_le{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }(a : Uint256, b : Uint256):
+    let (is_le) = uint256_le(a, b)
+    assert is_le = 1
+    return()
 end

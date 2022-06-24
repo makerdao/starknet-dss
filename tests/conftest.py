@@ -42,14 +42,18 @@ async def check_balance(
     assert balance.result == (to_split_uint(expected_balance),)
 
 
-ray = lambda x: x * (10**9)
-rad = lambda x: x * (10**27)
+ray = lambda x: to_split_uint(int(x) * (10**9))
+rad = lambda x: to_split_uint(int(x) * (10**27))
 
 ether = 10**18
 MAX = 2**256-1
 
 def to_split_uint(a):
     return (a & ((1 << 128) - 1), a >> 128)
+
+
+def to_split_uint_neg(a):
+    return tuple(_*-1 for _ in to_split_uint(a)) 
 
 
 def to_uint(a):
@@ -101,12 +105,22 @@ def unserialize_contract(starknet_state, serialized_contract):
 def event_loop():
     return asyncio.new_event_loop()
 
-L2_CONTRACTS_DIR = os.path.join(os.getcwd(), "contracts")
-ACCOUNT_FILE = os.path.join(L2_CONTRACTS_DIR, "account.cairo")
-VAT_FILE = os.path.join(L2_CONTRACTS_DIR, "vat.cairo")
-GEM_JOIN_FILE = os.path.join(L2_CONTRACTS_DIR, "gem_join.cairo")
-MOCK_TOKEN_FILE = os.path.join(L2_CONTRACTS_DIR, "mock_token.cairo")
-DAI_JOIN_FILE = os.path.join(L2_CONTRACTS_DIR, "dai_join.cairo")
+CONTRACTS_DIR = os.path.join(os.getcwd(), "contracts")
+TESTS_DIR = os.path.join(os.getcwd(), "tests")
+ACCOUNT_FILE = os.path.join(CONTRACTS_DIR, "account.cairo")
+VAT_FILE = os.path.join(CONTRACTS_DIR, "vat.cairo")
+GEM_JOIN_FILE = os.path.join(CONTRACTS_DIR, "gem_join.cairo")
+MOCK_TOKEN_FILE = os.path.join(CONTRACTS_DIR, "mock_token.cairo")
+DAI_JOIN_FILE = os.path.join(CONTRACTS_DIR, "dai_join.cairo")
+HEVM_FILE = os.path.join(CONTRACTS_DIR, "hevm.cairo")
+TEST_VAT_FILE = os.path.join(TESTS_DIR, "test_vat.cairo")
+TEST_VOW_FILE = os.path.join(TESTS_DIR, "test_vow.cairo")
+FLAPPER_FILE = os.path.join(CONTRACTS_DIR, "flapper.cairo")
+FLOPPER_FILE = os.path.join(CONTRACTS_DIR, "flopper.cairo")
+FLIPPER_FILE = os.path.join(CONTRACTS_DIR, "flipper.cairo")
+JUG_FILE = os.path.join(CONTRACTS_DIR, "jug.cairo")
+CAT_FILE = os.path.join(CONTRACTS_DIR, "cat.cairo")
+USR_FILE = os.path.join(TESTS_DIR, "usr.cairo")
 
 def encode(string):
     return int.from_bytes(string.encode("utf-8"), byteorder="big")

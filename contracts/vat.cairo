@@ -132,14 +132,32 @@ func ilks{
         pedersen_ptr : HashBuiltin*,
         range_check_ptr
     }(i: felt) -> (ilk : Ilk):
-    let (ilk)= _ilks.read(i)
-    return (ilk)
+      let (ilk)= _ilks.read(i)
+      return (ilk)
+end
+
+@view
+func urns{
+        syscall_ptr : felt*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(i: felt, u: felt) -> (urn : Urn):
+      let (urn)= _urns.read(i, u)
+      return (urn)
+end
+
+@view
+func dai{
+        syscall_ptr : felt*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(u: felt) -> (dai : Uint256):
+      let (dai)= _dai.read(u)
+      return (dai)
 end
 
 # TODO: views
-# urns
 # gem
-# dai
 # sin
 # debt
 # vice
@@ -662,7 +680,9 @@ func frob{
     # ilk.Art = _add(ilk.Art, dart);
     let (ink) = _add(urn.ink, dink)
     let (art) = _add(urn.art, dart)
+    _urns.write(i, u, Urn(ink, art))
     let (Art) = _add(ilk.Art, dart)
+    _ilks.write(i, Ilk(Art, ilk.rate, ilk.spot, ilk.line, ilk.dust))
 
     # int256 dtab = _int256(ilk.rate) * dart;
     # uint256 tab = ilk.rate * urn.art;
@@ -671,6 +691,7 @@ func frob{
     let (tab)  = mul(ilk.rate, art)
     let (debt) = _debt.read()
     let (debt) = _add(debt, dtab)
+    _debt.write(debt)
 
     # // either debt has decreased, or debt ceilings are not exceeded
     # require(either(dart <= 0, both(ilk.Art * ilk.rate <= ilk.line, debt <= Line)), "Vat/ceiling-exceeded");
@@ -689,7 +710,7 @@ func frob{
         let (dart_le_0) = le_0(dart)
         let (dink_ge_0) = ge_0(dink)
         let (less_risky) = both(dart_le_0, dink_ge_0)
-        let (brim) = mul(urn.ink, ilk.spot)
+        let (brim) = mul(ink, ilk.spot)
         let (safe) = le(tab, brim)
         assert_either(less_risky, safe)
     end
