@@ -35,6 +35,26 @@ namespace IVat:
   end
 end
 
+# event Rely(address indexed usr);
+# event Deny(address indexed usr);
+# event Join(address indexed usr, uint256 wad);
+# event Exit(address indexed usr, uint256 wad);
+# event Cage();
+@event
+func Rely(user : felt):
+end
+@event
+func Deny(user : felt):
+end
+@event
+func Join(user : felt, wad : Uint256):
+end
+@event
+func Exit(user : felt, wad : Uint256):
+end
+@event
+func Cage():
+end
 
 #  // --- Auth ---
 #  mapping (address => uint) public wards;
@@ -87,29 +107,6 @@ func auth{
     end
     return ()
 end
-
-
-# event Rely(address indexed usr);
-# event Deny(address indexed usr);
-# event Join(address indexed usr, uint256 wad);
-# event Exit(address indexed usr, uint256 wad);
-# event Cage();
-@event
-func Rely(user : felt):
-end
-@event
-func Deny(user : felt):
-end
-@event
-func Join(user : felt, wad : Uint256):
-end
-@event
-func Exit(user : felt, wad : Uint256):
-end
-@event
-func Cage():
-end
-
 
 # VatLike public vat;      // CDP Engine
 # DSTokenLike public dai;  // Stablecoin Token
