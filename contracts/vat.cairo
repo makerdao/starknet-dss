@@ -1,5 +1,4 @@
 %lang starknet
-%builtins pedersen range_check bitwise
 
 from starkware.cairo.common.cairo_builtins import (HashBuiltin, BitwiseBuiltin)
 from starkware.cairo.common.uint256 import (
@@ -657,8 +656,8 @@ func frob{
     ):
     alloc_locals
 
-    check(dink)
-    check(dart)
+    # check(dink)
+    # check(dart)
 
     # // system is live
     # require(live == 1, "Vat/not-live");
@@ -688,7 +687,8 @@ func frob{
     # uint256 tab = ilk.rate * urn.art;
     # debt     = _add(debt, dtab);
     let (dtab) = _mul(ilk.rate, dart)
-    let (tab)  = mul(ilk.rate, art)
+    # let (tab)  = mul(ilk.rate, art) TODO CHECK
+    let (tab)  = _mul(ilk.rate, art)
     let (debt) = _debt.read()
     let (debt) = _add(debt, dtab)
     _debt.write(debt)
@@ -697,7 +697,8 @@ func frob{
     # require(either(dart <= 0, both(ilk.Art * ilk.rate <= ilk.line, debt <= Line)), "Vat/ceiling-exceeded");
     with_attr error_message("Vat/ceiling-exceeded"):
         let (debt_decreased) = le_0(dart)
-        let (ilk_debt) = mul(Art, ilk.rate)
+        # let (ilk_debt) = mul(Art, ilk.rate) TODO CHECK
+        let (ilk_debt) = _mul(ilk.rate, Art)
         let (line_ok) = le(ilk_debt, ilk.line)
         let (Line_ok) = le(debt, ilk.line)
         let (lines_ok) = both(line_ok, Line_ok)
@@ -784,8 +785,8 @@ func fork{
     ):
     alloc_locals
 
-    check(dink)
-    check(dart)
+    # check(dink)
+    # check(dart)
 
     # Urn storage u = urns[ilk][src];
     # Urn storage v = urns[ilk][dst];

@@ -18,7 +18,7 @@ from conftest import (
     rad,
     ether,
     MAX,
-    VAT_FILE,
+    TEST_VAT_FILE,
     GEM_JOIN_FILE,
     MOCK_TOKEN_FILE,
     DAI_JOIN_FILE
@@ -40,7 +40,7 @@ async def __setup__(
     user1: StarknetContract
 ):
     vat = await starknet.deploy(
-            source=VAT_FILE,
+            source=TEST_VAT_FILE,
             constructor_calldata=[
                 user1.contract_address,
             ])
@@ -56,7 +56,8 @@ async def __setup__(
             constructor_calldata=[
                 vat.contract_address,
                 encode("gem"),
-                gold.contract_address
+                gem.contract_address,
+                user1.contract_address
             ])
     await vat.rely(gemA.contract_address).invoke(user1.contract_address)
 
@@ -69,25 +70,27 @@ async def __setup__(
             source=DAI_JOIN_FILE,
             constructor_calldata=[
                 vat.contract_address,
-                dai.contract_address
+                dai.contract_address,
+                user1.contract_address
             ])
 
-    await dai.setOwner(daiA.contract_address).invoke().invoke(user1.contract_address)
+    # await dai.setOwner(daiA.contract_address).invoke().invoke(user1.contract_address)
 
     defs = SimpleNamespace(
-        vat=compile(VAT_FILE),
+        vat=compile(TEST_VAT_FILE),
         gem_join=compile(GEM_JOIN_FILE),
         mock_token=compile(MOCK_TOKEN_FILE),
         dai_join=compile(DAI_JOIN_FILE),
     )
 
     return SimpleNamespace(
+        starknet=starknet,
         serialized_contracts=dict(
             vat=serialize_contract(vat, defs.vat.abi),
             gem=serialize_contract(gem, defs.mock_token.abi),
             gemA=serialize_contract(gemA, defs.gem_join.abi),
-            dai=serialized_contracts(dai, defs.mock_token.abi),
-            daiA=serialized_contracts(dai, defs.dai_join.abi),
+            dai=serialize_contract(dai, defs.mock_token.abi),
+            daiA=serialize_contract(daiA, defs.dai_join.abi),
         ),
     )
 
@@ -109,7 +112,7 @@ async def copyable_deployment_join(
 @pytest.fixture(scope="module")
 async def ctx_factory_join(copyable_deployment_join):
     def make():
-        serialized_contracts = copyable_deployment.serialized_contracts
+        serialized_contracts = copyable_deployment_join.serialized_contracts
 
         starknet_state = copyable_deployment_join.starknet.state.copy()
         contracts = {
@@ -146,6 +149,156 @@ async def dai(ctx_join) -> DeclaredClass:
 async def daiA(ctx_join) -> DeclaredClass:
     return ctx_join.daiA
 
+
+@pytest.fixture(scope="function")
+async def cage_success(
+    user1: StarknetContract
+):
+    async def inner(a):
+        await a.cage().invoke(user1.contract_address)
+
+    return inner
+
+@pytest.fixture(scope="function")
+async def cage_fail(
+    user1: StarknetContract
+):
+    async def inner(a):
+        with pytest.raises(StarkException) as err:
+            await a.cage().invoke(user1.contract_address)
+
+    return inner
+
+@pytest.fixture(scope="function")
+async def join_gem_success(
+    user1: StarknetContract,
+    gemA: StarknetContract
+):
+    async def inner(user, wad):
+        await gemA.join(user, to_split_uint(wad)).invoke(user1.contract_address)
+
+    return inner
+
+@pytest.fixture(scope="function")
+async def join_gem_fail(
+    user1: StarknetContract,
+    gemA: StarknetContract
+):
+    async def inner(user, wad):
+        with pytest.raises(StarkException) as err:
+            await gemA.join(user, to_split_uint(wad)).invoke(user1.contract_address)
+
+    return inner
+
+@pytest.fixture(scope="function")
+async def exit_dai_success(
+    user1: StarknetContract,
+    daiA: StarknetContract
+):
+    async def inner(user, wad):
+        await daiA.exit(user, to_split_uint(wad)).invoke(user1.contract_address)
+
+    return inner
+
+@pytest.fixture(scope="function")
+async def exit_dai_fail(
+    user1: StarknetContract,
+    daiA: StarknetContract
+):
+    async def inner(user, wad):
+        with pytest.raises(StarkException) as err:
+            await daiA.exit(user, to_split_uint(wad)).invoke(user1.contract_address)
+
+    return inner
+
 #########
 # TESTS #
 #########
+@pytest.mark.asyncio
+async def test_gem_join(
+    user1: StarknetContract,
+    gem: StarknetContract,
+    gemA: StarknetContract,
+    vat: StarknetContract,
+    join_gem_success,
+    join_gem_fail,
+    cage_success,
+    cage_fail
+):
+    me = user1.contract_address
+
+    await gem.mint(user1.contract_address, to_split_uint(20*ether)).invoke(me)
+    await gem.approve(gemA.contract_address, to_split_uint(20*ether)).invoke(me)
+
+    await join_gem_success(me, 10*ether)
+    res = await vat.gem(encode("gem"), me).call()
+    assert res.result == (to_split_uint(10*ether),)
+    await cage_success(gemA)
+    await join_gem_fail(me, 10*ether)
+    res = await vat.gem(encode("gem"), me).call()
+    assert res.result == (to_split_uint(10*ether),)
+
+
+@pytest.mark.asyncio
+async def test_dai_exit(
+    user1: StarknetContract,
+    vat: StarknetContract,
+    dai: StarknetContract,
+    daiA: StarknetContract,
+    cage_success,
+    exit_dai_success,
+    exit_dai_fail
+):
+    me = user1.contract_address
+
+    await vat.mint(me, to_split_uint(100*ether)).invoke(me)
+    await vat.hope(daiA.contract_address).invoke(me)
+
+    await exit_dai_success(me, 40*ether)
+    res = await dai.balanceOf(me).call()
+    assert res.result == (to_split_uint(40*ether),)
+    res = await vat.dai(me).call()
+    assert res.result == (rad(60*ether),)
+    await cage_success(daiA)
+    await exit_dai_fail(me, 40*ether)
+    res = await dai.balanceOf(me).call()
+    assert res.result == (to_split_uint(40*ether),)
+    res = await vat.dai(me).call()
+    assert res.result == (rad(60*ether),)
+
+
+@pytest.mark.asyncio
+async def test_dai_exit_join(
+    user1: StarknetContract,
+    vat: StarknetContract,
+    dai: StarknetContract,
+    daiA: StarknetContract
+):
+    me = user1.contract_address
+
+    await vat.mint(me, to_split_uint(100*ether)).invoke(me)
+    await vat.hope(daiA.contract_address).invoke(me)
+
+    await daiA.exit(me, to_split_uint(60*ether)).invoke(me)
+    await dai.approve(daiA.contract_address, to_split_uint(-1)).invoke(me)
+    await daiA.join(me, to_split_uint(30*ether)).invoke(me)
+
+    res = await dai.balanceOf(me).call()
+    assert res.result == (to_split_uint(30*ether),)
+    res = await vat.dai(me).call()
+    assert res.result == (to_split_uint(70*ether),)
+
+
+@pytest.mark.asyncio
+async def test_cage_no_access(
+    user1: StarknetContract,
+    gemA: StarknetContract,
+    daiA: StarknetContract,
+    cage_fail
+):
+    me = user1.contract_address
+
+    await gemA.deny(me).invoke(me)
+    await cage_fail(gemA)
+    await daiA.deny(me).invoke(me)
+    await cage_fail(daiA)

@@ -118,7 +118,8 @@ async def __setup__(
             constructor_calldata=[
                 vat.contract_address,
                 encode("gold"),
-                gold.contract_address
+                gold.contract_address,
+                user1.contract_address
             ])
     await vat.rely(gemA.contract_address).invoke(user1.contract_address)
     await gold.approve(gemA.contract_address).invoke(user1.contract_address)
@@ -300,3 +301,97 @@ async def test_bite_under_dunk(
 
     res = await cat.bite(encode("gold"), user1.contract_address).invoke(user1.contract_address)
     (auction,) = res.result
+
+@pytest.fixture(scope="function")
+async def gem(
+    vat: StarknetContract
+):
+    async def inner(ilk, urn):
+        res = await vat.gem(ilk, urn).call()
+        return res.result[0]
+    return inner
+
+@pytest.fixture(scope="function")
+async def ink(
+    vat: StarknetContract
+):
+    async def inner(ilk, urn):
+        res = await vat.urns(ilk, urn).call()
+        return res.result[0]
+    return inner
+
+@pytest.fixture(scope="function")
+async def art(
+    vat: StarknetContract
+):
+    async def inner(ilk, urn):
+        res = await vat.urns(ilk, urn).call()
+        return res.result[1]
+    return inner
+
+@pytest.mark.asyncio
+async def test_happy_bite(
+    vat: StarknetContract,
+    cat: StarknetContract,
+):
+    me = user1.contract_address
+
+    await vat.file_ilk(encode("gold"), encode("spot"), ray(2.5*ether)).invoke(me)
+    await vat.frob(encode("gold"), me, me, me, to_split_uint(40*ether), to_split_uint(100*ether)).invoke(me)
+    # tag=4, mat=2
+    await vat.file_ilk(encode("gold"), encode("spot"), ray(2*ether)).invoke(me)
+
+    await cat.file_ilk(encode("gold"), encode("chop"), ray(1.1*ether)).invoke(me)
+    await cat.file_ilk(encode("gold"), encode("dunk"), rad(82.5*ether)).invoke(me)
+
+    auction = await cat.bite(encode("gold"), me).invoke(me)
+    res = await ink(encode("gold"), me)
+    assert res == to_split_uint(40*ether)
+    res = await art(encode("gold"), me)
+    assert res == to_split_uint(100*ether)
+    res = await vow.Woe().call()
+    assert res.result == (to_split_uint(0),)
+    res = await gem(encode("gold"), me)
+    assert res == to_split_uint(960*ether)
+
+    await cat.file_ilk(encode("gold"), encode("dunk"), rad(200*ether)).invoke(me)
+    res = await cat.litter().call()
+    assert res.result == (to_split_uint(0),)
+    auction = await res.bite(encode("gold"), me).call()
+    res = await cat.litter().call()
+    assert res.result == (rad(110*ether),)
+    res = await ink(encode("gold"), me)
+    assert res == to_split_uint(0)
+    res = await art(encode("gold"), me)
+    assert res == to_split_uint(0)
+    res = await vow.sin(now).call()
+    assert res.result == (rad(100*ether),)
+    res = await gem(encode("gold"), me)
+    assert res == to_split_uint(960*ether)
+
+    res = await vat.dai(vow.contract_address).call()
+    assert res.result == (rad(0),)
+    await vat.mint(me, to_split_uint(100*ether)).invoke(me)
+    await flip.tend(auction, to_split_uint(40*ether), rad(1*ether)).invoke(me)
+    await flip.tend(auction, to_split_uint(40*ether), rad(110*ether)).invoke(me)
+
+    res = await vat.dai(me).call()
+    assert res.result == (to_split_uint(90*ether),)
+    res = await gem(encode("gold"), me)
+    assert res == to_split_split(960*ether)
+    await flip.dent(auction, to_split_uint(38*ether), rad(110*ether)).invoke(me)
+    res = await vat.dai(me).call()
+    assert res.result ==  (rad(90*ether),)
+    res = await gem(encode("gold"), me)
+    assert res == to_split_uint(962*ether)
+    res = await vow.sin(now).call()
+    assert res.result == (rad(100*ether),)
+
+    await hevm.warp(now + 4*hours).invoke(me)
+    res = await cat.litter().call()
+    assert res.result == (rad(110*ether),)
+    await flip.deal(auction).invoke(me)
+    res = await cat.litter().call()
+    assert res.result == (to_split_uint(0),)
+    res = await vat.dai(vow.contract_address).call()
+    assert res.result == (rad(110*ether),)

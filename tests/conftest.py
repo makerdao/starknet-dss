@@ -53,7 +53,11 @@ def to_split_uint(a):
 
 
 def to_split_uint_neg(a):
-    return tuple(_*-1 for _ in to_split_uint(a)) 
+    _ = to_split_uint(a*-1)
+    return (
+        0xffffffffffffffffffffffffffffffff - _[0] + 1,
+        0xffffffffffffffffffffffffffffffff - _[1],
+    )
 
 
 def to_uint(a):
@@ -106,11 +110,11 @@ def event_loop():
     return asyncio.new_event_loop()
 
 CONTRACTS_DIR = os.path.join(os.getcwd(), "contracts")
-TESTS_DIR = os.path.join(os.getcwd(), "tests")
+TESTS_DIR = os.path.join(os.getcwd(), "contracts/tests")
 ACCOUNT_FILE = os.path.join(CONTRACTS_DIR, "account.cairo")
 VAT_FILE = os.path.join(CONTRACTS_DIR, "vat.cairo")
 GEM_JOIN_FILE = os.path.join(CONTRACTS_DIR, "gem_join.cairo")
-MOCK_TOKEN_FILE = os.path.join(CONTRACTS_DIR, "mock_token.cairo")
+MOCK_TOKEN_FILE = os.path.join(TESTS_DIR, "mock_token.cairo")
 DAI_JOIN_FILE = os.path.join(CONTRACTS_DIR, "dai_join.cairo")
 HEVM_FILE = os.path.join(CONTRACTS_DIR, "hevm.cairo")
 TEST_VAT_FILE = os.path.join(TESTS_DIR, "test_vat.cairo")
