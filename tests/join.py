@@ -267,6 +267,8 @@ async def test_dai_exit(
     assert res.result == (rad(60*ether),)
 
 
+MAX = (2**128-1, 2**128-1)
+
 @pytest.mark.asyncio
 async def test_dai_exit_join(
     user1: StarknetContract,
@@ -280,13 +282,14 @@ async def test_dai_exit_join(
     await vat.hope(daiA.contract_address).invoke(me)
 
     await daiA.exit(me, to_split_uint(60*ether)).invoke(me)
-    await dai.approve(daiA.contract_address, to_split_uint(-1)).invoke(me)
+
+    await dai.approve(daiA.contract_address, MAX).invoke(me)
     await daiA.join(me, to_split_uint(30*ether)).invoke(me)
 
     res = await dai.balanceOf(me).call()
     assert res.result == (to_split_uint(30*ether),)
     res = await vat.dai(me).call()
-    assert res.result == (to_split_uint(70*ether),)
+    assert res.result == (rad(70*ether),)
 
 
 @pytest.mark.asyncio

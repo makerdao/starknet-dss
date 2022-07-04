@@ -298,7 +298,7 @@ async def test_cool(
     frob_success
 ):
     await vat.file_ilk(encode("gold"), encode("line"), rad(10*ether)).invoke(user1.contract_address)
-    await frob_success(encode("gold"), 10*ether, 0)
+    await frob_success(encode("gold"), 10*ether, 8*ether)
     await vat.file_ilk(encode("gold"), encode("line"), rad(5*ether)).invoke(user1.contract_address)
     await frob_success(encode("gold"), 0, -1*ether)
 
