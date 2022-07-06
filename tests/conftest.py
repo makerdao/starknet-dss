@@ -46,8 +46,8 @@ async def call(_):
 
 
 MAX = (2**128-1, 2**128-1)
-ray = lambda x: to_split_uint(int(float(x) * (10**9) * (10 ** 18)))
-rad = lambda x: to_split_uint(int(float(x) * (10**27) * (10 ** 18)))
+ray = lambda x: to_split_uint(int(x*(10**18)) * (10**9))
+rad = lambda x: to_split_uint(int(x*(10**18)) * (10**27))
 def ether(x):
     if (x >=0):
         return to_split_uint(x*(10**18))
