@@ -38,15 +38,22 @@ async def check_balance(
     contract: StarknetContract,
     expected_balance
 ):
-    balance = await token.balanceOf(contract.contract_address).call()
-    assert balance.result == (to_split_uint(expected_balance),)
+    assert (await call(token.balanceOf(contract.contract_address))) == expected_balance
+
+async def call(_):
+    res = await _.call()
+    return res.result[0]
 
 
-ray = lambda x: to_split_uint(int(x) * (10**9))
-rad = lambda x: to_split_uint(int(x) * (10**27))
+MAX = (2**128-1, 2**128-1)
+ray = lambda x: to_split_uint(int(float(x) * (10**9) * (10 ** 18)))
+rad = lambda x: to_split_uint(int(float(x) * (10**27) * (10 ** 18)))
+def ether(x):
+    if (x >=0):
+        return to_split_uint(x*(10**18))
+    else:
+        return to_split_uint_neg(x*(10**18))
 
-ether = 10**18
-MAX = 2**256-1
 
 def to_split_uint(a):
     return (a & ((1 << 128) - 1), a >> 128)
@@ -130,6 +137,12 @@ def encode(string):
     return int.from_bytes(string.encode("utf-8"), byteorder="big")
 
 
+GOLD = encode("gold")
+GEM = encode("gem")
+SPOT = encode("spot")
+LINE = encode("line")
+DUST = encode("dust")
+
 async def build_copyable_deployment():
     starknet = await Starknet.empty()
 
@@ -137,10 +150,10 @@ async def build_copyable_deployment():
     set_block_timestamp(starknet.state, round(time.time()))
 
     signers = dict(
-        user1=Signer(23904852345),
-        user2=Signer(23904852345),
-        user3=Signer(23904852345),
-        auth_user=Signer(83745982347),
+        ali=Signer(23904852345),
+        bob=Signer(23904852345),
+        che=Signer(23904852345),
+        auth=Signer(83745982347),
     )
 
     # Maps from name -> account contract
@@ -166,9 +179,10 @@ async def build_copyable_deployment():
         consts=consts,
         signers=signers,
         serialized_contracts=dict(
-            user1=serialize_contract(accounts.user1, defs.account.abi),
-            user2=serialize_contract(accounts.user2, defs.account.abi),
-            user3=serialize_contract(accounts.user3, defs.account.abi),
+            auth=serialize_contract(accounts.auth, defs.account.abi),
+            ali=serialize_contract(accounts.ali, defs.account.abi),
+            bob=serialize_contract(accounts.bob, defs.account.abi),
+            che=serialize_contract(accounts.che, defs.account.abi),
         ),
     )
 
@@ -233,13 +247,17 @@ async def block_timestamp(starknet):
     return lambda: get_block_timestamp(starknet.state)
 
 @pytest.fixture(scope="function")
-async def user1(ctx) -> StarknetContract:
-    return ctx.user1
+async def auth(ctx) -> StarknetContract:
+    return ctx.auth
 
 @pytest.fixture(scope="function")
-async def user2(ctx) -> StarknetContract:
-    return ctx.user2
+async def ali(ctx) -> StarknetContract:
+    return ctx.ali
 
 @pytest.fixture(scope="function")
-async def user3(ctx) -> StarknetContract:
-    return ctx.user3
+async def bob(ctx) -> StarknetContract:
+    return ctx.bob
+
+@pytest.fixture(scope="function")
+async def che(ctx) -> StarknetContract:
+    return ctx.che

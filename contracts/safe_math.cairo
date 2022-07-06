@@ -79,10 +79,7 @@ func _sub{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
     let right_overflow : felt = right_msb / 0x80000000000000000000000000000000
 
     # Now safely negate the rhs and add (l - r = l + (-r))
-    # let (right_flipped : Uint256) = uint256_not(rhs) # TODO: not sure why this isn't working
-    let low = 0xffffffffffffffffffffffffffffffff - rhs.low
-    let high = 0xffffffffffffffffffffffffffffffff - rhs.high
-    let right_flipped = Uint256(low, high)
+    let (right_flipped : Uint256) = uint256_not(rhs) # TODO: not sure why this isn't working
     let (right_neg, overflow) = uint256_add(right_flipped, Uint256(1, 0))
     let right_overflow_neg = overflow + 1 - right_overflow
     let (res, res_base_overflow) = uint256_add(lhs, right_neg)

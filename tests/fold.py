@@ -19,6 +19,10 @@ from conftest import (
     ether,
     MAX,
     VAT_FILE,
+    GOLD,
+    LINE,
+    SPOT,
+    call
 )
 
 from starkware.starknet.business_logic.execution.objects import Event
@@ -32,16 +36,16 @@ from itertools import chain
 
 async def __setup__(
     starknet: StarknetContract,
-    user1: StarknetContract
+    auth: StarknetContract
 ):
     vat = await starknet.deploy(
             source=VAT_FILE,
             constructor_calldata=[
-                user1.contract_address,
+                auth.contract_address,
             ])
-    await vat.init(encode("gold")).invoke(user1.contract_address)
-    await vat.file(encode("Line"), rad(100*ether)).invoke(user1.contract_address)
-    await vat.file_ilk(encode("gold"), encode("line"), rad(100*ether)).invoke(user1.contract_address)
+    await vat.init(GOLD).invoke(auth.contract_address)
+    await vat.file(encode("Line"), rad(100)).invoke(auth.contract_address)
+    await vat.file_ilk(GOLD, LINE, rad(100)).invoke(auth.contract_address)
 
     defs = SimpleNamespace(
         vat=compile(VAT_FILE),
@@ -63,7 +67,7 @@ async def copyable_deployment_fold(
     CACHE_KEY = "deployment_fold"
     val = request.config.cache.get(CACHE_KEY, None)
     ctx = ctx_factory()
-    val = await __setup__(ctx.starknet, ctx.user1)
+    val = await __setup__(ctx.starknet, ctx.auth)
     res = dill.dumps(val).decode("cp437")
     request.config.cache.set(CACHE_KEY, res)
     return val
@@ -111,33 +115,30 @@ async def jam(vat, ilk, urn):
     return ink_
 
 
-async def draw(vat, user1, ilk, dai):
-    await vat.file(encode("Line"), rad(dai)).invoke(user1.contract_address)
-    await vat.file_ilk(ilk, encode("line"), rad(dai)).invoke(user1.contract_address)
-    await vat.file_ilk(ilk, encode("spot"), to_split_uint((10**27)*10000*ether)).invoke(user1.contract_address)
-    await vat.slip(ilk, user1.contract_address, to_split_uint((10**27)*1*ether)).invoke(user1.contract_address)
+async def draw(vat, auth, ilk, dai):
+    await vat.file(encode("Line"), rad(dai)).invoke(auth.contract_address)
+    await vat.file_ilk(ilk, LINE, rad(dai)).invoke(auth.contract_address)
+    await vat.file_ilk(ilk, SPOT, rad(10000)).invoke(auth.contract_address)
+    await vat.slip(ilk, auth.contract_address, rad(1)).invoke(auth.contract_address)
     await vat.frob(
         ilk,
-        user1.contract_address,
-        user1.contract_address,
-        user1.contract_address,
-        to_split_uint(1*ether),
-        to_split_uint(dai)
-    ).invoke(user1.contract_address)
+        auth.contract_address,
+        auth.contract_address,
+        auth.contract_address,
+        ether(1),
+        ether(dai)
+    ).invoke(auth.contract_address)
 
 
 @pytest.mark.asyncio
 async def test_fold(
-    user1: StarknetContract,
+    auth: StarknetContract,
     vat: StarknetContract
 ):
-    await draw(vat, user1, encode("gold"), 1*ether)
+    await draw(vat, auth, GOLD, 1)
     ali = 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D
 
-    res = await tab(vat, encode("gold"), user1.contract_address)
-    assert res == rad(1*ether)
-    await vat.fold(encode("gold"), ali, ray(0.05*ether)).invoke(user1.contract_address)
-    res = await tab(vat, encode("gold"), user1.contract_address)
-    assert res == rad(1.05*ether)
-    res = await vat.dai(ali).call()
-    assert res.result == (rad(0.05*ether),)
+    assert (await tab(vat, GOLD, auth.contract_address)) == rad(1)
+    await vat.fold(GOLD, ali, ray(0.05)).invoke(auth.contract_address)
+    assert (await tab(vat, GOLD, auth.contract_address)) == rad(1.05)
+    assert (await call(vat.dai(ali))) == rad(0.05)

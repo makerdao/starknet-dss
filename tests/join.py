@@ -21,7 +21,9 @@ from conftest import (
     TEST_VAT_FILE,
     GEM_JOIN_FILE,
     MOCK_TOKEN_FILE,
-    DAI_JOIN_FILE
+    DAI_JOIN_FILE,
+    GEM,
+    call
 )
 
 from starkware.starknet.business_logic.execution.objects import Event
@@ -37,14 +39,14 @@ starknet_contract_address = 0x0
 
 async def __setup__(
     starknet: StarknetContract,
-    user1: StarknetContract
+    auth: StarknetContract
 ):
     vat = await starknet.deploy(
             source=TEST_VAT_FILE,
             constructor_calldata=[
-                user1.contract_address,
+                auth.contract_address,
             ])
-    await vat.init(encode("eth")).invoke(user1.contract_address)
+    await vat.init(encode("eth")).invoke(auth.contract_address)
 
     gem = await starknet.deploy(
             source=MOCK_TOKEN_FILE,
@@ -57,9 +59,9 @@ async def __setup__(
                 vat.contract_address,
                 encode("gem"),
                 gem.contract_address,
-                user1.contract_address
+                auth.contract_address
             ])
-    await vat.rely(gemA.contract_address).invoke(user1.contract_address)
+    await vat.rely(gemA.contract_address).invoke(auth.contract_address)
 
     dai = await starknet.deploy(
             source=MOCK_TOKEN_FILE,
@@ -71,10 +73,10 @@ async def __setup__(
             constructor_calldata=[
                 vat.contract_address,
                 dai.contract_address,
-                user1.contract_address
+                auth.contract_address
             ])
 
-    # await dai.setOwner(daiA.contract_address).invoke().invoke(user1.contract_address)
+    # await dai.setOwner(daiA.contract_address).invoke().invoke(auth.contract_address)
 
     defs = SimpleNamespace(
         vat=compile(TEST_VAT_FILE),
@@ -103,7 +105,7 @@ async def copyable_deployment_join(
     CACHE_KEY = "deployment_join"
     val = request.config.cache.get(CACHE_KEY, None)
     ctx = ctx_factory()
-    val = await __setup__(ctx.starknet, ctx.user1)
+    val = await __setup__(ctx.starknet, ctx.auth)
     res = dill.dumps(val).decode("cp437")
     request.config.cache.set(CACHE_KEY, res)
     return val
@@ -151,64 +153,41 @@ async def daiA(ctx_join) -> DeclaredClass:
 
 
 @pytest.fixture(scope="function")
-async def cage_success(
-    user1: StarknetContract
+async def try_cage(
+    auth: StarknetContract
 ):
     async def inner(a):
-        await a.cage().invoke(user1.contract_address)
-
+        try:
+            await a.cage().invoke(auth.contract_address)
+            return True
+        except:
+            return False
     return inner
 
 @pytest.fixture(scope="function")
-async def cage_fail(
-    user1: StarknetContract
-):
-    async def inner(a):
-        with pytest.raises(StarkException) as err:
-            await a.cage().invoke(user1.contract_address)
-
-    return inner
-
-@pytest.fixture(scope="function")
-async def join_gem_success(
-    user1: StarknetContract,
+async def try_join_gem(
+    auth: StarknetContract,
     gemA: StarknetContract
 ):
     async def inner(user, wad):
-        await gemA.join(user, to_split_uint(wad)).invoke(user1.contract_address)
-
+        try:
+            await gemA.join(user, wad).invoke(auth.contract_address)
+            return True
+        except:
+            return False
     return inner
 
 @pytest.fixture(scope="function")
-async def join_gem_fail(
-    user1: StarknetContract,
-    gemA: StarknetContract
-):
-    async def inner(user, wad):
-        with pytest.raises(StarkException) as err:
-            await gemA.join(user, to_split_uint(wad)).invoke(user1.contract_address)
-
-    return inner
-
-@pytest.fixture(scope="function")
-async def exit_dai_success(
-    user1: StarknetContract,
+async def try_exit_dai(
+    auth: StarknetContract,
     daiA: StarknetContract
 ):
     async def inner(user, wad):
-        await daiA.exit(user, to_split_uint(wad)).invoke(user1.contract_address)
-
-    return inner
-
-@pytest.fixture(scope="function")
-async def exit_dai_fail(
-    user1: StarknetContract,
-    daiA: StarknetContract
-):
-    async def inner(user, wad):
-        with pytest.raises(StarkException) as err:
-            await daiA.exit(user, to_split_uint(wad)).invoke(user1.contract_address)
-
+        try:
+            await daiA.exit(user, wad).invoke(auth.contract_address)
+            return True
+        except:
+            return False
     return inner
 
 #########
@@ -216,92 +195,79 @@ async def exit_dai_fail(
 #########
 @pytest.mark.asyncio
 async def test_gem_join(
-    user1: StarknetContract,
+    auth: StarknetContract,
     gem: StarknetContract,
     gemA: StarknetContract,
     vat: StarknetContract,
-    join_gem_success,
-    join_gem_fail,
-    cage_success,
-    cage_fail
+    try_join_gem,
+    try_cage
 ):
-    me = user1.contract_address
+    me = auth.contract_address
 
-    await gem.mint(user1.contract_address, to_split_uint(20*ether)).invoke(me)
-    await gem.approve(gemA.contract_address, to_split_uint(20*ether)).invoke(me)
+    await gem.mint(auth.contract_address, ether(20)).invoke(me)
+    await gem.approve(gemA.contract_address, ether(20)).invoke(me)
 
-    await join_gem_success(me, 10*ether)
-    res = await vat.gem(encode("gem"), me).call()
-    assert res.result == (to_split_uint(10*ether),)
-    await cage_success(gemA)
-    await join_gem_fail(me, 10*ether)
-    res = await vat.gem(encode("gem"), me).call()
-    assert res.result == (to_split_uint(10*ether),)
+    assert (await try_join_gem(me, ether(10)))
+    assert (await call(vat.gem(GEM, me))) == ether(10)
+    assert (await try_cage(gemA))
+    assert not (await try_join_gem(me, ether(10)))
+    assert (await call(vat.gem(GEM, me))) == ether(10)
 
 
 @pytest.mark.asyncio
 async def test_dai_exit(
-    user1: StarknetContract,
+    auth: StarknetContract,
     vat: StarknetContract,
     dai: StarknetContract,
     daiA: StarknetContract,
-    cage_success,
-    exit_dai_success,
-    exit_dai_fail
+    try_cage,
+    try_exit_dai
 ):
-    me = user1.contract_address
+    me = auth.contract_address
 
-    await vat.mint(me, to_split_uint(100*ether)).invoke(me)
+    await vat.mint(me, ether(100)).invoke(me)
     await vat.hope(daiA.contract_address).invoke(me)
 
-    await exit_dai_success(me, 40*ether)
-    res = await dai.balanceOf(me).call()
-    assert res.result == (to_split_uint(40*ether),)
-    res = await vat.dai(me).call()
-    assert res.result == (rad(60*ether),)
-    await cage_success(daiA)
-    await exit_dai_fail(me, 40*ether)
-    res = await dai.balanceOf(me).call()
-    assert res.result == (to_split_uint(40*ether),)
-    res = await vat.dai(me).call()
-    assert res.result == (rad(60*ether),)
+    assert (await try_exit_dai(me, ether(40)))
+    assert (await call(dai.balanceOf(me))) == ether(40)
+    assert (await call(vat.dai(me))) == rad(60)
+    assert (await try_cage(daiA))
+    assert not (await try_exit_dai(me, ether(40)))
+    assert (await call(dai.balanceOf(me))) == ether(40)
+    assert (await call(vat.dai(me))) == rad(60)
 
-
-MAX = (2**128-1, 2**128-1)
 
 @pytest.mark.asyncio
 async def test_dai_exit_join(
-    user1: StarknetContract,
+    auth: StarknetContract,
     vat: StarknetContract,
     dai: StarknetContract,
     daiA: StarknetContract
 ):
-    me = user1.contract_address
+    me = auth.contract_address
 
-    await vat.mint(me, to_split_uint(100*ether)).invoke(me)
+    await vat.mint(me, ether(100)).invoke(me)
     await vat.hope(daiA.contract_address).invoke(me)
 
-    await daiA.exit(me, to_split_uint(60*ether)).invoke(me)
+    await daiA.exit(me, ether(60)).invoke(me)
 
     await dai.approve(daiA.contract_address, MAX).invoke(me)
-    await daiA.join(me, to_split_uint(30*ether)).invoke(me)
+    await daiA.join(me, ether(30)).invoke(me)
 
-    res = await dai.balanceOf(me).call()
-    assert res.result == (to_split_uint(30*ether),)
-    res = await vat.dai(me).call()
-    assert res.result == (rad(70*ether),)
+    assert (await call(dai.balanceOf(me))) == ether(30)
+    assert (await call(vat.dai(me))) == rad(70)
 
 
 @pytest.mark.asyncio
 async def test_cage_no_access(
-    user1: StarknetContract,
+    auth: StarknetContract,
     gemA: StarknetContract,
     daiA: StarknetContract,
-    cage_fail
+    try_cage
 ):
-    me = user1.contract_address
+    me = auth.contract_address
 
     await gemA.deny(me).invoke(me)
-    await cage_fail(gemA)
+    assert not (await try_cage(gemA))
     await daiA.deny(me).invoke(me)
-    await cage_fail(daiA)
+    assert not (await try_cage(daiA))
