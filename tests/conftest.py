@@ -15,49 +15,42 @@ from itertools import chain
 
 from Signer import Signer
 
-# pytest-xdest only shows stderr
 sys.stdout = sys.stderr
 
 SUPER_ADJUDICATOR_L1_ADDRESS = 0
 CONTRACT_SRC = [os.path.dirname(__file__), "..", "..", "contracts", "starknet"]
+MAX = (2**128-1, 2**128-1)
+
+def encode(string):
+    return int.from_bytes(string.encode("utf-8"), byteorder="big")
+GOLD = encode("gold")
+GEM = encode("gem")
+GEMS = encode("gems")
+SPOT = encode("spot")
+LINE = encode("line")
+DUST = encode("dust")
+
 
 ###########
 # HELPERS #
 ###########
-def check_event(contract, event_name, tx, values):
-    expected_event = Event(
-        from_address=contract.contract_address,
-        keys=[get_selector_from_name(event_name)],
-        data=list(chain(*[e if isinstance(e, tuple) else [e] for e in values]))
-    )
-    assert expected_event in ( tx.raw_events if hasattr(tx, 'raw_events') else tx.get_sorted_events())
-
-
-async def check_balance(
-    token: StarknetContract,
-    contract: StarknetContract,
-    expected_balance
-):
-    assert (await call(token.balanceOf(contract.contract_address))) == expected_balance
+async def balance_of(token, contract):
+    if (hasattr(contract, 'contract_address')):
+        address = contract.contract_address
+    else:
+        address = contract
+    res = await call(token.balanceOf(address))
+    return res
 
 async def call(_):
     res = await _.call()
     return res.result[0]
 
-
-MAX = (2**128-1, 2**128-1)
-ray = lambda x: to_split_uint(int(x*(10**18)) * (10**9))
-rad = lambda x: to_split_uint(int(x*(10**18)) * (10**27))
-def ether(x):
-    if (x >=0):
-        return to_split_uint(x*(10**18))
-    else:
-        return to_split_uint_neg(x*(10**18))
-
+async def invoke(user, _):
+    await _.invoke(user)
 
 def to_split_uint(a):
     return (a & ((1 << 128) - 1), a >> 128)
-
 
 def to_split_uint_neg(a):
     _ = to_split_uint(a*-1)
@@ -66,9 +59,24 @@ def to_split_uint_neg(a):
         0xffffffffffffffffffffffffffffffff - _[1],
     )
 
-
 def to_uint(a):
     return a[0] + (a[1] << 128)
+def ray(x):
+    if (x>=0):
+        return to_split_uint(int(x*(10**18)) * 10**9)
+    else:
+        return to_split_uint_neg(int(x*(10**18)) * 10**9)
+def rad(x):
+    if (x>=0):
+        return to_split_uint(int(x*(10**18)) * 10**27)
+    else:
+        return to_split_uint_neg(int(x*(10**18)) * 10**27)
+def wad(x):
+    if (x>=0):
+        return to_split_uint(int(x*(10**18)))
+    else:
+        return to_split_uint_neg(int(x*(10**18)))
+
 
 
 async def deploy_account(starknet, signer, source):
@@ -133,15 +141,6 @@ JUG_FILE = os.path.join(CONTRACTS_DIR, "jug.cairo")
 CAT_FILE = os.path.join(CONTRACTS_DIR, "cat.cairo")
 USR_FILE = os.path.join(TESTS_DIR, "usr.cairo")
 
-def encode(string):
-    return int.from_bytes(string.encode("utf-8"), byteorder="big")
-
-
-GOLD = encode("gold")
-GEM = encode("gem")
-SPOT = encode("spot")
-LINE = encode("line")
-DUST = encode("dust")
 
 async def build_copyable_deployment():
     starknet = await Starknet.empty()
@@ -171,13 +170,9 @@ async def build_copyable_deployment():
         mock_token=compile(MOCK_TOKEN_FILE),
     )
 
-    consts = SimpleNamespace(
-    )
-
     return SimpleNamespace(
         starknet=starknet,
-        consts=consts,
-        signers=signers,
+        me=accounts.auth.contract_address,
         serialized_contracts=dict(
             auth=serialize_contract(accounts.auth, defs.account.abi),
             ali=serialize_contract(accounts.ali, defs.account.abi),
@@ -201,8 +196,6 @@ async def copyable_deployment(request):
 async def ctx_factory(copyable_deployment):
     def make():
         serialized_contracts = copyable_deployment.serialized_contracts
-        signers = copyable_deployment.signers
-        consts = copyable_deployment.consts
 
         starknet_state = copyable_deployment.starknet.state.copy()
         contracts = {
@@ -210,24 +203,9 @@ async def ctx_factory(copyable_deployment):
             for name, serialized_contract in serialized_contracts.items()
         }
 
-        async def execute(account_name, contract_address, selector_name, calldata):
-            return await signers[account_name].send_transaction(
-                contracts[account_name],
-                contract_address,
-                selector_name,
-                calldata,
-            )
-
-        def advance_clock(num_seconds):
-            set_block_timestamp(
-                starknet_state, get_block_timestamp(starknet_state) + num_seconds
-            )
-
         return SimpleNamespace(
             starknet=Starknet(starknet_state),
-            advance_clock=advance_clock,
-            consts=consts,
-            execute=execute,
+            me=copyable_deployment.me,
             **contracts,
         )
 
@@ -243,8 +221,8 @@ async def starknet(ctx) -> Starknet:
     return ctx.starknet
 
 @pytest.fixture(scope="function")
-async def block_timestamp(starknet):
-    return lambda: get_block_timestamp(starknet.state)
+async def me(ctx) -> int:
+    return ctx.me
 
 @pytest.fixture(scope="function")
 async def auth(ctx) -> StarknetContract:
