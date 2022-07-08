@@ -176,14 +176,7 @@ async def try_exit_dai(me, daiA):
 # TESTS #
 #########
 @pytest.mark.asyncio
-async def test_gem_join(
-    me,
-    gem,
-    gemA,
-    vat,
-    try_join_gem,
-    try_cage
-):
+async def test_gem_join(me, gem, gemA, vat, try_join_gem, try_cage):
     await invoke(me, gem.mint(me, wad(20)))
     await invoke(me, gem.approve(gemA.contract_address, wad(20)))
 
@@ -195,14 +188,7 @@ async def test_gem_join(
 
 
 @pytest.mark.asyncio
-async def test_dai_exit(
-    me,
-    vat,
-    dai,
-    daiA,
-    try_cage,
-    try_exit_dai
-):
+async def test_dai_exit(me, vat, dai, daiA, try_cage, try_exit_dai):
     await invoke(me, vat.mint(me, wad(100)))
     await invoke(me, vat.hope(daiA.contract_address))
 

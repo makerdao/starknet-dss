@@ -240,15 +240,7 @@ async def test_nice(me, vat, try_frob):
 
 
 @pytest.mark.asyncio
-async def test_alt_callers(
-    starknet,
-    me,
-    vat,
-    ali,
-    bob,
-    che,
-    can_frob
-):
+async def test_alt_callers(me, vat, ali, bob, che, can_frob):
     a = ali.contract_address
     b = bob.contract_address
     c = che.contract_address
@@ -298,15 +290,7 @@ async def test_alt_callers(
 
 
 @pytest.mark.asyncio
-async def test_hope(
-    starknet,
-    me,
-    vat,
-    ali,
-    bob,
-    che,
-    can_frob
-):
+async def test_hope(me, vat, ali, bob, che, can_frob):
     a = ali.contract_address
     b = bob.contract_address
     c = che.contract_address

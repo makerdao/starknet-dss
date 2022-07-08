@@ -108,14 +108,7 @@ async def draw(vat, me, ilk, dai):
     await invoke(me, vat.file_ilk(ilk, LINE, rad(dai)))
     await invoke(me, vat.file_ilk(ilk, SPOT, rad(10000)))
     await invoke(me, vat.slip(ilk, me, rad(1)))
-    await invoke(me, vat.frob(
-        ilk,
-        me,
-        me,
-        me,
-        wad(1),
-        wad(dai)
-    ))
+    await invoke(me, vat.frob(ilk, me, me, me, wad(1), wad(dai)))
 
 
 #########
