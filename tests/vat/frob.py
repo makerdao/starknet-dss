@@ -18,7 +18,8 @@ from conftest import (
     GEM_JOIN_FILE,
     MOCK_TOKEN_FILE,
     GOLD,
-    LINE,
+    line,
+    Line,
     SPOT,
     GEM,
     DUST,
@@ -54,8 +55,8 @@ async def __setup__(starknet, me):
             ])
 
     await invoke(me, vat.file_ilk(GOLD, SPOT, ray(1)))
-    await invoke(me, vat.file_ilk(GOLD, LINE, rad(1000)))
-    await invoke(me, vat.file(encode("Line"), rad(1000)))
+    await invoke(me, vat.file_ilk(GOLD, line, rad(1000)))
+    await invoke(me, vat.file(Line, rad(1000)))
     '''
     jug = await starknet.deploy(
             source=JUG_FILE,
@@ -200,16 +201,16 @@ async def test_lock(me, vat):
 
 @pytest.mark.asyncio
 async def test_calm(me, vat, try_frob):
-    await invoke(me, vat.file_ilk(GOLD, LINE, rad(10)))
+    await invoke(me, vat.file_ilk(GOLD, line, rad(10)))
     assert (await try_frob(GOLD, wad(10), wad(9)))
     assert not (await try_frob(GOLD, wad(0), wad(2)))
 
 
 @pytest.mark.asyncio
 async def test_cool(me, vat, try_frob):
-    await invoke(me, vat.file_ilk(GOLD, LINE, rad(10)))
+    await invoke(me, vat.file_ilk(GOLD, line, rad(10)))
     assert (await try_frob(GOLD, wad(10), wad(8)))
-    await invoke(me, vat.file_ilk(GOLD, LINE, rad(5)))
+    await invoke(me, vat.file_ilk(GOLD, line, rad(5)))
     assert (await try_frob(GOLD, wad(0), wad(-1)))
 
 

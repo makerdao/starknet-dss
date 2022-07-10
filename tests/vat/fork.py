@@ -17,7 +17,8 @@ from conftest import (
     GEMS,
     SPOT,
     DUST,
-    LINE,
+    line,
+    Line,
     invoke
 )
 
@@ -34,8 +35,8 @@ async def __setup__(starknet, me, ali):
 
     await invoke(me, vat.init(GEMS))
     await invoke(me, vat.file_ilk(GEMS, SPOT, ray(0.5)))
-    await invoke(me, vat.file_ilk(GEMS, LINE, rad(1000)))
-    await invoke(me, vat.file(encode("Line"), rad(1000)))
+    await invoke(me, vat.file_ilk(GEMS, line, rad(1000)))
+    await invoke(me, vat.file(Line, rad(1000)))
 
     await invoke(me, vat.slip(GEMS, ali.contract_address, wad(8)))
 

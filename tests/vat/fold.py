@@ -16,7 +16,8 @@ from conftest import (
     wad,
     VAT_FILE,
     GOLD,
-    LINE,
+    line,
+    Line,
     SPOT,
     call,
     invoke
@@ -33,8 +34,8 @@ async def __setup__(starknet, me):
                 me
             ])
     await invoke(me, vat.init(GOLD))
-    await invoke(me, vat.file(encode("Line"), rad(100)))
-    await invoke(me, vat.file_ilk(GOLD, LINE, rad(100)))
+    await invoke(me, vat.file(Line, rad(100)))
+    await invoke(me, vat.file_ilk(GOLD, line, rad(100)))
 
     defs = SimpleNamespace(
         vat=compile(VAT_FILE),
@@ -104,8 +105,8 @@ async def jam(vat, ilk, urn):
 
 
 async def draw(vat, me, ilk, dai):
-    await invoke(me, vat.file(encode("Line"), rad(dai)))
-    await invoke(me, vat.file_ilk(ilk, LINE, rad(dai)))
+    await invoke(me, vat.file(Line, rad(dai)))
+    await invoke(me, vat.file_ilk(ilk, line, rad(dai)))
     await invoke(me, vat.file_ilk(ilk, SPOT, rad(10000)))
     await invoke(me, vat.slip(ilk, me, rad(1)))
     await invoke(me, vat.frob(ilk, me, me, me, wad(1), wad(dai)))

@@ -27,7 +27,8 @@ GOLD = encode("gold")
 GEM = encode("gem")
 GEMS = encode("gems")
 SPOT = encode("spot")
-LINE = encode("line")
+line = encode("line")
+Line = encode("Line")
 DUST = encode("dust")
 
 

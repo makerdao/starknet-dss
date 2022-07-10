@@ -127,7 +127,7 @@ from types import SimpleNamespace
 
 #     await vat.file_ilk(encode("gold"), encode("spot"), ray(1*ether)).invoke(user1.contract_address)
 #     await vat.file_ilk(encode("gold"), encode("line"), rad(1000*ether)).invoke(user1.contract_address)
-#     await vat.file(encode("Line"), rad(1000*ether)).invoke(user1.contract_address)
+#     await vat.file(Line, rad(1000*ether)).invoke(user1.contract_address)
 
 #     flip = await starknet.deploy(
 #         source=FLIPPER_FILE,
