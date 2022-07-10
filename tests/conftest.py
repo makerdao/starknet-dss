@@ -15,49 +15,69 @@ from itertools import chain
 
 from Signer import Signer
 
-# pytest-xdest only shows stderr
 sys.stdout = sys.stderr
 
 SUPER_ADJUDICATOR_L1_ADDRESS = 0
 CONTRACT_SRC = [os.path.dirname(__file__), "..", "..", "contracts", "starknet"]
+MAX = (2**128-1, 2**128-1)
+
+def encode(string):
+    return int.from_bytes(string.encode("utf-8"), byteorder="big")
+GOLD = encode("gold")
+GEM = encode("gem")
+GEMS = encode("gems")
+SPOT = encode("spot")
+line = encode("line")
+Line = encode("Line")
+DUST = encode("dust")
+
 
 ###########
 # HELPERS #
 ###########
-def check_event(contract, event_name, tx, values):
-    expected_event = Event(
-        from_address=contract.contract_address,
-        keys=[get_selector_from_name(event_name)],
-        data=list(chain(*[e if isinstance(e, tuple) else [e] for e in values]))
-    )
-    assert expected_event in ( tx.raw_events if hasattr(tx, 'raw_events') else tx.get_sorted_events())
+async def balance_of(token, contract):
+    if (hasattr(contract, 'contract_address')):
+        address = contract.contract_address
+    else:
+        address = contract
+    res = await call(token.balanceOf(address))
+    return res
 
+async def call(_):
+    res = await _.call()
+    return res.result[0]
 
-async def check_balance(
-    token: StarknetContract,
-    contract: StarknetContract,
-    expected_balance
-):
-    balance = await token.balanceOf(contract.contract_address).call()
-    assert balance.result == (to_split_uint(expected_balance),)
-
-
-ray = lambda x: to_split_uint(int(x) * (10**9))
-rad = lambda x: to_split_uint(int(x) * (10**27))
-
-ether = 10**18
-MAX = 2**256-1
+async def invoke(user, _):
+    await _.invoke(user)
 
 def to_split_uint(a):
     return (a & ((1 << 128) - 1), a >> 128)
 
-
 def to_split_uint_neg(a):
-    return tuple(_*-1 for _ in to_split_uint(a)) 
-
+    _ = to_split_uint(a*-1)
+    return (
+        0xffffffffffffffffffffffffffffffff - _[0] + 1,
+        0xffffffffffffffffffffffffffffffff - _[1],
+    )
 
 def to_uint(a):
     return a[0] + (a[1] << 128)
+def ray(x):
+    if (x>=0):
+        return to_split_uint(int(x*(10**18)) * 10**9)
+    else:
+        return to_split_uint_neg(int(x*(10**18)) * 10**9)
+def rad(x):
+    if (x>=0):
+        return to_split_uint(int(x*(10**18)) * 10**27)
+    else:
+        return to_split_uint_neg(int(x*(10**18)) * 10**27)
+def wad(x):
+    if (x>=0):
+        return to_split_uint(int(x*(10**18)))
+    else:
+        return to_split_uint_neg(int(x*(10**18)))
+
 
 
 async def deploy_account(starknet, signer, source):
@@ -106,11 +126,11 @@ def event_loop():
     return asyncio.new_event_loop()
 
 CONTRACTS_DIR = os.path.join(os.getcwd(), "contracts")
-TESTS_DIR = os.path.join(os.getcwd(), "tests")
+TESTS_DIR = os.path.join(os.getcwd(), "contracts/tests")
 ACCOUNT_FILE = os.path.join(CONTRACTS_DIR, "account.cairo")
 VAT_FILE = os.path.join(CONTRACTS_DIR, "vat.cairo")
 GEM_JOIN_FILE = os.path.join(CONTRACTS_DIR, "gem_join.cairo")
-MOCK_TOKEN_FILE = os.path.join(CONTRACTS_DIR, "mock_token.cairo")
+MOCK_TOKEN_FILE = os.path.join(TESTS_DIR, "mock_token.cairo")
 DAI_JOIN_FILE = os.path.join(CONTRACTS_DIR, "dai_join.cairo")
 HEVM_FILE = os.path.join(CONTRACTS_DIR, "hevm.cairo")
 TEST_VAT_FILE = os.path.join(TESTS_DIR, "test_vat.cairo")
@@ -122,9 +142,6 @@ JUG_FILE = os.path.join(CONTRACTS_DIR, "jug.cairo")
 CAT_FILE = os.path.join(CONTRACTS_DIR, "cat.cairo")
 USR_FILE = os.path.join(TESTS_DIR, "usr.cairo")
 
-def encode(string):
-    return int.from_bytes(string.encode("utf-8"), byteorder="big")
-
 
 async def build_copyable_deployment():
     starknet = await Starknet.empty()
@@ -133,10 +150,10 @@ async def build_copyable_deployment():
     set_block_timestamp(starknet.state, round(time.time()))
 
     signers = dict(
-        user1=Signer(23904852345),
-        user2=Signer(23904852345),
-        user3=Signer(23904852345),
-        auth_user=Signer(83745982347),
+        ali=Signer(23904852345),
+        bob=Signer(23904852345),
+        che=Signer(23904852345),
+        auth=Signer(83745982347),
     )
 
     # Maps from name -> account contract
@@ -154,17 +171,14 @@ async def build_copyable_deployment():
         mock_token=compile(MOCK_TOKEN_FILE),
     )
 
-    consts = SimpleNamespace(
-    )
-
     return SimpleNamespace(
         starknet=starknet,
-        consts=consts,
-        signers=signers,
+        me=accounts.auth.contract_address,
         serialized_contracts=dict(
-            user1=serialize_contract(accounts.user1, defs.account.abi),
-            user2=serialize_contract(accounts.user2, defs.account.abi),
-            user3=serialize_contract(accounts.user3, defs.account.abi),
+            auth=serialize_contract(accounts.auth, defs.account.abi),
+            ali=serialize_contract(accounts.ali, defs.account.abi),
+            bob=serialize_contract(accounts.bob, defs.account.abi),
+            che=serialize_contract(accounts.che, defs.account.abi),
         ),
     )
 
@@ -183,8 +197,6 @@ async def copyable_deployment(request):
 async def ctx_factory(copyable_deployment):
     def make():
         serialized_contracts = copyable_deployment.serialized_contracts
-        signers = copyable_deployment.signers
-        consts = copyable_deployment.consts
 
         starknet_state = copyable_deployment.starknet.state.copy()
         contracts = {
@@ -192,24 +204,9 @@ async def ctx_factory(copyable_deployment):
             for name, serialized_contract in serialized_contracts.items()
         }
 
-        async def execute(account_name, contract_address, selector_name, calldata):
-            return await signers[account_name].send_transaction(
-                contracts[account_name],
-                contract_address,
-                selector_name,
-                calldata,
-            )
-
-        def advance_clock(num_seconds):
-            set_block_timestamp(
-                starknet_state, get_block_timestamp(starknet_state) + num_seconds
-            )
-
         return SimpleNamespace(
             starknet=Starknet(starknet_state),
-            advance_clock=advance_clock,
-            consts=consts,
-            execute=execute,
+            me=copyable_deployment.me,
             **contracts,
         )
 
@@ -225,17 +222,21 @@ async def starknet(ctx) -> Starknet:
     return ctx.starknet
 
 @pytest.fixture(scope="function")
-async def block_timestamp(starknet):
-    return lambda: get_block_timestamp(starknet.state)
+async def me(ctx) -> int:
+    return ctx.me
 
 @pytest.fixture(scope="function")
-async def user1(ctx) -> StarknetContract:
-    return ctx.user1
+async def auth(ctx) -> StarknetContract:
+    return ctx.auth
 
 @pytest.fixture(scope="function")
-async def user2(ctx) -> StarknetContract:
-    return ctx.user2
+async def ali(ctx) -> StarknetContract:
+    return ctx.ali
 
 @pytest.fixture(scope="function")
-async def user3(ctx) -> StarknetContract:
-    return ctx.user3
+async def bob(ctx) -> StarknetContract:
+    return ctx.bob
+
+@pytest.fixture(scope="function")
+async def che(ctx) -> StarknetContract:
+    return ctx.che

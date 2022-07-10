@@ -1,5 +1,4 @@
 %lang starknet
-%builtins pedersen range_check bitwise
 
 from starkware.cairo.common.cairo_builtins import (HashBuiltin, BitwiseBuiltin)
 from starkware.cairo.common.uint256 import (
@@ -689,6 +688,7 @@ func frob{
     # debt     = _add(debt, dtab);
     let (dtab) = _mul(ilk.rate, dart)
     let (tab)  = mul(ilk.rate, art)
+    # let (tab)  = _mul(ilk.rate, art) COMMENT: both ilk.rate and art are unsinged, so above should work
     let (debt) = _debt.read()
     let (debt) = _add(debt, dtab)
     _debt.write(debt)
@@ -698,6 +698,7 @@ func frob{
     with_attr error_message("Vat/ceiling-exceeded"):
         let (debt_decreased) = le_0(dart)
         let (ilk_debt) = mul(Art, ilk.rate)
+        # let (ilk_debt) = _mul(ilk.rate, Art) COMMENT: both ilk.rate and art are unsinged, so above should work
         let (line_ok) = le(ilk_debt, ilk.line)
         let (Line_ok) = le(debt, ilk.line)
         let (lines_ok) = both(line_ok, Line_ok)
@@ -817,7 +818,7 @@ func fork{
     # require(both(wish(src, msg.sender), wish(dst, msg.sender)), "Vat/not-allowed");
     with_attr error_message("Vat/not-allowed"):
       let (src_consents) = wish(src, caller)
-      let (dst_consents) = wish(src, caller)
+      let (dst_consents) = wish(dst, caller)
       assert_both(src_consents, dst_consents)
     end
 
@@ -836,14 +837,14 @@ func fork{
     # // both sides non-dusty
     # require(either(utab >= i.dust, u.art == 0), "Vat/dust-src");
     with_attr error_message("Vat/dust-src"):
-        let (u_tab_le_i_dust) = le(u_tab, i.dust)
+        let (u_tab_le_i_dust) = ge(u_tab, i.dust)
         let (u_art_eq_0) = eq_0(u_art)
         assert_either(u_tab_le_i_dust, u_art_eq_0)
     end
 
     # require(either(vtab >= i.dust, v.art == 0), "Vat/dust-dst");
     with_attr error_message("Vat/dust-dst"):
-        let (v_tab_le_i_dust) = le(v_tab, i.dust)
+        let (v_tab_le_i_dust) = ge(v_tab, i.dust)
         let (v_art_eq_0) = eq_0(v_art)
         assert_either(v_tab_le_i_dust, v_art_eq_0)
     end
