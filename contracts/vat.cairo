@@ -182,6 +182,10 @@ func Deny(user : felt):
 end
 
 # event Init(bytes32 indexed ilk);
+@event
+func Init(ilk : felt):
+end
+
 # event File(bytes32 indexed what, uint256 data);
 @event
 func File(what : felt, data : Uint256):
@@ -193,22 +197,71 @@ func File_ilk(ilk: felt, what : felt, data : Uint256):
 end
 
 # event Cage();
+@event
+func Cage():
+end
+
 # event Hope(address indexed from, address indexed to);
+#TODO: why from is a reserved word?
+@event
+func Hope(from_: felt, to: felt):
+end
+
 # event Nope(address indexed from, address indexed to);
+#TODO: why from is a reserved word?
+@event
+func Nope(from_: felt, to: felt):
+end
+
 # event Slip(bytes32 indexed ilk, address indexed usr, int256 wad);
+@event
+func Slip(ilk: felt, usr : felt, wad : Int256):
+end
+
 # event Flux(bytes32 indexed ilk, address indexed src, address indexed dst, uint256 wad);
+@event
+func Flux(ilk: felt, src : felt, dst : felt, wad : Uint256):
+end
+
 # event Move(address indexed src, address indexed dst, uint256 rad);
+@event
+func Move(src: felt, dst : felt, rad : Uint256):
+end
+
 # event Frob(bytes32 indexed i, address indexed u, address v, address w, int256 dink, int256 dart);
+@event
+func Frob(i: felt, u : felt, v: felt, w : felt, dink : Int256, dart : Int256):
+end
+
 # event Fork(bytes32 indexed ilk, address indexed src, address indexed dst, int256 dink, int256 dart);
+@event
+func Fork(ilk: felt, src : felt, dst: felt, dink : Int256, dart : Int256):
+end
+
 # event Grab(bytes32 indexed i, address indexed u, address v, address w, int256 dink, int256 dart);
+@event
+func Grab(i: felt, u : felt, v: felt, w : felt, dink : Int256, dart : Int256):
+end
+
 # event Heal(address indexed u, uint256 rad);
+@event
+func Heal(u: felt, rad: Uint256):
+end
+
 # event Suck(address indexed u, address indexed v, uint256 rad);
+@event
+func Suck(u: felt, v : felt, rad: Uint256):
+end
+
 # event Swell(address indexed u, int256 rad);
 @event
 func Swell(u: felt, rad : Uint256):
 end
 
 # event Fold(bytes32 indexed i, address indexed u, int256 rate);
+@event
+func Fold(i: felt, u : felt, rate : Uint256):
+end
 
 # modifier auth {
 #     require(wards[msg.sender] == 1, "Vat/not-authorized");
@@ -365,8 +418,8 @@ func init{
     end
     _ilks.write(ilk, Ilk(Art = i.Art, rate = Uint256(low = 10 ** 27, high = 0), spot = i.spot, line = i.line, dust = i.dust))
 
-    # TODO:
-    #     emit Init(ilk);
+    # emit Init(ilk);
+    Init.emit(ilk)
 
     return ()
 end
@@ -403,6 +456,7 @@ end
 
 
 # function file(bytes32 ilk, bytes32 what, uint256 data) external auth {
+# TODO: revisit if function overloading is available
 @external
 func file_ilk{
     syscall_ptr : felt*,
@@ -462,8 +516,8 @@ func cage{
     # live = 0;
     _live.write(0)
 
-    # TODO
     # emit Cage();
+    Cage.emit()
 
     return ()
 end
@@ -528,8 +582,8 @@ func hope{
     let (caller) = get_caller_address()
     _can.write(caller, usr, 1)
 
-    # TODO:
     # emit Hope(msg.sender, usr);
+    Hope.emit(caller, usr)
 
     return ()
 end
@@ -543,8 +597,8 @@ func nope{
     let (caller) = get_caller_address()
     _can.write(caller, usr, 0)
 
-    # TODO:
     # emit Nope(msg.sender, usr);
+    Nope.emit(caller, usr)
 
     return ()
 end
@@ -576,8 +630,8 @@ func slip{
     let (gem) = _add(gem, wad)
     _gem.write(ilk, usr, gem)
 
-    # TODO
     # emit Slip(ilk, usr, wad);
+    Slip.emit(ilk, usr, wad)
 
     return ()
 end
@@ -608,8 +662,8 @@ func flux{
     let (gem_dst) = add(gem_dst, wad)
     _gem.write(ilk, dst, gem_dst)
 
-    # TODO
     # emit Flux(ilk, src, dst, wad);
+    Flux.emit(ilk, src, dst, wad)
 
     return ()
 end
@@ -642,8 +696,8 @@ func move{
     let (dai_dst) = add(dai_dst, rad)
     _dai.write(dst, dai_dst)
 
-    # TODO
     # emit Move(src, dst, rad);
+    Move.emit(src, dst, rad)
 
     return ()
 end
@@ -779,8 +833,8 @@ func frob{
     # ilks[i]    = ilk;
     _ilks.write(i, Ilk(Art = Art, rate = ilk.rate, spot = ilk.spot, line = ilk.line, dust = ilk.dust))
 
-    # TODO
     # emit Frob(i, u, v, w, dink, dart);
+    Frob.emit(i, u, v, w, dink, dart)
 
     return ()
 end
@@ -859,8 +913,8 @@ func fork{
         assert_either(v_tab_le_i_dust, v_art_eq_0)
     end
 
-    # TODO
     # emit Fork(ilk, src, dst, dink, dart);
+    Fork.emit(ilk, src, dst, dink, dart)
 
     return ()
 end
@@ -916,8 +970,8 @@ func grab{
     let (vice) = _sub(vice, dtab)
     _vice.write(vice)
 
-    # TODO
     # emit Grab(i, u, v, w, dink, dart);
+    Grab.emit(i, u, v, w, dink, dart)
 
     return ()
 end
@@ -957,8 +1011,8 @@ func heal{
     let (debt) = sub(debt, rad)
     _debt.write(debt)
 
-    # TODO
     # emit Heal(msg.sender, rad);
+    Heal.emit(u, rad)
 
     return ()
 end
@@ -996,8 +1050,8 @@ func suck{
     let (debt) = add(debt, rad)
     _debt.write(debt)
 
-    # TODO
     # emit Suck(u, v, rad);
+    Suck.emit(u, v, rad)
 
     return ()
 end
@@ -1076,7 +1130,8 @@ func fold{
     let (debt) = add(debt, rad)
     _debt.write(debt)
 
-    # TODO
     # emit Fold(i, u, rate_);
+    Fold.emit(i, u, rate)
+
     return ()
 end
