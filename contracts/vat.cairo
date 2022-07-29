@@ -140,6 +140,16 @@ func urns{
       return (urn)
 end
 
+# @view
+# func ink{
+#     syscall_ptr : felt*,
+#     pedersen_ptr : HashBuiltin*,
+#     range_check_ptr
+#   }(i: felt, u: felt) -> (res: Uint256):
+#     let (res: Urn) = _urns.read(i, u)
+#     return (res.ink)
+# end
+
 @view
 func dai{
         syscall_ptr : felt*,
@@ -150,13 +160,36 @@ func dai{
       return (dai)
 end
 
-# TODO: views
-# gem
-# sin
-# debt
+@view
+func gem{
+        syscall_ptr : felt*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(i: felt, u: felt) -> (gem : Uint256):
+      let (gem) = _gem.read(i, u)
+      return (gem)
+end
 
+@view
+func sin{
+        syscall_ptr : felt*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(u: felt) -> (sin : Uint256):
+      let (sin) = _sin.read(u)
+      return (sin)
+end
 
-# int256  public surf;  // Total Dai Bridged   [rad]
+@view
+func debt{
+        syscall_ptr : felt*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }() -> (debt : Uint256):
+      let (debt) = _debt.read()
+      return (debt)
+end
+
 @view
 func surf{
         syscall_ptr : felt*,
@@ -166,9 +199,36 @@ func surf{
       let (surf) = _surf.read()
       return (surf)
 end
-# vice
-# Line
-# live
+
+@view
+func vice{
+        syscall_ptr : felt*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }() -> (vice: Uint256):
+      let (vice) = _vice.read()
+      return (vice)
+end
+
+@view
+func Line{
+        syscall_ptr : felt*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }() -> (Line: Uint256):
+      let (Line) = _Line.read()
+      return (Line)
+end
+
+@view
+func live{
+        syscall_ptr : felt*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }() -> (live: felt):
+      let (live) = _live.read()
+      return (live)
+end
 
 # // --- Events ---
 # event Rely(address indexed usr);
@@ -547,26 +607,6 @@ end
 # function ink(bytes32 ilk, address urn) external view returns (uint256 ink_) {
 #     ink_ = urns[ilk][urn].ink;
 # }
-@view
-func ink{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(i: felt, u: felt) -> (res: Uint256):
-    let (res: Urn) = _urns.read(i, u)
-    return (res.ink)
-end
-
-@view
-func gem{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(i: felt, u: felt) -> (res: Uint256):
-    let (res: Uint256) = _gem.read(i, u)
-    return (res)
-end
-
 
 # function art(bytes32 ilk, address urn) external view returns (uint256 art_) {
 #     art_ = urns[ilk][urn].art;
