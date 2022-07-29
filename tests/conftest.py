@@ -132,15 +132,9 @@ VAT_FILE = os.path.join(CONTRACTS_DIR, "vat.cairo")
 GEM_JOIN_FILE = os.path.join(CONTRACTS_DIR, "gem_join.cairo")
 MOCK_TOKEN_FILE = os.path.join(TESTS_DIR, "mock_token.cairo")
 DAI_JOIN_FILE = os.path.join(CONTRACTS_DIR, "dai_join.cairo")
-HEVM_FILE = os.path.join(CONTRACTS_DIR, "hevm.cairo")
 TEST_VAT_FILE = os.path.join(TESTS_DIR, "test_vat.cairo")
+VAT_FILE = os.path.join(CONTRACTS_DIR, "vat.cairo")
 TEST_VOW_FILE = os.path.join(TESTS_DIR, "test_vow.cairo")
-FLAPPER_FILE = os.path.join(CONTRACTS_DIR, "flapper.cairo")
-FLOPPER_FILE = os.path.join(CONTRACTS_DIR, "flopper.cairo")
-FLIPPER_FILE = os.path.join(CONTRACTS_DIR, "flipper.cairo")
-JUG_FILE = os.path.join(CONTRACTS_DIR, "jug.cairo")
-CAT_FILE = os.path.join(CONTRACTS_DIR, "cat.cairo")
-USR_FILE = os.path.join(TESTS_DIR, "usr.cairo")
 
 
 async def build_copyable_deployment():

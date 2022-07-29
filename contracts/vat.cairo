@@ -12,7 +12,7 @@ from starkware.cairo.common.uint256 import (
 )
 from starkware.starknet.common.syscalls import (get_caller_address)
 from contracts.safe_math import (
-    add, _add, sub, _sub, mul, _mul
+    Int256, add, _add, sub, _sub, mul, _mul
 )
 from contracts.assertions import (
     assert_either, either, both, assert_both,
@@ -20,7 +20,7 @@ from contracts.assertions import (
     ge_0, le, assert_le, le_0, eq_0
 )
 
-# Solidity code based on: https://github.com/makerdao/xdomain-dss/commit/5e91f8fbea66200f29037f4dcc4065a4062eb14f
+# Based on https://github.com/makerdao/xdomain-dss/blob/f447e779576942cf983c00ee8b9dafa937d2427f/src/Vat.sol
 
 # // --- Data ---
 # mapping (address => uint256) public wards;
@@ -81,6 +81,11 @@ end
 # mapping (address => uint256)                   public sin;  // [rad]
 @storage_var
 func _sin(u: felt) -> (sin : Uint256):
+end
+
+# int256  public surf;  // Total Dai Bridged   [rad]
+@storage_var
+func _surf() -> (surf : Int256):
 end
 
 # uint256 public debt;  // Total Dai Issued    [rad]
@@ -159,6 +164,18 @@ end
 # gem
 # sin
 # debt
+
+
+# int256  public surf;  // Total Dai Bridged   [rad]
+@view
+func surf{
+        syscall_ptr : felt*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }() -> (surf : Int256):
+      let (surf) = _surf.read()
+      return (surf)
+end
 # vice
 # Line
 # live
@@ -196,6 +213,11 @@ end
 # event Grab(bytes32 indexed i, address indexed u, address v, address w, int256 dink, int256 dart);
 # event Heal(address indexed u, uint256 rad);
 # event Suck(address indexed u, address indexed v, uint256 rad);
+# event Swell(address indexed u, int256 rad);
+@event
+func Swell(u: felt, rad : Uint256):
+end
+
 # event Fold(bytes32 indexed i, address indexed u, int256 rate);
 
 # modifier auth {
@@ -551,7 +573,7 @@ end
 func slip{
         syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
     }(
-        ilk: felt, usr: felt, wad: Uint256
+        ilk: felt, usr: felt, wad: Int256
     ):
     alloc_locals
 
@@ -688,7 +710,6 @@ func frob{
     # debt     = _add(debt, dtab);
     let (dtab) = _mul(ilk.rate, dart)
     let (tab)  = mul(ilk.rate, art)
-    # let (tab)  = _mul(ilk.rate, art) COMMENT: both ilk.rate and art are unsinged, so above should work
     let (debt) = _debt.read()
     let (debt) = _add(debt, dtab)
     _debt.write(debt)
@@ -698,7 +719,6 @@ func frob{
     with_attr error_message("Vat/ceiling-exceeded"):
         let (debt_decreased) = le_0(dart)
         let (ilk_debt) = mul(Art, ilk.rate)
-        # let (ilk_debt) = _mul(ilk.rate, Art) COMMENT: both ilk.rate and art are unsinged, so above should work
         let (line_ok) = le(ilk_debt, ilk.line)
         let (Line_ok) = le(debt, ilk.line)
         let (lines_ok) = both(line_ok, Line_ok)
@@ -968,22 +988,22 @@ func suck{
 
     # sin[u] = sin[u] + rad;
     let (sin) = _sin.read(u)
-    let (sin) = sub(sin, rad)
+    let (sin) = add(sin, rad)
     _sin.write(u, sin)
 
     # dai[v] = dai[v] + rad;
     let (dai) = _dai.read(v)
-    let (dai) = sub(dai, rad)
+    let (dai) = add(dai, rad)
     _dai.write(v, dai)
 
     # vice   = vice   + rad;
     let (vice) = _vice.read()
-    let (vice) = sub(vice, rad)
+    let (vice) = add(vice, rad)
     _vice.write(vice)
 
     # debt   = debt   + rad;
     let (debt) = _debt.read()
-    let (debt) = sub(debt, rad)
+    let (debt) = add(debt, rad)
     _debt.write(debt)
 
     # TODO
@@ -992,13 +1012,45 @@ func suck{
     return ()
 end
 
+# // --- Bridged DAI ---
+# function swell(address u, int256 rad) external auth {
+#     dai[u] = _add(dai[u], rad);
+#     surf   = surf + rad;
+
+#     emit Swell(u, rad);
+# }
+@external
+func swell{
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
+    }(
+        u: felt, rad: Uint256
+    ):
+    # dai[u] = _add(dai[u], rad);
+    let (dai) = _dai.read(u)
+    let (dai) = _add(dai, rad)
+    _dai.write(u, dai)
+
+    # surf   = surf + rad;
+    let (surf) = _surf.read()
+    let (surf) = _add(surf, rad)
+    _surf.write(surf)
+
+    # emit Swell(u, rad);
+    Swell.emit(u, rad)
+
+    return ()
+
+end
+
+
+
 # // --- Rates ---
 # function fold(bytes32 i, address u, int256 rate_) external auth {
 @external
 func fold{
         syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
     }(
-        i: felt, u: felt, rate: Uint256
+        i: felt, u: felt, rate: Int256
     ):
     alloc_locals
 

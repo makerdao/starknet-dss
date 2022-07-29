@@ -16,6 +16,8 @@ from starkware.cairo.common.uint256 import (
 const MASK128 = 2 ** 128 - 1
 const BOUND128 = 2 ** 128
 
+using Int256 = Uint256
+
 # See: https://en.wikipedia.org/wiki/Two%27s_complement
 
 # unsigned wad + unsigned wad -> unsigned wad
@@ -52,6 +54,9 @@ func mul{range_check_ptr}(lhs : Uint256, rhs : Uint256) -> (res : Uint256):
 end
 
 # unsigned wad + signed wad -> unsigned wad
+# function _add(uint256 x, int256 y) internal pure returns (uint256 z) {
+#     z = y >= 0 ? x + uint256(y) : x - uint256(-y);
+# }
 func _add{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
         lhs : Uint256, rhs : Uint256) -> (res : Uint256):
     let (lhs_nn) = uint256_signed_nn(lhs)
@@ -67,6 +72,9 @@ func _add{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
 end
 
 # unsigned - signed -> unsigned wad
+# function _sub(uint256 x, int256 y) internal pure returns (uint256 z) {
+#     z = y >= 0 ? x - uint256(y) : x + uint256(-y);
+# }
 func _sub{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
         lhs : Uint256, rhs : Uint256) -> (res : Uint256):
     let (lhs_nn) = uint256_signed_nn(lhs)
