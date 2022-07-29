@@ -1,19 +1,9 @@
 %lang starknet
 
 from starkware.cairo.common.cairo_builtins import (HashBuiltin, BitwiseBuiltin)
-from starkware.cairo.common.uint256 import (
-  Uint256,
-  uint256_add,
-  uint256_sub,
-  uint256_mul,
-  uint256_eq,
-  uint256_le,
-  uint256_check
-)
+from starkware.cairo.common.uint256 import (Uint256, uint256_check)
 from starkware.starknet.common.syscalls import (get_caller_address)
-from contracts.safe_math import (
-    Int256, add, _add, sub, _sub, mul, _mul
-)
+from contracts.safe_math import (Int256, add, _add, sub, _sub, mul, _mul, add_signed)
 from contracts.assertions import (
     assert_either, either, both, assert_both,
     not_0, assert_not_0, assert_0, ge,
@@ -1025,6 +1015,12 @@ func swell{
     }(
         u: felt, rad: Uint256
     ):
+    alloc_locals
+
+    auth()
+
+    check(rad)
+
     # dai[u] = _add(dai[u], rad);
     let (dai) = _dai.read(u)
     let (dai) = _add(dai, rad)
@@ -1032,7 +1028,7 @@ func swell{
 
     # surf   = surf + rad;
     let (surf) = _surf.read()
-    let (surf) = _add(surf, rad)
+    let (surf) = add_signed(surf, rad)
     _surf.write(surf)
 
     # emit Swell(u, rad);
@@ -1041,8 +1037,6 @@ func swell{
     return ()
 
 end
-
-
 
 # // --- Rates ---
 # function fold(bytes32 i, address u, int256 rate_) external auth {
