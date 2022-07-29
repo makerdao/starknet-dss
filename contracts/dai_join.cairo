@@ -19,144 +19,55 @@ from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.starknet.common.syscalls import (get_contract_address, get_caller_address)
 from starkware.cairo.common.uint256 import (Uint256, split_64)
 from contracts.safe_math import (mul)
+from contracts.assertions import (check)
+# Based on: https://github.com/makerdao/xdomain-dss/blob/f447e779576942cf983c00ee8b9dafa937d2427f/src/DaiJoin.sol
 
+# interface DaiLike {
+#     function burn(address,uint256) external;
+#     function mint(address,uint256) external;
+# }
 @contract_interface
-namespace IDAI:
-  func burn(from_address : felt, value : Uint256):
+namespace DaiLike:
+  func burn(src : felt, value : Uint256):
   end
 
-  func mint(to_address : felt, value : Uint256):
+  func mint(dst : felt, value : Uint256):
   end
 end
 
+# interface VatLike {
+#     function move(address,address,uint256) external;
+# }
 @contract_interface
-namespace IVat:
-  func move(from_address : felt, to_address : felt, rad : Uint256):
+namespace VatLike:
+  func move(src : felt, dst : felt, rad : Uint256):
   end
 end
 
-# event Rely(address indexed usr);
-# event Deny(address indexed usr);
-# event Join(address indexed usr, uint256 wad);
-# event Exit(address indexed usr, uint256 wad);
-# event Cage();
-@event
-func Rely(user : felt):
-end
-@event
-func Deny(user : felt):
-end
-@event
-func Join(user : felt, wad : Uint256):
-end
-@event
-func Exit(user : felt, wad : Uint256):
-end
-@event
-func Cage():
-end
-
-#  // --- Auth ---
-#  mapping (address => uint) public wards;
-#  function rely(address usr) external auth {
-#      wards[usr] = 1;
-#      emit Rely(usr);
-#  }
-#  function deny(address usr) external auth {
-#      wards[usr] = 0;
-#      emit Deny(usr);
-#  }
-#  modifier auth {
-#      require(wards[msg.sender] == 1, "DaiJoin/not-authorized");
-#      _;
-#  }
-@storage_var
-func _wards(user : felt) -> (res : felt):
-end
-@external
-func rely{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(user : felt):
-    auth()
-    _wards.write(user, 1)
-    Rely.emit(user)
-    return ()
-end
-@external
-func deny{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(user : felt):
-    auth()
-    _wards.write(user, 0)
-    Deny.emit(user)
-    return ()
-end
-func auth{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }():
-    let (caller) = get_caller_address()
-    let (ward) = _wards.read(caller)
-    with_attr error_message("GemJoin/not-authorized"):
-      assert ward = 1
-    end
-    return ()
-end
-
-# VatLike public vat;      // CDP Engine
-# DSTokenLike public dai;  // Stablecoin Token
-# uint    public live;     // Active Flag
+# VatLike public immutable vat;       // CDP Engine
 @storage_var
 func _vat() -> (res : felt):
 end
+
+# DaiLike public immutable dai;       // Stablecoin Token
 @storage_var
 func _dai() -> (res : felt):
 end
-@storage_var
-func _live() -> (res : felt):
-end
 
-# uint constant ONE = 10 ** 27;
+# uint256 constant RAY = 10 ** 27;
 const RAY = 10**27
 
-func live{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }():
-    let (live) = _live.read()
-    with_attr error_message("GemJoin/not-live"):
-      assert live = 1
-    end
-    return ()
+# event Join(address indexed usr, uint256 wad);
+@event
+func Join(usr : felt, wad : Uint256):
 end
 
-
-@external
-func cage{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }():
-    auth()
-    # live = 0;
-    _live.write(0)
-    # emit Cage();
-    Cage.emit()
-    return ()
+# event Exit(address indexed usr, uint256 wad);
+@event
+func Exit(usr : felt, wad : Uint256):
 end
 
 # constructor(address vat_, address dai_) public {
-#     wards[msg.sender] = 1;
-#     live = 1;
-#     vat = VatLike(vat_);
-#     dai = DSTokenLike(dai_);
-# }
 @constructor
 func constructor{
     syscall_ptr : felt*,
@@ -164,54 +75,54 @@ func constructor{
     range_check_ptr
   }(
     vat : felt,
-    dai : felt,
-    ward: felt
+    dai : felt
   ):
-    _wards.write(ward, 1)
-    _live.write(1)
+    # vat = VatLike(vat_);
+    # dai = DaiLike(dai_);
     _vat.write(vat)
     _dai.write(dai)
-
     return ()
 end
 
-
-# function mul(uint x, uint y) internal pure returns (uint z) {
-#     require(y == 0 || (z = x * y) / y == x);
-# }
+# function join(address usr, uint256 wad) external
 @external
 func join{
     syscall_ptr : felt*,
     pedersen_ptr : HashBuiltin*,
     range_check_ptr
-  }(user : felt, wad : Uint256):
+  }(usr : felt, wad : Uint256):
+
+    check(wad)
+
     let (contract_address) = get_contract_address()
     let (caller) = get_caller_address()
 
     let (vat) = _vat.read()
     let (dai) = _dai.read()
 
-    # vat.move(address(this), usr, mul(ONE, wad));
+
+    # vat.move(address(this), usr, RAY * wad);
     let (value) = mul(Uint256(RAY, 0), wad)
-    IVat.move(vat, contract_address, user, value)
+    VatLike.move(vat, contract_address, usr, value)
 
     # dai.burn(msg.sender, wad);
-    IDAI.burn(dai, caller, wad)
+    DaiLike.burn(dai, caller, wad)
 
     # emit Join(usr, wad);
-    Join.emit(user, wad)
+    Join.emit(usr, wad)
 
     return ()
 end
 
+# function exit(address usr, uint256 wad) external
 @external
 func exit{
     syscall_ptr : felt*,
     pedersen_ptr : HashBuiltin*,
     range_check_ptr
-  }(user : felt, wad : Uint256):
-    # require(live == 1, "DaiJoin/not-live");
-    live()
+  }(usr : felt, wad : Uint256):
+
+    check(wad)
 
     let (vat) = _vat.read()
     let (dai) = _dai.read()
@@ -219,15 +130,15 @@ func exit{
     let (contract_address) = get_contract_address()
     let (caller) = get_caller_address()
 
-    # vat.move(msg.sender, address(this), mul(ONE, wad));
+    # vat.move(msg.sender, address(this), RAY * wad);
     let (value) = mul(Uint256(RAY, 0), wad)
-    IVat.move(vat, caller, contract_address, value)
+    VatLike.move(vat, caller, contract_address, value)
 
     # dai.mint(usr, wad);
-    IDAI.mint(dai, user, wad)
+    DaiLike.mint(dai, usr, wad)
 
     # emit Exit(usr, wad);
-    Exit.emit(user, wad)
+    Exit.emit(usr, wad)
 
     return ()
 end

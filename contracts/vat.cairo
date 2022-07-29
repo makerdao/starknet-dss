@@ -7,7 +7,7 @@ from contracts.safe_math import (Int256, add, _add, sub, _sub, mul, _mul, add_si
 from contracts.assertions import (
     assert_either, either, both, assert_both,
     not_0, assert_not_0, assert_0, ge,
-    ge_0, le, assert_le, le_0, eq_0
+    ge_0, le, assert_le, le_0, eq_0, check
 )
 
 # Based on https://github.com/makerdao/xdomain-dss/blob/f447e779576942cf983c00ee8b9dafa937d2427f/src/Vat.sol
@@ -139,16 +139,6 @@ func urns{
       let (urn)= _urns.read(i, u)
       return (urn)
 end
-
-# @view
-# func ink{
-#     syscall_ptr : felt*,
-#     pedersen_ptr : HashBuiltin*,
-#     range_check_ptr
-#   }(i: felt, u: felt) -> (res: Uint256):
-#     let (res: Urn) = _urns.read(i, u)
-#     return (res.ink)
-# end
 
 @view
 func dai{
@@ -607,6 +597,16 @@ end
 # function ink(bytes32 ilk, address urn) external view returns (uint256 ink_) {
 #     ink_ = urns[ilk][urn].ink;
 # }
+@view
+func ink{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }(i: felt, u: felt) -> (res: Uint256):
+    let (res: Urn) = _urns.read(i, u)
+    return (res.ink)
+end
+
 
 # function art(bytes32 ilk, address urn) external view returns (uint256 art_) {
 #     art_ = urns[ilk][urn].art;
@@ -642,14 +642,6 @@ func nope{
 
     return ()
 end
-
-func check{range_check_ptr}(a: Uint256):
-    with_attr error_message("Vat/invalid amount"):
-      uint256_check(a)
-    end
-    return ()
-end
-
 
 # // --- Fungibility ---
 # function slip(bytes32 ilk, address usr, int256 wad) external auth {

@@ -6,6 +6,7 @@ from starkware.cairo.common.uint256 import (
   uint256_eq,
   uint256_lt,
   uint256_signed_le,
+  uint256_check
 )
 
 func either(a: felt, b: felt) -> (res: felt):
@@ -93,4 +94,11 @@ func eq_0(a: Uint256) -> (res: felt):
         return (1)
     end
     return (0)
+end
+
+func check{range_check_ptr}(a: Uint256):
+    with_attr error_message("invalid amount"):
+      uint256_check(a)
+    end
+    return ()
 end
