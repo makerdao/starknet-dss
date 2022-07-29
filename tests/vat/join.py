@@ -58,8 +58,7 @@ async def __setup__(starknet, me):
             source=DAI_JOIN_FILE,
             constructor_calldata=[
                 vat.contract_address,
-                dai.contract_address,
-                me
+                dai.contract_address
             ])
 
     defs = SimpleNamespace(
@@ -186,21 +185,6 @@ async def test_gem_join(me, gem, gemA, vat, try_join_gem, try_cage):
     assert not (await try_join_gem(me, wad(10)))
     assert (await call(vat.gem(GEM, me))) == wad(10)
 
-
-@pytest.mark.asyncio
-async def test_dai_exit(me, vat, dai, daiA, try_cage, try_exit_dai):
-    await invoke(me, vat.mint(me, wad(100)))
-    await invoke(me, vat.hope(daiA.contract_address))
-
-    assert (await try_exit_dai(me, wad(40)))
-    assert (await call(dai.balanceOf(me))) == wad(40)
-    assert (await call(vat.dai(me))) == rad(60)
-    assert (await try_cage(daiA))
-    assert not (await try_exit_dai(me, wad(40)))
-    assert (await call(dai.balanceOf(me))) == wad(40)
-    assert (await call(vat.dai(me))) == rad(60)
-
-
 @pytest.mark.asyncio
 async def test_dai_exit_join(me, vat, dai, daiA):
     await invoke(me, vat.mint(me, wad(100)))
@@ -219,5 +203,3 @@ async def test_dai_exit_join(me, vat, dai, daiA):
 async def test_cage_no_access(me, gemA, daiA, try_cage):
     await invoke(me, gemA.deny(me))
     assert not (await try_cage(gemA))
-    await invoke(me, daiA.deny(me))
-    assert not (await try_cage(daiA))
