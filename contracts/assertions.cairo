@@ -6,6 +6,7 @@ from starkware.cairo.common.uint256 import (
   uint256_eq,
   uint256_lt,
   uint256_signed_le,
+  uint256_le,
   uint256_check
 )
 
@@ -59,9 +60,8 @@ func ge{range_check_ptr}(a: Uint256, b: Uint256) -> (res: felt):
     return (res = 1 - lt)
 end
 
-
 # signed!
-func ge_0{range_check_ptr}(a: Uint256) -> (res: felt):
+func _ge_0{range_check_ptr}(a: Uint256) -> (res: felt):
     let (res) = uint256_signed_le(Uint256(low=0, high=0), a)
     return (res)
 end
@@ -84,7 +84,7 @@ func assert_le{range_check_ptr}(a: Uint256, b: Uint256) -> ():
 end
 
 # signed!
-func le_0{range_check_ptr}(a: Uint256) -> (res: felt):
+func _le_0{range_check_ptr}(a: Uint256) -> (res: felt):
     let (res) = uint256_signed_le(a, Uint256(low=0, high=0))
     return (res)
 end

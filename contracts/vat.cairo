@@ -7,7 +7,7 @@ from contracts.safe_math import (Int256, add, _add, sub, _sub, mul, _mul, add_si
 from contracts.assertions import (
     assert_either, either, both, assert_both,
     not_0, assert_not_0, assert_0, ge,
-    ge_0, le, assert_le, le_0, eq_0, check
+    _ge_0, le, assert_le, _le_0, eq_0, check
 )
 
 # Based on https://github.com/makerdao/xdomain-dss/blob/f447e779576942cf983c00ee8b9dafa937d2427f/src/Vat.sol
@@ -793,7 +793,7 @@ func frob{
     # // either debt has decreased, or debt ceilings are not exceeded
     # require(either(dart <= 0, both(ilk.Art * ilk.rate <= ilk.line, debt <= Line)), "Vat/ceiling-exceeded");
     with_attr error_message("Vat/ceiling-exceeded"):
-        let (debt_decreased) = le_0(dart)
+        let (debt_decreased) = _le_0(dart)
         let (ilk_debt) = mul(Art, ilk.rate)
         let (line_ok) = le(ilk_debt, ilk.line)
         let (Line_ok) = le(debt, ilk.line)
@@ -804,8 +804,8 @@ func frob{
     # // urn is either less risky than before, or it is safe
     # require(either(both(dart <= 0, dink >= 0), tab <= urn.ink * ilk.spot), "Vat/not-safe");
     with_attr error_message("Vat/not-safe"):
-        let (dart_le_0) = le_0(dart)
-        let (dink_ge_0) = ge_0(dink)
+        let (dart_le_0) = _le_0(dart)
+        let (dink_ge_0) = _ge_0(dink)
         let (less_risky) = both(dart_le_0, dink_ge_0)
         let (brim) = mul(ink, ilk.spot)
         let (safe) = le(tab, brim)
@@ -817,8 +817,8 @@ func frob{
     # // urn is either more safe, or the owner consents
     # require(either(both(dart <= 0, dink >= 0), wish(u, msg.sender)), "Vat/not-allowed-u");
     with_attr error_message("Vat/not-allowed-u"):
-        let (dart_le_0) = le_0(dart)
-        let (dink_ge_0) = ge_0(dink)
+        let (dart_le_0) = _le_0(dart)
+        let (dink_ge_0) = _ge_0(dink)
         let (less_risky) = both(dart_le_0, dink_ge_0)
         let (owner_consents) = wish(u, caller)
         assert_either(less_risky, owner_consents)
@@ -827,7 +827,7 @@ func frob{
     # // collateral src consents
     # require(either(dink <= 0, wish(v, msg.sender)), "Vat/not-allowed-v");
     with_attr error_message("Vat/not-allowed-v"):
-        let (dink_le_0) = le_0(dink)
+        let (dink_le_0) = _le_0(dink)
         let (src_consents) = wish(v, caller)
         assert_either(dink_le_0, src_consents)
     end
@@ -835,7 +835,7 @@ func frob{
     # // debt dst consents
     # require(either(dart >= 0, wish(w, msg.sender)), "Vat/not-allowed-w");
     with_attr error_message("Vat/not-allowed-w"):
-        let (dart_ge_0) = ge_0(dart)
+        let (dart_ge_0) = _ge_0(dart)
         let (dst_consents) = wish(w, caller)
         assert_either(dart_ge_0, dst_consents)
     end

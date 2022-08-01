@@ -22,13 +22,22 @@ from starkware.cairo.common.math import (
 )
 from starkware.cairo.common.uint256 import (
   Uint256,
-  uint256_mul,
-  split_64,
-  uint256_le
+  uint256_le,
+  uint256_neg
 )
 
+from contracts.assertions import (_ge_0, check)
+
+
+# Based on: https://github.com/makerdao/xdomain-dss/blob/f447e779576942cf983c00ee8b9dafa937d2427f/src/GemJoin.sol
+
+# interface GemLike {
+#     function decimals() external view returns (uint256);
+#     function transfer(address,uint256) external returns (bool);
+#     function transferFrom(address,address,uint256) external returns (bool);
+# }
 @contract_interface
-namespace IGem:
+namespace GemLike:
   func decimals() -> (res : felt):
   end
 
@@ -39,40 +48,29 @@ namespace IGem:
   end
 end
 
+# interface VatLike {
+#     function slip(bytes32,address,int256) external;
+# }
 @contract_interface
-namespace IVat:
+namespace VatLike:
   func slip(ilk: felt, usr: felt, wad: Uint256):
   end
 end
 
-
-# event Rely(address indexed usr);
-# event Deny(address indexed usr);
-# event Join(address indexed usr, uint256 wad);
-# event Exit(address indexed usr, uint256 wad);
-# event Cage();
-@event
-func Rely(user : felt):
-end
-@event
-func Deny(user : felt):
-end
-@event
-func Join(user : felt, wad : Uint256):
-end
-@event
-func Exit(user : felt, wad : Uint256):
-end
-@event
-func Cage():
+# uint256 public live;  // Active Flag
+@storage_var
+func _live() -> (res : felt):
 end
 
+# mapping (address => uint256) public wards;
+@storage_var
+func _wards(user : felt) -> (res : felt):
+end
 
 # VatLike public vat;   // CDP Engine
 # bytes32 public ilk;   // Collateral Type
 # GemLike public gem;
 # uint    public dec;
-# uint    public live;  // Active Flag
 @storage_var
 func _vat() -> (res : felt):
 end
@@ -85,50 +83,33 @@ end
 @storage_var
 func _dec() -> (res : felt):
 end
-@storage_var
-func _live() -> (res : felt):
+
+
+# event Rely(address indexed usr);
+# event Deny(address indexed usr);
+# event Cage();
+# event Join(address indexed usr, uint256 wad);
+# event Exit(address indexed usr, uint256 wad);
+@event
+func Rely(user : felt):
+end
+@event
+func Deny(user : felt):
+end
+@event
+func Cage():
+end
+@event
+func Join(user : felt, wad : Uint256):
+end
+@event
+func Exit(user : felt, wad : Uint256):
 end
 
-
-# // --- Auth ---
-# mapping (address => uint) public wards;
-# function rely(address usr) external auth {
-#     wards[usr] = 1;
-#     emit Rely(usr);
-# }
-# function deny(address usr) external auth {
-#     wards[usr] = 0;
-#     emit Deny(usr);
-# }
 # modifier auth {
 #     require(wards[msg.sender] == 1, "GemJoin/not-authorized");
 #     _;
 # }
-@storage_var
-func _wards(user : felt) -> (res : felt):
-end
-@external
-func rely{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(user : felt):
-    auth()
-    _wards.write(user, 1)
-    Rely.emit(user)
-    return ()
-end
-@external
-func deny{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(user : felt):
-    auth()
-    _wards.write(user, 0)
-    Deny.emit(user)
-    return ()
-end
 func auth{
     syscall_ptr : felt*,
     pedersen_ptr : HashBuiltin*,
@@ -141,24 +122,6 @@ func auth{
     end
     return ()
 end
-
-
-# function cage() external auth {
-#     live = 0;
-#     emit Cage();
-# }
-@external
-func cage{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }():
-    auth()
-    _live.write(0)
-    Cage.emit()
-    return ()
-end
-
 
 # constructor(address vat_, bytes32 ilk_, address gem_) public {
 #     wards[msg.sender] = 1;
@@ -185,12 +148,65 @@ func constructor{
     _vat.write(vat)
     _ilk.write(ilk)
     _gem.write(gem)
-    let (dec) = IGem.decimals(gem)
+    let (dec) = GemLike.decimals(gem)
     _dec.write(dec)
     Rely.emit(ward)
     return ()
 end
 
+# // --- Administration ---
+# function rely(address usr) external auth {
+#     wards[usr] = 1;
+#     emit Rely(usr);
+# }
+# function deny(address usr) external auth {
+#     wards[usr] = 0;
+#     emit Deny(usr);
+# }
+# modifier auth {
+#     require(wards[msg.sender] == 1, "GemJoin/not-authorized");
+#     _;
+# }
+@external
+func rely{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }(user : felt):
+    auth()
+    _wards.write(user, 1)
+    Rely.emit(user)
+    return ()
+end
+@external
+func deny{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }(user : felt):
+    auth()
+    _wards.write(user, 0)
+    Deny.emit(user)
+    return ()
+end
+
+# function cage() external auth {
+#     live = 0;
+#     emit Cage();
+# }
+@external
+func cage{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }():
+    auth()
+    _live.write(0)
+    Cage.emit()
+    return ()
+end
+
+# function join(address usr, uint256 wad) external {
 @external
 func join{
     syscall_ptr : felt*,
@@ -198,6 +214,8 @@ func join{
     range_check_ptr
   }(user : felt, wad : Uint256):
     alloc_locals
+
+    check(wad)
 
     let (caller) = get_caller_address()
     let (contract_address) = get_contract_address()
@@ -210,20 +228,20 @@ func join{
 
     # require(int(wad) >= 0, "GemJoin/overflow");
     local syscall_ptr: felt* = syscall_ptr
-    let (res) = uint256_le(Uint256(0, 0), wad)
+    let (res) = _ge_0(wad)
     with_attr error_message("GemJoin/overflow"):
       assert res = 1
     end
 
-    # vat.slip(ilk, usr, int(wad));
+    # vat.slip(ilk, usr, int256(wad));
     let (vat) = _vat.read()
     let (gem) = _gem.read()
     let (ilk) = _ilk.read()
-    IVat.slip(vat, ilk, user, wad)
+    VatLike.slip(vat, ilk, user, wad)
 
     # require(gem.transferFrom(msg.sender, address(this), wad), "GemJoin/failed-transfer");
     with_attr error_message("GemJoin/failed-transfer"):
-      let (res,) = IGem.transferFrom(gem, caller, contract_address, wad)
+      let (res,) = GemLike.transferFrom(gem, caller, contract_address, wad)
       assert res = 1
     end
 
@@ -233,6 +251,7 @@ func join{
     return ()
 end
 
+# function exit(address usr, uint256 wad) external {
 @external
 func exit{
     syscall_ptr : felt*,
@@ -241,18 +260,19 @@ func exit{
   }(user : felt, wad : Uint256):
     # require(wad <= 2 ** 255, "GemJoin/overflow");
     with_attr error_message("GemJoin/overflow"):
-      assert_uint256_le(wad, Uint256(low=2**128-1, high=2**128-1))
+      _ge_0(wad)
     end
 
-    # vat.slip(ilk, msg.sender, -int(wad)); TODO
+    # vat.slip(ilk, msg.sender, -int(wad));
     let (vat) = _vat.read()
     let (ilk) = _ilk.read()
     let (gem) = _gem.read()
-    IVat.slip(vat, ilk, user, wad)
+    let (minus_wad) = uint256_neg(wad)
+    VatLike.slip(vat, ilk, user, minus_wad)
 
     # require(gem.transfer(usr, wad), "GemJoin/failed-transfer");
     with_attr error_message("GemJoin/failed-transfer"):
-      let (res,) = IGem.transfer(gem, user, wad)
+      let (res,) = GemLike.transfer(gem, user, wad)
       assert res = 1
     end
 
@@ -260,14 +280,4 @@ func exit{
     Exit.emit(user, wad)
 
     return ()
-end
-
-func assert_uint256_le{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(a : Uint256, b : Uint256):
-    let (is_le) = uint256_le(a, b)
-    assert is_le = 1
-    return()
 end

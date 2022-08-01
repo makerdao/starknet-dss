@@ -8,7 +8,6 @@ from starkware.cairo.common.uint256 import (
   uint256_eq,
   uint256_le,
   uint256_check,
-  uint256_not,
   uint256_signed_nn,
   uint256_cond_neg,
   uint256_neg
