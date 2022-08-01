@@ -22,6 +22,7 @@ from conftest import (
     invoke
 )
 
+# Based on: https://github.com/makerdao/xdomain-dss/blob/f447e779576942cf983c00ee8b9dafa937d2427f/src/test/Vat.t.sol
 
 #########
 # SETUP #
@@ -174,6 +175,7 @@ async def try_exit_dai(me, daiA):
 #########
 # TESTS #
 #########
+# https://github.com/makerdao/xdomain-dss/blob/f447e779576942cf983c00ee8b9dafa937d2427f/src/test/Vat.t.sol#L329
 @pytest.mark.asyncio
 async def test_gem_join(me, gem, gemA, vat, try_join_gem, try_cage):
     await invoke(me, gem.mint(me, wad(20)))
@@ -185,6 +187,7 @@ async def test_gem_join(me, gem, gemA, vat, try_join_gem, try_cage):
     assert not (await try_join_gem(me, wad(10)))
     assert (await call(vat.gem(GEM, me))) == wad(10)
 
+# https://github.com/makerdao/xdomain-dss/blob/f447e779576942cf983c00ee8b9dafa937d2427f/src/test/Vat.t.sol#L349
 @pytest.mark.asyncio
 async def test_dai_exit_join(me, vat, dai, daiA):
     await invoke(me, vat.mint(me, wad(100)))
@@ -198,7 +201,7 @@ async def test_dai_exit_join(me, vat, dai, daiA):
     assert (await call(dai.balanceOf(me))) == wad(30)
     assert (await call(vat.dai(me))) == rad(70)
 
-
+# https://github.com/makerdao/xdomain-dss/blob/f447e779576942cf983c00ee8b9dafa937d2427f/src/test/Vat.t.sol#L359
 @pytest.mark.asyncio
 async def test_cage_no_access(me, gemA, daiA, try_cage):
     await invoke(me, gemA.deny(me))
