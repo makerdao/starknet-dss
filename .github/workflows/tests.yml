@@ -16,7 +16,9 @@ jobs:
         run: python -c "import sys; print(sys.version)"
 
       - name: Install deps
-        run: pip install -r requirements.txt
+        run: |
+          pip install poetry
+          if [ -f pyproject.toml ]; then poetry install; fi
 
       - name: Run tests
-        run: pytest ./tests/vat/* --disable-pytest-warnings
+        run: poetry run pytest ./tests/vat/* --disable-pytest-warnings
