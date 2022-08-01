@@ -27,6 +27,7 @@ from conftest import (
     invoke
 )
 
+# Based on: https://github.com/makerdao/xdomain-dss/blob/f447e779576942cf983c00ee8b9dafa937d2427f/src/test/Vat.t.sol
 
 #########
 # SETUP #
