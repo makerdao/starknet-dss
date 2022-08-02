@@ -21,4 +21,4 @@ jobs:
           if [ -f pyproject.toml ]; then poetry install; fi
 
       - name: Run tests
-        run: poetry run pytest ./tests/vat/* --disable-pytest-warnings
+        run: poetry run pytest tests/ --disable-pytest-warnings

@@ -21,8 +21,11 @@ SUPER_ADJUDICATOR_L1_ADDRESS = 0
 CONTRACT_SRC = [os.path.dirname(__file__), "..", "..", "contracts", "starknet"]
 MAX = (2**128-1, 2**128-1)
 
+
 def encode(string):
     return int.from_bytes(string.encode("utf-8"), byteorder="big")
+
+
 GOLD = encode("gold")
 GEM = encode("gem")
 GEMS = encode("gems")
@@ -35,6 +38,16 @@ DUST = encode("dust")
 ###########
 # HELPERS #
 ###########
+def check_event(contract, event_name, tx, values):
+    expected_event = Event(
+        from_address=contract.contract_address,
+        keys=[get_selector_from_name(event_name)],
+        data=list(chain(*[e if isinstance(e, tuple) else [e] for e in values]))
+    )
+    assert expected_event in (tx.raw_events if hasattr(
+        tx, 'raw_events') else tx.get_sorted_events())
+
+
 async def balance_of(token, contract):
     if (hasattr(contract, 'contract_address')):
         address = contract.contract_address
@@ -43,15 +56,19 @@ async def balance_of(token, contract):
     res = await call(token.balanceOf(address))
     return res
 
+
 async def call(_):
     res = await _.call()
     return res.result[0]
 
+
 async def invoke(user, _):
-    await _.invoke(user)
+    return await _.invoke(user)
+
 
 def to_split_uint(a):
     return (a & ((1 << 128) - 1), a >> 128)
+
 
 def to_split_uint_neg(a):
     _ = to_split_uint(a*-1)
@@ -60,24 +77,30 @@ def to_split_uint_neg(a):
         0xffffffffffffffffffffffffffffffff - _[1],
     )
 
+
 def to_uint(a):
     return a[0] + (a[1] << 128)
+
+
 def ray(x):
-    if (x>=0):
+    if (x >= 0):
         return to_split_uint(int(x*(10**18)) * 10**9)
     else:
         return to_split_uint_neg(int(x*(10**18)) * 10**9)
+
+
 def rad(x):
-    if (x>=0):
+    if (x >= 0):
         return to_split_uint(int(x*(10**18)) * 10**27)
     else:
         return to_split_uint_neg(int(x*(10**18)) * 10**27)
+
+
 def wad(x):
-    if (x>=0):
+    if (x >= 0):
         return to_split_uint(int(x*(10**18)))
     else:
         return to_split_uint_neg(int(x*(10**18)))
-
 
 
 async def deploy_account(starknet, signer, source):
@@ -85,6 +108,7 @@ async def deploy_account(starknet, signer, source):
         source=source,
         constructor_calldata=[signer.public_key],
     )
+
 
 def compile(path):
     return compile_starknet_files(
@@ -125,6 +149,7 @@ def unserialize_contract(starknet_state, serialized_contract):
 def event_loop():
     return asyncio.new_event_loop()
 
+
 CONTRACTS_DIR = os.path.join(os.getcwd(), "contracts")
 TESTS_DIR = os.path.join(os.getcwd(), "contracts/tests")
 ACCOUNT_FILE = os.path.join(CONTRACTS_DIR, "account.cairo")
@@ -135,6 +160,7 @@ DAI_JOIN_FILE = os.path.join(CONTRACTS_DIR, "dai_join.cairo")
 TEST_VAT_FILE = os.path.join(TESTS_DIR, "test_vat.cairo")
 VAT_FILE = os.path.join(CONTRACTS_DIR, "vat.cairo")
 TEST_VOW_FILE = os.path.join(TESTS_DIR, "test_vow.cairo")
+DAI_FILE = os.path.join(CONTRACTS_DIR, "dai.cairo")
 
 
 async def build_copyable_deployment():
@@ -163,6 +189,7 @@ async def build_copyable_deployment():
         vat=compile(VAT_FILE),
         gem_join=compile(GEM_JOIN_FILE),
         mock_token=compile(MOCK_TOKEN_FILE),
+        dai=compile(DAI_FILE)
     )
 
     return SimpleNamespace(
@@ -206,31 +233,63 @@ async def ctx_factory(copyable_deployment):
 
     return make
 
+
 @pytest.fixture(scope="function")
 def ctx(ctx_factory):
     ctx = ctx_factory()
     return ctx
 
+
 @pytest.fixture(scope="function")
 async def starknet(ctx) -> Starknet:
     return ctx.starknet
+
 
 @pytest.fixture(scope="function")
 async def me(ctx) -> int:
     return ctx.me
 
+
 @pytest.fixture(scope="function")
 async def auth(ctx) -> StarknetContract:
     return ctx.auth
+
 
 @pytest.fixture(scope="function")
 async def ali(ctx) -> StarknetContract:
     return ctx.ali
 
+
 @pytest.fixture(scope="function")
 async def bob(ctx) -> StarknetContract:
     return ctx.bob
 
+
 @pytest.fixture(scope="function")
 async def che(ctx) -> StarknetContract:
     return ctx.che
+
+
+@pytest.fixture
+async def check_balances(
+    dai: StarknetContract,
+    ali: StarknetContract,
+    bob: StarknetContract,
+    che: StarknetContract,
+):
+    async def internal_check_balances(
+        expected_ali_balance,
+        expected_bob_balance,
+    ):
+        ali_balance = await dai.balanceOf(ali.contract_address).call()
+        bob_balance = await dai.balanceOf(bob.contract_address).call()
+        che_balance = await dai.balanceOf(che.contract_address).call()
+        total_supply = await dai.totalSupply().call()
+
+        assert ali_balance.result == (to_split_uint(expected_ali_balance),)
+        assert bob_balance.result == (to_split_uint(expected_bob_balance),)
+        assert che_balance.result == (to_split_uint(0),)
+        assert total_supply.result == (
+            to_split_uint(expected_ali_balance+expected_bob_balance),)
+
+    return internal_check_balances
