@@ -454,8 +454,8 @@ end
 # TODO: consider: https://github.com/makerdao/xdomain-dss/issues/2
 @external
 func init{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
-    }(ilk: felt):
+    syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+  }(ilk: felt):
     alloc_locals
 
     auth()
