@@ -1,4 +1,9 @@
-# pragma solidity 0.8.14;
+%lang starknet
+
+from starkware.cairo.common.cairo_builtins import (HashBuiltin, SignatureBuiltin)
+from starkware.starknet.common.syscalls import (get_caller_address)
+from starkware.cairo.common.math import (assert_lt)
+from starkware.cairo.common.signature import verify_ecdsa_signature
 
 # import "./TeleportGUID.sol";
 
@@ -10,18 +15,45 @@
 #     ) external returns (uint256 postFeeAmount, uint256 totalFee);
 # }
 
+struct Signature:
+  member pk: felt
+  member r: felt
+  member s: felt
+end
+
+
 # // TeleportOracleAuth provides user authentication for TeleportJoin, by means of Maker Oracle Attestations
 # contract TeleportOracleAuth {
 
 #     mapping (address => uint256) public wards;   // Auth
+@storage_var
+func _wards(user : felt) -> (res : felt):
+end
+
 #     mapping (address => uint256) public signers; // Oracle feeds
+@storage_var
+func _signers(address: felt) -> (res : felt):
+end
+
 
 #     TeleportJoinLike immutable public teleportJoin;
+@storage_var
+func _teleport_join() -> (join : felt):
+end
 
 #     uint256 public threshold;
 
-#     event Rely(address indexed usr);
-#     event Deny(address indexed usr);
+# event Rely(address indexed usr);
+@event
+func Rely(user : felt):
+end
+
+# event Deny(address indexed usr);
+@event
+func Deny(user : felt):
+end
+
+
 #     event File(bytes32 indexed what, uint256 data);
 #     event SignersAdded(address[] signers);
 #     event SignersRemoved(address[] signers);
@@ -30,22 +62,81 @@
 #         require(wards[msg.sender] == 1, "TeleportOracleAuth/not-authorized");
 #         _;
 #     }
+func auth{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }():
+    let (caller) = get_caller_address()
+    let (ward) = _wards.read(caller)
+    with_attr error_message("teleport_oracle_auth/not-authorized"):
+      assert ward = 1
+    end
+    return ()
+end
 
+
+# TODO: do we still need to send ward as constructor param?
 #     constructor(address teleportJoin_) {
-#         wards[msg.sender] = 1;
-#         emit Rely(msg.sender);
-#         teleportJoin = TeleportJoinLike(teleportJoin_);
-#     }
+@constructor
+func constructor{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }(
+    ward : felt,
+    teleport_join_: felt
+  ):
+    # wards[msg.sender] = 1;
+    _wards.write(ward, 1)
 
-#     function rely(address usr) external auth {
-#         wards[usr] = 1;
-#         emit Rely(usr);
-#     }
+    # emit Rely(msg.sender);
+    Rely.emit(ward)
 
-#     function deny(address usr) external auth {
-#         wards[usr] = 0;
-#         emit Deny(usr);
-#     }
+    _teleport_join.write(teleport_join_)
+    # teleportJoin = TeleportJoinLike(teleportJoin_);
+
+    return ()
+end
+
+# function rely(address usr) external auth {
+@external
+func rely{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }(usr : felt):
+    auth()
+
+    # wards[usr] = 1;
+    _wards.write(usr, 1)
+
+    # emit Rely(usr);
+    Rely.emit(usr)
+
+    return ()
+end
+
+
+# function deny(address usr) external auth {
+@external
+func deny{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }(user : felt):
+    auth()
+
+    # wards[usr] = 0;
+    _wards.write(user, 0)
+
+    # emit Deny(usr);
+    Deny.emit(user)
+
+    return ()
+end
+
+
 
 #     function file(bytes32 what, uint256 data) external auth {
 #         if (what == "threshold") {
@@ -93,6 +184,9 @@
 #         (postFeeAmount, totalFee) = teleportJoin.requestMint(teleportGUID, maxFeePercentage, operatorFee);
 #     }
 
+
+
+
 #     /**
 #      * @notice Returns true if `signatures` contains at least `threshold_` valid signatures of a given `signHash`
 #      * @param signHash The signed message hash
@@ -124,6 +218,33 @@
 #             unchecked { i++; }
 #         }
 #     }
+func validate{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr,
+    ecdsa_ptr : SignatureBuiltin*
+  }(message : felt, sigs: Signature*, sigs_len: felt, threshold_: felt):
+
+    if threshold_ == 0:
+        return ()
+    end
+
+    assert_lt(0, sigs_len)
+
+    let sig: Signature = sigs[0]
+
+    let (valid_sig) = _signers.read(sig.pk)
+
+    assert valid_sig = 1
+
+    verify_ecdsa_signature(message, sig.pk, sig.r, sig.s)
+
+    validate(message, sigs + 1, sigs_len - 1, threshold_ - 1)
+
+    return ()
+
+end
+
 
 #     /**
 #      * @notice This has to match what oracles are signing
