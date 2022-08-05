@@ -177,14 +177,43 @@ end
 #         bytes calldata signatures,
 #         uint256 maxFeePercentage,
 #         uint256 operatorFee
-#     ) external returns (uint256 postFeeAmount, uint256 totalFee) {
-#         require(bytes32ToAddress(teleportGUID.receiver) == msg.sender ||
-#             bytes32ToAddress(teleportGUID.operator) == msg.sender, "TeleportOracleAuth/not-receiver-nor-operator");
-#         require(isValid(getSignHash(teleportGUID), signatures, threshold), "TeleportOracleAuth/not-enough-valid-sig");
-#         (postFeeAmount, totalFee) = teleportJoin.requestMint(teleportGUID, maxFeePercentage, operatorFee);
-#     }
+func request_mint{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr,
+    ecdsa_ptr : SignatureBuiltin*
+  }(
+    teleport_GUID : TeleportGUID,
+    sigs: Signature*,
+    sigs_len: felt,
+    max_fee_percentage: Uint256,
+    operator_fee: Uint256
+  ) -> (
+    post_fee_amount: Uint256,
+    operator_fee: Uint256
+  ):
+    # require(bytes32ToAddress(teleportGUID.receiver) == msg.sender ||
+    #   bytes32ToAddress(teleportGUID.operator) == msg.sender, "TeleportOracleAuth/not-receiver-nor-operator");
+    let (caller) = get_caller_address()
+    let is_receiver = caller = teleport_GUID.receiver
+    if is_receiver == 0:
+      with_attr error_message("teleport_oracle_auth/not-receiver-nor-operator"):
+        assert caller = teleport_GUID.operator
+      end
+    end
 
+    # require(isValid(getSignHash(teleportGUID), signatures, threshold), "TeleportOracleAuth/not-enough-valid-sig");
+    let (threshold_) = _threshold.read()
+    let teleport_hash = () # TODO!
+    validate(teleport_hash, sigs, sigs_len, threshold_)
 
+    # (postFeeAmount, totalFee) = teleportJoin.requestMint(teleportGUID, maxFeePercentage, operatorFee);
+    let teleport_join_ = _teleport_join.read()
+    let (post_fee_amount, operator_fee) = TeleportJoinLike.request_mint(teleport_join_, teleport_guid, max_fee_percentage, operator_fee)
+
+    return (post_fee_amount, operator_fee)
+
+end
 
 
 #     /**
