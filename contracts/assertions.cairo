@@ -11,7 +11,7 @@ from starkware.cairo.common.uint256 import (
 )
 
 func either(a: felt, b: felt) -> (res: felt):
-    if a+ b == 0:
+    if a + b == 0:
         return (0)
     end
     return (1)
