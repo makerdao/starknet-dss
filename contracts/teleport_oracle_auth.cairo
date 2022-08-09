@@ -43,9 +43,29 @@ end
 func _wards(user : felt) -> (res : felt):
 end
 
+@view
+func wards{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }(user : felt) -> (res : felt):
+    let (res) = _wards.read(user)
+    return (res)
+end
+
 #     mapping (address => uint256) public signers; // Oracle feeds
 @storage_var
 func _signers(address: felt) -> (res : felt):
+end
+
+@view
+func signers{
+        syscall_ptr : felt*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr
+    }(address: felt) -> (res: felt):
+      let (res) = _signers.read(address)
+      return (res)
 end
 
 
@@ -54,11 +74,30 @@ end
 func _teleport_join() -> (join : felt):
 end
 
+@view
+func teleport_join{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }() -> (res : felt):
+    let (res) = _teleport_join.read()
+    return (res)
+end
+
 #     uint256 public threshold;
 @storage_var
 func _threshold() -> (res : felt):
 end
 
+@view
+func threshold{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }() -> (res : felt):
+    let (res) = _threshold.read()
+    return (res)
+end
 
 # event Rely(address indexed usr);
 @event
@@ -69,7 +108,6 @@ end
 @event
 func Deny(user : felt):
 end
-
 
 #     event File(bytes32 indexed what, uint256 data);
 @event
