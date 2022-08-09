@@ -366,7 +366,7 @@ end
 # // --- Administration ---
 # function rely(address usr) external auth {
 @external
-func rely{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(usr : felt):
+func rely{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(user : felt):
     auth()
 
     # require(live == 1, "Vat/not-live");
@@ -548,7 +548,7 @@ end
 # // --- Allowance ---
 # function hope(address usr) external {
 @external
-func hope{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(usr : felt):
+func hope{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(user : felt):
     # can[msg.sender][usr] = 1;
     let (caller) = get_caller_address()
     _can.write(caller, usr, 1)
@@ -561,7 +561,7 @@ end
 
 # function nope(address usr) external {
 @external
-func nope{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(usr : felt):
+func nope{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(user : felt):
     # can[msg.sender][usr] = 0;
     let (caller) = get_caller_address()
     _can.write(caller, usr, 0)
