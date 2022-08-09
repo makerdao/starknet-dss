@@ -1,4 +1,7 @@
 # pragma solidity 0.8.14;
+%lang starknet
+
+from starkware.cairo.common.cairo_builtins import HashBuiltin
 
 # // Standard Maker Teleport GUID
 # struct TeleportGUID {
@@ -12,13 +15,13 @@
 # }
 
 struct TeleportGUID:
-  member source_domain: felt
-  member target_domain: felt
-  member receiver: felt
-  member operator: felt
-  member amount: felt
-  member nonce: felt
-  member timestamp: felt
+    member source_domain : felt
+    member target_domain : felt
+    member receiver : felt
+    member operator : felt
+    member amount : felt
+    member nonce : felt
+    member timestamp : felt
 end
 
 # // solhint-disable-next-line func-visibility
@@ -43,3 +46,9 @@ end
 #         teleportGUID.timestamp
 #     ));
 # }
+
+func getGUIDHash{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    teleportGUID : TeleportGUID
+) -> (guidHash : felt):
+    return (guidHash=0)
+end
