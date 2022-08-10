@@ -3,10 +3,12 @@ import { parseEther } from "ethers/lib/utils";
 import { StarknetContract } from "hardhat/types";
 import fetch from "node-fetch";
 
-import { getSelectorFromName } from "../scripts/utils";
-
 type SplitUintType = { low: bigint; high: bigint };
 type numberish = string | number | bigint | BigNumber;
+
+export function l2String(str: string): string {
+  return `0x${Buffer.from(str, "utf8").toString("hex")}`;
+}
 
 export class SplitUint {
   res: SplitUintType;
@@ -72,31 +74,12 @@ export function eth(amount: string) {
   return parseEther(amount);
 }
 
-export function l2Eth(amount: string | number): SplitUint {
-  return SplitUint.fromUint(asHex(amount));
+export function l2Eth(amount: string | number | bigint | BigNumber): SplitUint {
+  return SplitUint.fromUint(`0x${asHex(amount)}`);
 }
 
 export function asDec(a: string | number | bigint): string {
   return BigInt(a).toString();
-}
-
-export async function getEvent(eventName: string, contractAddress: string) {
-  const _contractAddress = `0x${BigInt(contractAddress).toString(16)}`;
-  const eventKey = getSelectorFromName(eventName);
-  const res = await fetch(`http://localhost:5050/feeder_gateway/get_block`);
-  const json = await res.json();
-  const [event] = json["transaction_receipts"][0]["events"].filter(
-    (event: any) => {
-      return (
-        BigInt(event.keys[0]).toString() === eventKey &&
-        event.from_address === _contractAddress
-      );
-    }
-  );
-  if (!event) {
-    throw Error("Event not found");
-  }
-  return event.data;
 }
 
 export async function simpleDeployL2(
