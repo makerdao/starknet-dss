@@ -4,7 +4,11 @@
 # import "./TeleportGUID.sol";
 from contracts.teleport_GUID import TeleportGUID, getGUIDHash
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
-from starkware.starknet.common.syscalls import get_caller_address, get_contract_address
+from starkware.starknet.common.syscalls import (
+    get_caller_address,
+    get_contract_address,
+    get_block_timestamp,
+)
 from starkware.cairo.common.uint256 import (
     Uint256,
     uint256_check,
@@ -23,8 +27,9 @@ from contracts.safe_math import (
     add_signed,
     _min,
     _felt_to_uint,
+    _uint_to_felt,
 )
-from contracts.assertions import eq_0, either, le_int, _ge_0
+from contracts.assertions import eq_0, either, le_int, _ge_0, assert_either, is_eq, check
 
 struct Urn:
     member ink : Uint256  # Locked Collateral  [wad]
@@ -123,6 +128,14 @@ end
 #     function registerMint(TeleportGUID calldata teleportGUID) external;
 #     function settle(bytes32 sourceDomain, bytes32 targetDomain, uint256 amount) external;
 # }
+@contract_interface
+namespace GatewayLike:
+    func registerMint(teleportGUID : TeleportGUID):
+    end
+
+    func settle(source_domain : felt, target_domain : felt, amount : Uint256):
+    end
+end
 
 const MAX_NONCE = 2 ** 80 - 1
 # const MAX_UINT = Uint256(2 ** 128 - 1, 2 ** 128 - 1)
@@ -237,7 +250,17 @@ func Mint(
 end
 # event Settle(bytes32 indexed sourceDomain, uint256 amount);
 #     event InitiateTeleport(TeleportGUID teleport);
-#     event Flush(bytes32 indexed targetDomain, uint256 dai);
+@event
+func InitiateTeleport(teleport : TeleportGUID):
+end
+# event Flush(bytes32 indexed targetDomain, uint256 dai);
+@event
+func Flush(target_domain : felt, dai: Uint256):
+end
+
+@event
+func Settle(source_domain : felt, amount : Uint256):
+end
 
 # constructor(address vat_, address daiJoin_, bytes32 ilk_, bytes32 domain_, address router_) {
 # wards[msg.sender] = 1;
@@ -657,6 +680,27 @@ end
 #             bytes32ToAddress(teleportGUID.operator) == msg.sender, "TeleportJoin/not-receiver-nor-operator");
 #         (postFeeAmount, totalFee) = _mint(teleportGUID, getGUIDHash(teleportGUID), maxFeePercentage, operatorFee);
 #     }
+@external
+func mintPending{
+    syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
+}(teleportGUID : TeleportGUID, max_fee_percentage : Uint256, operator_fee : Uint256) -> (
+    post_fee_amount : Uint256, total_fee : Uint256
+):
+    alloc_locals
+    with_attr error_message("TeleportJoin/not-receiver-nor-operator"):
+        let (caller) = get_caller_address()
+        let (is_receiver) = is_eq(teleportGUID.receiver, caller)
+        let (is_operator) = is_eq(teleportGUID.operator, caller)
+        assert_either(is_receiver, is_operator)
+    end
+
+    let (hashGUID) = getGUIDHash(teleportGUID)
+    let (post_fee_amount : Uint256, total_fee : Uint256) = _mint(
+        teleportGUID, hashGUID, max_fee_percentage, operator_fee
+    )
+
+    return (post_fee_amount, total_fee)
+end
 
 # /**
 #     * @dev External function that repays debt with DAI previously pushed to this contract (in general coming from the bridges)
@@ -681,6 +725,58 @@ end
 #         debt[sourceDomain] -= int256(amount);
 #         emit Settle(sourceDomain, amount);
 #     }
+@external
+func settle{
+    syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
+}(source_domain : felt, target_domain : felt, amount : Uint256):
+    alloc_locals
+    with_attr error_message("TeleportJoin/incorrect-targetDomain"):
+        let (domain) = _domain.read()
+        assert target_domain = domain
+    end
+
+    check(amount)
+
+    let (dai) = _dai.read()
+    let (daiJoin) = _daiJoin.read()
+
+    let (caller) = get_caller_address()
+    let (self) = get_contract_address()
+    TokenLike.transferFrom(dai, caller, self, amount)
+    DaiJoinLike.join(daiJoin, self, amount)
+
+    let (vat) = _vat.read()
+    let (live) = VatLike.live(vat)
+
+    if live == 1:
+        let (ilk) = _ilk.read()
+        let (urn_ : Urn) = VatLike.urns(vat, ilk, self)  # rate == RAY => normalized debt == actual debt
+        let (amt_to_payback : Uint256) = _min(amount, urn_.art)
+        let (minus_amt_to_payback : Int256) = uint256_neg(amt_to_payback)
+        VatLike.frob(vat, ilk, self, self, self, minus_amt_to_payback, minus_amt_to_payback)
+        VatLike.slip(vat, ilk, self, minus_amt_to_payback)
+
+        let (new_art : Uint256) = sub(urn_.art, amt_to_payback)
+        _art.write(new_art)
+        tempvar pedersen_ptr : HashBuiltin* = pedersen_ptr
+        tempvar syscall_ptr : felt* = syscall_ptr
+        tempvar range_check_ptr = range_check_ptr
+        tempvar bitwise_ptr : BitwiseBuiltin* = bitwise_ptr
+    else:
+        tempvar pedersen_ptr : HashBuiltin* = pedersen_ptr
+        tempvar syscall_ptr : felt* = syscall_ptr
+        tempvar range_check_ptr = range_check_ptr
+        tempvar bitwise_ptr : BitwiseBuiltin* = bitwise_ptr
+    end
+
+    let (debt) = _debts.read(source_domain)
+    let (new_debt) = sub(debt, amount)
+    _debts.write(source_domain, new_debt)
+
+    Settle.emit(source_domain, amount)
+
+    return ()
+end
 
 # /**
 #     * @notice Initiate Maker teleport
@@ -701,6 +797,54 @@ end
 #             0
 #         );
 #     }
+@external
+func initiateTeleport{
+    syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
+}(target_domain : felt, receiver : felt, amount : felt, operator : felt):
+    # TeleportGUID memory teleport = TeleportGUID({
+    #             sourceDomain: domain,
+    #             targetDomain: targetDomain,
+    #             receiver: receiver,
+    #             operator: operator,
+    #             amount: amount,
+    #             nonce: nonce++,
+    #             timestamp: uint48(block.timestamp)
+    #         });
+    let (domain) = _domain.read()
+    let (nonce) = _nonce.read()
+    let (block_timestamp) = get_block_timestamp()
+    let teleport : TeleportGUID = TeleportGUID(
+        source_domain=domain,
+        target_domain=target_domain,
+        receiver=receiver,
+        operator=operator,
+        amount=amount,
+        nonce=nonce + 1,
+        timestamp=block_timestamp,
+    )
+
+    # batches[targetDomain] += amount;
+    let (batch) = _batches.read(target_domain)
+    let (u_amount) = _felt_to_uint(amount)
+    let (new_batch : Uint256) = add(batch, u_amount)
+    _batches.write(target_domain, new_batch)
+    # require(dai.transferFrom(msg.sender, address(this), amount), "DomainHost/transfer-failed");
+    with_attr error_message("DomainHost/transfer-failed"):
+        let (dai) = _dai.read()
+        let (caller) = get_caller_address()
+        let (self) = get_contract_address()
+        let (success) = TokenLike.transferFrom(dai, caller, self, u_amount)
+    end
+    # // Initiate the censorship-resistant slow-path
+    #         router.registerMint(teleport);
+    let (router) = _router.read()
+    GatewayLike.registerMint(router, teleport)
+
+    # // Oracle listens to this event for the fast-path
+    #         emit InitiateTeleport(teleport);
+    InitiateTeleport.emit(teleport)
+    return ()
+end
 
 # /**
 #     * @notice Initiate Maker teleport
@@ -773,4 +917,23 @@ end
 
 # emit Flush(targetDomain, daiToFlush);
 #     }
+@external
+func flush{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(target_domain : felt):
+    alloc_locals
+    let (dai_to_flush : Uint256) = _batches.read(target_domain)
+    with_attr error_message("DomainGuest/flush-dust"):
+        let (fdust : Uint256) = _fdust.read()
+        let (not_dust) = uint256_lt(fdust, dai_to_flush)
+    end
+
+    _batches.write(target_domain, Uint256(0, 0))
+
+    let (domain) = _domain.read()
+    let (router) = _router.read()
+    GatewayLike.settle(router, domain, target_domain, dai_to_flush)
+
+    Flush.emit(target_domain, dai_to_flush)
+
+    return ()
+end
 # }

@@ -113,3 +113,11 @@ func check{range_check_ptr}(a : Uint256):
     end
     return ()
 end
+
+func is_eq(a : felt, b : felt) -> (res : felt):
+    if a == b:
+        return (1)
+    else:
+        return (0)
+    end
+end
