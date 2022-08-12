@@ -40,7 +40,7 @@ end
 
 #     mapping (address => uint256) public wards;   // Auth
 @storage_var
-func _wards(user : felt) -> (res : felt):
+func _wards(usr : felt) -> (res : felt):
 end
 
 @view
@@ -48,8 +48,8 @@ func wards{
     syscall_ptr : felt*,
     pedersen_ptr : HashBuiltin*,
     range_check_ptr
-  }(user : felt) -> (res : felt):
-    let (res) = _wards.read(user)
+  }(usr : felt) -> (res : felt):
+    let (res) = _wards.read(usr)
     return (res)
 end
 
@@ -101,12 +101,12 @@ end
 
 # event Rely(address indexed usr);
 @event
-func Rely(user : felt):
+func Rely(usr : felt):
 end
 
 # event Deny(address indexed usr);
 @event
-func Deny(user : felt):
+func Deny(usr : felt):
 end
 
 #     event File(bytes32 indexed what, uint256 data);
@@ -190,14 +190,14 @@ func deny{
     syscall_ptr : felt*,
     pedersen_ptr : HashBuiltin*,
     range_check_ptr
-  }(user : felt):
+  }(usr : felt):
     auth()
 
     # wards[usr] = 0;
-    _wards.write(user, 0)
+    _wards.write(usr, 0)
 
     # emit Deny(usr);
-    Deny.emit(user)
+    Deny.emit(usr)
 
     return ()
 end
