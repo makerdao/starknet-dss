@@ -1,13 +1,13 @@
-import { BigNumber } from "ethers";
-import { parseEther } from "ethers/lib/utils";
-import { StarknetContract } from "hardhat/types";
-import fetch from "node-fetch";
+import { BigNumber } from 'ethers';
+import { parseEther } from 'ethers/lib/utils';
+import { StarknetContract } from 'hardhat/types';
+import fetch from 'node-fetch';
 
 type SplitUintType = { low: bigint; high: bigint };
 type numberish = string | number | bigint | BigNumber;
 
 export function l2String(str: string): string {
-  return `0x${Buffer.from(str, "utf8").toString("hex")}`;
+  return `0x${Buffer.from(str, 'utf8').toString('hex')}`;
 }
 
 export class SplitUint {
@@ -18,7 +18,7 @@ export class SplitUint {
   }
 
   static fromUint(a: numberish): SplitUint {
-    const bits = asHex(a).padStart(64, "0");
+    const bits = asHex(a).padStart(64, '0');
     const res = {
       low: BigInt(`0x${bits.slice(32)}`),
       high: BigInt(`0x${bits.slice(0, 32)}`),
@@ -37,7 +37,7 @@ export class SplitUint {
 
   add(_a: SplitUint | numberish): SplitUint {
     let a = _a as SplitUint;
-    if (!_a.hasOwnProperty("res")) {
+    if (!_a.hasOwnProperty('res')) {
       a = SplitUint.fromUint(_a as numberish);
     }
     return SplitUint.fromUint(this.toUint() + a.toUint());
@@ -45,7 +45,7 @@ export class SplitUint {
 
   sub(_a: SplitUint | numberish): SplitUint {
     let a = _a as SplitUint;
-    if (!_a.hasOwnProperty("res")) {
+    if (!_a.hasOwnProperty('res')) {
       a = SplitUint.fromUint(_a as numberish);
     }
     return SplitUint.fromUint(this.toUint() - a.toUint());
@@ -57,9 +57,7 @@ export class SplitUint {
 }
 
 function asHex(a: string | number | bigint | BigNumber): string {
-  return BigNumber.isBigNumber(a)
-    ? a.toHexString().slice(2)
-    : BigInt(a).toString(16);
+  return BigNumber.isBigNumber(a) ? a.toHexString().slice(2) : BigInt(a).toString(16);
 }
 
 export function split(a: BigNumber): bigint[] {
@@ -67,7 +65,7 @@ export function split(a: BigNumber): bigint[] {
 }
 
 export function toBytes32(a: string): string {
-  return `0x${BigInt(a).toString(16).padStart(64, "0")}`;
+  return `0x${BigInt(a).toString(16).padStart(64, '0')}`;
 }
 
 export function eth(amount: string) {
@@ -90,3 +88,11 @@ export async function simpleDeployL2(
   const factory = await hre.starknet.getContractFactory(name);
   return factory.deploy(args);
 }
+
+export const logGas = async (message: string, tx: Promise<any>, skip?: boolean): Promise<any> => {
+  return tx.then(async (result) => {
+    const receipt = await result.wait();
+    if (!skip) console.log('           Used', receipt.gasUsed.toNumber(), `gas for >${message}<`);
+    return result;
+  });
+};

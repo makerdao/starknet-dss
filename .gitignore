@@ -26,3 +26,4 @@ typechain-types
 deployed_contracts/local.json
 
 *.DS_Store
+dump.pkl
