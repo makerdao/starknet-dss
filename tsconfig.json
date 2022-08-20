@@ -5,7 +5,7 @@
         "outDir": "dist",
         "resolveJsonModule": true,
         "strict": true,
-        "target": "es5"
+        "target": "es2020"
     },
     "files": [
         "./hardhat.config.ts"

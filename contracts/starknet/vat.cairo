@@ -240,7 +240,7 @@ end
 
 # event Slip(bytes32 indexed ilk, address indexed usr, int256 wad);
 @event
-func Slip(ilk : felt, usr : felt, wad : Int256):
+func Slip(ilk : felt, user : felt, wad : Int256):
 end
 
 # event Flux(bytes32 indexed ilk, address indexed src, address indexed dst, uint256 wad);
@@ -295,7 +295,7 @@ end
 func auth{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}():
     let (caller) = get_caller_address()
     let (ward) = _wards.read(caller)
-    with_attr error_message("l2_dai_bridge/not-authorized"):
+    with_attr error_message("Vat/not-authorized"):
         assert ward = 1
     end
     return ()
@@ -306,13 +306,13 @@ end
 # }
 @external
 func wish{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-    bit : felt, usr : felt
+    bit : felt, user : felt
 ) -> (res : felt):
     # return either(bit == usr, can[bit][usr] == 1);
-    if bit == usr:
+    if bit == user:
         return (res=1)
     end
-    let (res) = _can.read(bit, usr)
+    let (res) = _can.read(bit, user)
     return (res)
 end
 
@@ -366,17 +366,17 @@ end
 # // --- Administration ---
 # function rely(address usr) external auth {
 @external
-func rely{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(usr : felt):
+func rely{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(user : felt):
     auth()
 
     # require(live == 1, "Vat/not-live");
     require_live()
 
     # wards[usr] = 1;
-    _wards.write(usr, 1)
+    _wards.write(user, 1)
 
-    # emit Rely(usr);
-    Rely.emit(usr)
+    # emit Rely(user);
+    Rely.emit(user)
 
     return ()
 end
@@ -548,26 +548,26 @@ end
 # // --- Allowance ---
 # function hope(address usr) external {
 @external
-func hope{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(usr : felt):
+func hope{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(user : felt):
     # can[msg.sender][usr] = 1;
     let (caller) = get_caller_address()
-    _can.write(caller, usr, 1)
+    _can.write(caller, user, 1)
 
     # emit Hope(msg.sender, usr);
-    Hope.emit(caller, usr)
+    Hope.emit(caller, user)
 
     return ()
 end
 
 # function nope(address usr) external {
 @external
-func nope{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(usr : felt):
+func nope{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(user : felt):
     # can[msg.sender][usr] = 0;
     let (caller) = get_caller_address()
-    _can.write(caller, usr, 0)
+    _can.write(caller, user, 0)
 
     # emit Nope(msg.sender, usr);
-    Nope.emit(caller, usr)
+    Nope.emit(caller, user)
 
     return ()
 end
@@ -577,20 +577,20 @@ end
 @external
 func slip{
     syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
-}(ilk : felt, usr : felt, wad : Int256):
+}(ilk : felt, user : felt, wad : Int256):
     alloc_locals
 
     auth()
 
     check(wad)
 
-    # gem[ilk][usr] = _add(gem[ilk][usr], wad);
-    let (gem) = _gem.read(ilk, usr)
+    # gem[ilk][user] = _add(gem[ilk][usr], wad);
+    let (gem) = _gem.read(ilk, user)
     let (gem) = _add(gem, wad)
-    _gem.write(ilk, usr, gem)
+    _gem.write(ilk, user, gem)
 
     # emit Slip(ilk, usr, wad);
-    Slip.emit(ilk, usr, wad)
+    Slip.emit(ilk, user, wad)
 
     return ()
 end
