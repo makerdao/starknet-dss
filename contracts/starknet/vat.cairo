@@ -1,13 +1,24 @@
 %lang starknet
 
-from starkware.cairo.common.cairo_builtins import (HashBuiltin, BitwiseBuiltin)
-from starkware.cairo.common.uint256 import (Uint256, uint256_check)
-from starkware.starknet.common.syscalls import (get_caller_address)
-from contracts.safe_math import (Int256, add, _add, sub, _sub, mul, _mul, add_signed)
-from contracts.assertions import (
-    assert_either, either, both, assert_both,
-    not_0, assert_not_0, assert_0, ge,
-    _ge_0, le, assert_le, _le_0, eq_0, check
+from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
+from starkware.cairo.common.uint256 import Uint256, uint256_check
+from starkware.starknet.common.syscalls import get_caller_address
+from contracts.starknet.safe_math import Int256, add, _add, sub, _sub, mul, _mul, add_signed
+from contracts.starknet.assertions import (
+    assert_either,
+    either,
+    both,
+    assert_both,
+    not_0,
+    assert_not_0,
+    assert_0,
+    ge,
+    _ge_0,
+    le,
+    assert_le,
+    _le_0,
+    eq_0,
+    check,
 )
 
 # Based on https://github.com/makerdao/xdomain-dss/blob/f447e779576942cf983c00ee8b9dafa937d2427f/src/Vat.sol
@@ -20,9 +31,8 @@ end
 
 # mapping(address => mapping (address => uint256)) public can;
 @storage_var
-func _can(b: felt, u: felt) -> (res : felt):
+func _can(b : felt, u : felt) -> (res : felt):
 end
-
 
 # struct Ilk {
 #     uint256 Art;   // Total Normalised Debt     [wad]
@@ -32,11 +42,11 @@ end
 #     uint256 dust;  // Urn Debt Floor            [rad]
 # }
 struct Ilk:
-    member Art: Uint256   # Total Normalised Debt     [wad]
-    member rate: Uint256  # Accumulated Rates         [ray]
-    member spot: Uint256  # Price with Safety Margin  [ray]
-    member line: Uint256  # Debt Ceiling              [rad]
-    member dust: Uint256  # Urn Debt Floor            [rad]
+    member Art : Uint256  # Total Normalised Debt     [wad]
+    member rate : Uint256  # Accumulated Rates         [ray]
+    member spot : Uint256  # Price with Safety Margin  [ray]
+    member line : Uint256  # Debt Ceiling              [rad]
+    member dust : Uint256  # Urn Debt Floor            [rad]
 end
 
 # struct Urn {
@@ -44,33 +54,33 @@ end
 #   uint256 art;   // Normalised Debt    [wad]
 # }
 struct Urn:
-    member ink: Uint256 # Locked Collateral  [wad]
-    member art: Uint256 # Normalised Debt    [wad]
+    member ink : Uint256  # Locked Collateral  [wad]
+    member art : Uint256  # Normalised Debt    [wad]
 end
 
 # mapping (bytes32 => Ilk)                       public ilks;
 @storage_var
-func _ilks(i: felt) -> (ilk : Ilk):
+func _ilks(i : felt) -> (ilk : Ilk):
 end
 
 # mapping (bytes32 => mapping (address => Urn )) public urns;
 @storage_var
-func _urns(i: felt, u: felt) -> (urn : Urn):
+func _urns(i : felt, u : felt) -> (urn : Urn):
 end
 
 # mapping (bytes32 => mapping (address => uint)) public gem;  // [wad]
 @storage_var
-func _gem(i: felt, u: felt) -> (gem : Uint256):
+func _gem(i : felt, u : felt) -> (gem : Uint256):
 end
 
 # mapping (address => uint256)                   public dai;  // [rad]
 @storage_var
-func _dai(u: felt) -> (dai : Uint256):
+func _dai(u : felt) -> (dai : Uint256):
 end
 
 # mapping (address => uint256)                   public sin;  // [rad]
 @storage_var
-func _sin(u: felt) -> (sin : Uint256):
+func _sin(u : felt) -> (sin : Uint256):
 end
 
 # int256  public surf;  // Total Dai Bridged   [rad]
@@ -85,139 +95,104 @@ end
 
 # uint256 public vice;  // Total Unbacked Dai  [rad]
 @storage_var
-func _vice() -> (vice: Uint256):
+func _vice() -> (vice : Uint256):
 end
 
 # uint256 public Line;  // Total Debt Ceiling  [rad]
 @storage_var
-func _Line() -> (Line: Uint256):
+func _Line() -> (Line : Uint256):
 end
 
 # uint256 public live;  // Active Flag
 @storage_var
-func _live() -> (live: felt):
+func _live() -> (live : felt):
 end
-
 
 # views
 @view
-func wards{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(user : felt) -> (res : felt):
+func wards{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(user : felt) -> (
+    res : felt
+):
     let (res) = _wards.read(user)
     return (res)
 end
 
 @view
-func can{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(b: felt, u: felt) -> (res : felt):
+func can{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(b : felt, u : felt) -> (
+    res : felt
+):
     let (res) = _can.read(b, u)
     return (res)
 end
 
 @view
-func ilks{
-        syscall_ptr : felt*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }(i: felt) -> (ilk : Ilk):
-      let (ilk)= _ilks.read(i)
-      return (ilk)
+func ilks{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(i : felt) -> (
+    ilk : Ilk
+):
+    let (ilk) = _ilks.read(i)
+    return (ilk)
 end
 
 @view
-func urns{
-        syscall_ptr : felt*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }(i: felt, u: felt) -> (urn : Urn):
-      let (urn)= _urns.read(i, u)
-      return (urn)
+func urns{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    i : felt, u : felt
+) -> (urn : Urn):
+    let (urn) = _urns.read(i, u)
+    return (urn)
 end
 
 @view
-func dai{
-        syscall_ptr : felt*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }(u: felt) -> (dai : Uint256):
-      let (dai)= _dai.read(u)
-      return (dai)
+func dai{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(u : felt) -> (
+    dai : Uint256
+):
+    let (dai) = _dai.read(u)
+    return (dai)
 end
 
 @view
-func gem{
-        syscall_ptr : felt*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }(i: felt, u: felt) -> (gem : Uint256):
-      let (gem) = _gem.read(i, u)
-      return (gem)
+func gem{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(i : felt, u : felt) -> (
+    gem : Uint256
+):
+    let (gem) = _gem.read(i, u)
+    return (gem)
 end
 
 @view
-func sin{
-        syscall_ptr : felt*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }(u: felt) -> (sin : Uint256):
-      let (sin) = _sin.read(u)
-      return (sin)
+func sin{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(u : felt) -> (
+    sin : Uint256
+):
+    let (sin) = _sin.read(u)
+    return (sin)
 end
 
 @view
-func debt{
-        syscall_ptr : felt*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }() -> (debt : Uint256):
-      let (debt) = _debt.read()
-      return (debt)
+func debt{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (debt : Uint256):
+    let (debt) = _debt.read()
+    return (debt)
 end
 
 @view
-func surf{
-        syscall_ptr : felt*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }() -> (surf : Int256):
-      let (surf) = _surf.read()
-      return (surf)
+func surf{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (surf : Int256):
+    let (surf) = _surf.read()
+    return (surf)
 end
 
 @view
-func vice{
-        syscall_ptr : felt*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }() -> (vice: Uint256):
-      let (vice) = _vice.read()
-      return (vice)
+func vice{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (vice : Uint256):
+    let (vice) = _vice.read()
+    return (vice)
 end
 
 @view
-func Line{
-        syscall_ptr : felt*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }() -> (Line: Uint256):
-      let (Line) = _Line.read()
-      return (Line)
+func Line{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (Line : Uint256):
+    let (Line) = _Line.read()
+    return (Line)
 end
 
 @view
-func live{
-        syscall_ptr : felt*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr
-    }() -> (live: felt):
-      let (live) = _live.read()
-      return (live)
+func live{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (live : felt):
+    let (live) = _live.read()
+    return (live)
 end
 
 # // --- Events ---
@@ -243,7 +218,7 @@ end
 
 # event File(bytes32 indexed ilk, bytes32 indexed what, uint256 data);
 @event
-func File_ilk(ilk: felt, what : felt, data : Uint256):
+func File_ilk(ilk : felt, what : felt, data : Uint256):
 end
 
 # event Cage();
@@ -252,80 +227,76 @@ func Cage():
 end
 
 # event Hope(address indexed from, address indexed to);
-#TODO: why from is a reserved word?
+# TODO: why from is a reserved word?
 @event
-func Hope(from_: felt, to: felt):
+func Hope(from_ : felt, to : felt):
 end
 
 # event Nope(address indexed from, address indexed to);
-#TODO: why from is a reserved word?
+# TODO: why from is a reserved word?
 @event
-func Nope(from_: felt, to: felt):
+func Nope(from_ : felt, to : felt):
 end
 
 # event Slip(bytes32 indexed ilk, address indexed usr, int256 wad);
 @event
-func Slip(ilk: felt, usr : felt, wad : Int256):
+func Slip(ilk : felt, user : felt, wad : Int256):
 end
 
 # event Flux(bytes32 indexed ilk, address indexed src, address indexed dst, uint256 wad);
 @event
-func Flux(ilk: felt, src : felt, dst : felt, wad : Uint256):
+func Flux(ilk : felt, src : felt, dst : felt, wad : Uint256):
 end
 
 # event Move(address indexed src, address indexed dst, uint256 rad);
 @event
-func Move(src: felt, dst : felt, rad : Uint256):
+func Move(src : felt, dst : felt, rad : Uint256):
 end
 
 # event Frob(bytes32 indexed i, address indexed u, address v, address w, int256 dink, int256 dart);
 @event
-func Frob(i: felt, u : felt, v: felt, w : felt, dink : Int256, dart : Int256):
+func Frob(i : felt, u : felt, v : felt, w : felt, dink : Int256, dart : Int256):
 end
 
 # event Fork(bytes32 indexed ilk, address indexed src, address indexed dst, int256 dink, int256 dart);
 @event
-func Fork(ilk: felt, src : felt, dst: felt, dink : Int256, dart : Int256):
+func Fork(ilk : felt, src : felt, dst : felt, dink : Int256, dart : Int256):
 end
 
 # event Grab(bytes32 indexed i, address indexed u, address v, address w, int256 dink, int256 dart);
 @event
-func Grab(i: felt, u : felt, v: felt, w : felt, dink : Int256, dart : Int256):
+func Grab(i : felt, u : felt, v : felt, w : felt, dink : Int256, dart : Int256):
 end
 
 # event Heal(address indexed u, uint256 rad);
 @event
-func Heal(u: felt, rad: Uint256):
+func Heal(u : felt, rad : Uint256):
 end
 
 # event Suck(address indexed u, address indexed v, uint256 rad);
 @event
-func Suck(u: felt, v : felt, rad: Uint256):
+func Suck(u : felt, v : felt, rad : Uint256):
 end
 
 # event Swell(address indexed u, int256 rad);
 @event
-func Swell(u: felt, rad : Uint256):
+func Swell(u : felt, rad : Uint256):
 end
 
 # event Fold(bytes32 indexed i, address indexed u, int256 rate);
 @event
-func Fold(i: felt, u : felt, rate : Uint256):
+func Fold(i : felt, u : felt, rate : Uint256):
 end
 
 # modifier auth {
 #     require(wards[msg.sender] == 1, "Vat/not-authorized");
 #     _;
 # }
-func auth{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }():
+func auth{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}():
     let (caller) = get_caller_address()
     let (ward) = _wards.read(caller)
-    with_attr error_message("l2_dai_bridge/not-authorized"):
-      assert ward = 1
+    with_attr error_message("Vat/not-authorized"):
+        assert ward = 1
     end
     return ()
 end
@@ -334,27 +305,21 @@ end
 #     return either(bit == usr, can[bit][usr] == 1);
 # }
 @external
-func wish{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
-    }(bit: felt, usr: felt) -> (res: felt):
+func wish{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    bit : felt, user : felt
+) -> (res : felt):
     # return either(bit == usr, can[bit][usr] == 1);
-    if bit == usr:
-        return (res = 1)
+    if bit == user:
+        return (res=1)
     end
-    let (res) = _can.read(bit, usr)
+    let (res) = _can.read(bit, user)
     return (res)
 end
 
 # // --- Init ---
 # constructor() {
 @constructor
-func constructor{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(
-    ward : felt
-  ):
+func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(ward : felt):
     # wards[msg.sender] = 1;
     _wards.write(ward, 1)
 
@@ -366,7 +331,6 @@ func constructor{
 
     return ()
 end
-
 
 # // --- Math ---
 # function _add(uint256 x, int256 y) internal pure returns (uint256 z) {
@@ -389,13 +353,7 @@ end
 #     require((y = int256(x)) >= 0);
 # }
 
-
-
-func require_live{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }():
+func require_live{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}():
     # require(live == 1, "Vat/not-live");
     with_attr error_message("Vat/not-live"):
         let (live) = _live.read()
@@ -408,33 +366,24 @@ end
 # // --- Administration ---
 # function rely(address usr) external auth {
 @external
-func rely{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(usr : felt):
+func rely{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(user : felt):
     auth()
 
     # require(live == 1, "Vat/not-live");
     require_live()
 
     # wards[usr] = 1;
-    _wards.write(usr, 1)
+    _wards.write(user, 1)
 
-    # emit Rely(usr);
-    Rely.emit(usr)
+    # emit Rely(user);
+    Rely.emit(user)
 
     return ()
 end
 
-
 # function deny(address usr) external auth {
 @external
-func deny{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(user : felt):
+func deny{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(user : felt):
     auth()
 
     # require(live == 1, "Vat/not-live");
@@ -453,20 +402,21 @@ end
 # function init(bytes32 ilk) external auth {
 # TODO: consider: https://github.com/makerdao/xdomain-dss/issues/2
 @external
-func init{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
-    }(ilk: felt):
+func init{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(ilk : felt):
     alloc_locals
 
     auth()
 
     # require(ilks[ilk].rate == 0, "Vat/ilk-already-init");
     # ilks[ilk].rate = 10 ** 27;
-    let (local i) = _ilks.read(ilk) #TODO: is local necessary
+    let (local i) = _ilks.read(ilk)  # TODO: is local necessary
     with_attr error_message("Vat/ilk-already-init"):
         assert_0(i.rate)
     end
-    _ilks.write(ilk, Ilk(Art = i.Art, rate = Uint256(low = 10 ** 27, high = 0), spot = i.spot, line = i.line, dust = i.dust))
+    _ilks.write(
+        ilk,
+        Ilk(Art=i.Art, rate=Uint256(low=10 ** 27, high=0), spot=i.spot, line=i.line, dust=i.dust),
+    )
 
     # emit Init(ilk);
     Init.emit(ilk)
@@ -474,19 +424,14 @@ func init{
     return ()
 end
 
-
 # function file(bytes32 what, uint256 data) external auth {
 @external
-func file{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(
-    what : felt, data : Uint256,
-  ):
+func file{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    what : felt, data : Uint256
+):
     auth()
 
-#     require(live == 1, "Vat/not-live");
+    # require(live == 1, "Vat/not-live");
     require_live()
 
     # if (what == "Line") Line = data;
@@ -504,17 +449,12 @@ func file{
     return ()
 end
 
-
 # function file(bytes32 ilk, bytes32 what, uint256 data) external auth {
 # TODO: revisit if function overloading is available
 @external
-func file_ilk{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(
-    ilk: felt, what : felt, data : Uint256,
-  ):
+func file_ilk{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    ilk : felt, what : felt, data : Uint256
+):
     alloc_locals
 
     auth()
@@ -522,24 +462,23 @@ func file_ilk{
     # require(live == 1, "Vat/not-live");
     require_live()
 
-
     let (local i) = _ilks.read(ilk)
 
     # if (what == "spot") ilks[ilk].spot = data;
     if what == 'spot':
-        _ilks.write(ilk, Ilk(Art = i.Art, rate = i.rate, spot = data, line = i.line, dust = i.dust))
+        _ilks.write(ilk, Ilk(Art=i.Art, rate=i.rate, spot=data, line=i.line, dust=i.dust))
         return ()
     end
 
     # else if (what == "line") ilks[ilk].line = data;
     if what == 'line':
-        _ilks.write(ilk, Ilk(Art = i.Art, rate = i.rate, spot = i.spot, line = data, dust = i.dust))
+        _ilks.write(ilk, Ilk(Art=i.Art, rate=i.rate, spot=i.spot, line=data, dust=i.dust))
         return ()
     end
 
     # else if (what == "dust") ilks[ilk].dust = data;
     if what == 'dust':
-        _ilks.write(ilk, Ilk(Art = i.Art, rate = i.rate, spot = i.spot, line = i.line, dust = data))
+        _ilks.write(ilk, Ilk(Art=i.Art, rate=i.rate, spot=i.spot, line=i.line, dust=data))
         return ()
     end
 
@@ -555,12 +494,9 @@ func file_ilk{
     return ()
 end
 
-
 # function cage() external auth {
 @external
-func cage{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
-    }():
+func cage{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}():
     auth()
 
     # live = 0;
@@ -598,15 +534,12 @@ end
 #     ink_ = urns[ilk][urn].ink;
 # }
 @view
-func ink{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(i: felt, u: felt) -> (res: Uint256):
-    let (res: Urn) = _urns.read(i, u)
+func ink{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(i : felt, u : felt) -> (
+    res : Uint256
+):
+    let (res : Urn) = _urns.read(i, u)
     return (res.ink)
 end
-
 
 # function art(bytes32 ilk, address urn) external view returns (uint256 art_) {
 #     art_ = urns[ilk][urn].art;
@@ -615,30 +548,26 @@ end
 # // --- Allowance ---
 # function hope(address usr) external {
 @external
-func hope{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
-    }(usr: felt):
+func hope{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(user : felt):
     # can[msg.sender][usr] = 1;
     let (caller) = get_caller_address()
-    _can.write(caller, usr, 1)
+    _can.write(caller, user, 1)
 
     # emit Hope(msg.sender, usr);
-    Hope.emit(caller, usr)
+    Hope.emit(caller, user)
 
     return ()
 end
 
 # function nope(address usr) external {
 @external
-func nope{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
-    }(usr: felt):
+func nope{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(user : felt):
     # can[msg.sender][usr] = 0;
     let (caller) = get_caller_address()
-    _can.write(caller, usr, 0)
+    _can.write(caller, user, 0)
 
     # emit Nope(msg.sender, usr);
-    Nope.emit(caller, usr)
+    Nope.emit(caller, user)
 
     return ()
 end
@@ -647,23 +576,21 @@ end
 # function slip(bytes32 ilk, address usr, int256 wad) external auth {
 @external
 func slip{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
-    }(
-        ilk: felt, usr: felt, wad: Int256
-    ):
+    syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
+}(ilk : felt, user : felt, wad : Int256):
     alloc_locals
 
     auth()
 
     check(wad)
 
-    # gem[ilk][usr] = _add(gem[ilk][usr], wad);
-    let (gem) = _gem.read(ilk, usr)
+    # gem[ilk][user] = _add(gem[ilk][usr], wad);
+    let (gem) = _gem.read(ilk, user)
     let (gem) = _add(gem, wad)
-    _gem.write(ilk, usr, gem)
+    _gem.write(ilk, user, gem)
 
     # emit Slip(ilk, usr, wad);
-    Slip.emit(ilk, usr, wad)
+    Slip.emit(ilk, user, wad)
 
     return ()
 end
@@ -671,10 +598,8 @@ end
 # function flux(bytes32 ilk, address src, address dst, uint256 wad) external {
 @external
 func flux{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
-    }(
-        ilk: felt, src: felt, dst: felt, wad: Uint256
-    ):
+    syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
+}(ilk : felt, src : felt, dst : felt, wad : Uint256):
     alloc_locals
 
     check(wad)
@@ -703,10 +628,8 @@ end
 # function move(address src, address dst, uint256 rad) external {
 @external
 func move{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
-    }(
-        src: felt, dst: felt, rad: Uint256
-    ):
+    syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
+}(src : felt, dst : felt, rad : Uint256):
     alloc_locals
 
     check(rad)
@@ -743,15 +666,12 @@ end
 #     assembly{ z := and(x, y)}
 # }
 
-
 # // --- CDP Manipulation ---
 # function frob(bytes32 i, address u, address v, address w, int256 dink, int256 dart) external {
 @external
 func frob{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
-    }(
-        i: felt, u: felt, v: felt, w: felt, dink: Uint256, dart: Uint256
-    ):
+    syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
+}(i : felt, u : felt, v : felt, w : felt, dink : Uint256, dart : Uint256):
     alloc_locals
 
     check(dink)
@@ -785,7 +705,7 @@ func frob{
     # uint256 tab = ilk.rate * urn.art;
     # debt     = _add(debt, dtab);
     let (dtab) = _mul(ilk.rate, dart)
-    let (tab)  = mul(ilk.rate, art)
+    let (tab) = mul(ilk.rate, art)
     let (debt) = _debt.read()
     let (debt) = _add(debt, dtab)
     _debt.write(debt)
@@ -863,7 +783,7 @@ func frob{
     _urns.write(i, u, Urn(ink, art))
 
     # ilks[i]    = ilk;
-    _ilks.write(i, Ilk(Art = Art, rate = ilk.rate, spot = ilk.spot, line = ilk.line, dust = ilk.dust))
+    _ilks.write(i, Ilk(Art=Art, rate=ilk.rate, spot=ilk.spot, line=ilk.line, dust=ilk.dust))
 
     # emit Frob(i, u, v, w, dink, dart);
     Frob.emit(i, u, v, w, dink, dart)
@@ -875,10 +795,8 @@ end
 # function fork(bytes32 ilk, address src, address dst, int256 dink, int256 dart) external {
 @external
 func fork{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
-    }(
-        ilk: felt, src: felt, dst: felt, dink: Uint256, dart: Uint256
-    ):
+    syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
+}(ilk : felt, src : felt, dst : felt, dink : Uint256, dart : Uint256):
     alloc_locals
 
     check(dink)
@@ -913,9 +831,9 @@ func fork{
     # // both sides consent
     # require(both(wish(src, msg.sender), wish(dst, msg.sender)), "Vat/not-allowed");
     with_attr error_message("Vat/not-allowed"):
-      let (src_consents) = wish(src, caller)
-      let (dst_consents) = wish(dst, caller)
-      assert_both(src_consents, dst_consents)
+        let (src_consents) = wish(src, caller)
+        let (dst_consents) = wish(dst, caller)
+        assert_both(src_consents, dst_consents)
     end
 
     # // both sides safe
@@ -955,13 +873,8 @@ end
 # function grab(bytes32 i, address u, address v, address w, int256 dink, int256 dart) external auth {
 @external
 func grab{
-        syscall_ptr : felt*,
-        pedersen_ptr : HashBuiltin*,
-        range_check_ptr,
-        bitwise_ptr : BitwiseBuiltin*
-    }(
-        i: felt, u: felt, v: felt, w: felt, dink: Uint256, dart: Uint256
-    ):
+    syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
+}(i : felt, u : felt, v : felt, w : felt, dink : Uint256, dart : Uint256):
     alloc_locals
 
     auth()
@@ -978,11 +891,11 @@ func grab{
     # urn.art = _add(urn.art, dart);
     let (ink) = _add(urn.ink, dink)
     let (art) = _add(urn.art, dart)
-    _urns.write(i, u, Urn(ink = ink, art = art))
+    _urns.write(i, u, Urn(ink=ink, art=art))
 
     # ilk.Art = _add(ilk.Art, dart);
     let (Art) = _add(ilk.Art, dart)
-    _ilks.write(i, Ilk(Art = Art, rate = ilk.rate, spot = ilk.spot, line = ilk.line, dust = ilk.dust))
+    _ilks.write(i, Ilk(Art=Art, rate=ilk.rate, spot=ilk.spot, line=ilk.line, dust=ilk.dust))
 
     # int256 dtab = _int256(ilk.rate) * dart;
     let (dtab) = _mul(ilk.rate, dart)
@@ -1012,16 +925,14 @@ end
 # function heal(uint256 rad) external {
 @external
 func heal{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
-    }(
-        rad: Uint256
-    ):
+    syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
+}(rad : Uint256):
     alloc_locals
 
     check(rad)
 
     # address u = msg.sender;
-    let(u) = get_caller_address()
+    let (u) = get_caller_address()
 
     # sin[u] = sin[u] - rad;
     let (sin) = _sin.read(u)
@@ -1052,10 +963,8 @@ end
 # function suck(address u, address v, uint256 rad) external auth {
 @external
 func suck{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
-    }(
-        u: felt, v: felt, rad: Uint256
-    ):
+    syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
+}(u : felt, v : felt, rad : Uint256):
     alloc_locals
 
     auth()
@@ -1093,14 +1002,12 @@ end
 #     dai[u] = _add(dai[u], rad);
 #     surf   = surf + rad;
 
-#     emit Swell(u, rad);
+# emit Swell(u, rad);
 # }
 @external
 func swell{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
-    }(
-        u: felt, rad: Uint256
-    ):
+    syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
+}(u : felt, rad : Uint256):
     alloc_locals
 
     auth()
@@ -1121,17 +1028,14 @@ func swell{
     Swell.emit(u, rad)
 
     return ()
-
 end
 
 # // --- Rates ---
 # function fold(bytes32 i, address u, int256 rate_) external auth {
 @external
 func fold{
-        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
-    }(
-        i: felt, u: felt, rate: Int256
-    ):
+    syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
+}(i : felt, u : felt, rate : Int256):
     alloc_locals
 
     auth()
@@ -1147,7 +1051,7 @@ func fold{
     # ilk.rate = _add(ilk.rate, rate_);
     let (ilk_rate) = _add(ilk.rate, rate)
 
-    _ilks.write(i, Ilk(Art = ilk.Art, rate = ilk_rate, spot = ilk.spot, line = ilk.line, dust = ilk.dust))
+    _ilks.write(i, Ilk(Art=ilk.Art, rate=ilk_rate, spot=ilk.spot, line=ilk.line, dust=ilk.dust))
 
     # int256 rad  = _int256(ilk.Art) * rate_;
     let (rad) = _mul(ilk.Art, rate)

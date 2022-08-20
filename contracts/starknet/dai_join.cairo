@@ -16,10 +16,10 @@
 %lang starknet
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin
-from starkware.starknet.common.syscalls import (get_contract_address, get_caller_address)
-from starkware.cairo.common.uint256 import (Uint256, split_64)
-from contracts.safe_math import (mul)
-from contracts.assertions import (check)
+from starkware.starknet.common.syscalls import get_contract_address, get_caller_address
+from starkware.cairo.common.uint256 import Uint256, split_64
+from contracts.starknet.safe_math import mul
+from contracts.starknet.assertions import check
 
 # Based on: https://github.com/makerdao/xdomain-dss/blob/f447e779576942cf983c00ee8b9dafa937d2427f/src/DaiJoin.sol
 
@@ -29,11 +29,11 @@ from contracts.assertions import (check)
 # }
 @contract_interface
 namespace DaiLike:
-  func burn(src : felt, value : Uint256):
-  end
+    func burn(src : felt, value : Uint256):
+    end
 
-  func mint(dst : felt, value : Uint256):
-  end
+    func mint(dst : felt, value : Uint256):
+    end
 end
 
 # interface VatLike {
@@ -41,8 +41,8 @@ end
 # }
 @contract_interface
 namespace VatLike:
-  func move(src : felt, dst : felt, rad : Uint256):
-  end
+    func move(src : felt, dst : felt, rad : Uint256):
+    end
 end
 
 # VatLike public immutable vat;       // CDP Engine
@@ -56,7 +56,7 @@ func _dai() -> (res : felt):
 end
 
 # uint256 constant RAY = 10 ** 27;
-const RAY = 10**27
+const RAY = 10 ** 27
 
 # event Join(address indexed usr, uint256 wad);
 @event
@@ -70,14 +70,9 @@ end
 
 # constructor(address vat_, address dai_) public {
 @constructor
-func constructor{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(
-    vat : felt,
-    dai : felt
-  ):
+func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    vat : felt, dai : felt
+):
     # vat = VatLike(vat_);
     # dai = DaiLike(dai_);
     _vat.write(vat)
@@ -87,12 +82,9 @@ end
 
 # function join(address usr, uint256 wad) external
 @external
-func join{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(usr : felt, wad : Uint256):
-
+func join{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    usr : felt, wad : Uint256
+):
     check(wad)
 
     let (contract_address) = get_contract_address()
@@ -100,7 +92,6 @@ func join{
 
     let (vat) = _vat.read()
     let (dai) = _dai.read()
-
 
     # vat.move(address(this), usr, RAY * wad);
     let (value) = mul(Uint256(RAY, 0), wad)
@@ -117,12 +108,9 @@ end
 
 # function exit(address usr, uint256 wad) external
 @external
-func exit{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(usr : felt, wad : Uint256):
-
+func exit{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    usr : felt, wad : Uint256
+):
     check(wad)
 
     let (vat) = _vat.read()
