@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import { BigNumber } from 'ethers';
 import hre, { starknet } from 'hardhat';
 
 import { asDec, eth, l2Eth, simpleDeployL2, SplitUint, toBytes32, l2String, logGas } from './utils';
@@ -9,6 +10,8 @@ const RAD = 10n ** 45n;
 
 const initialBalanceThis = l2Eth(1000n);
 const initialBalanceCal = l2Eth(100n);
+
+const MAX = 2n ** 256n - 1n;
 
 function sleep(ms: number) {
   return new Promise((resolve) => {
@@ -265,5 +268,82 @@ describe('dai', async function () {
     }
   });
 
-  it('test trusting', async () => {});
+  it('test trusting', async () => {
+    expect(await dai.call('allowance', { owner: _user1, spender: _user2 })).to.deep.equal(
+      l2Eth(0n)
+    );
+    await user1.invoke(dai, 'approve', {
+      spender: _user2,
+      amount: l2Eth(MAX).res,
+    });
+    expect(await dai.call('allowance', { owner: _user1, spender: _user2 })).to.deep.equal(
+      l2Eth(MAX)
+    );
+    await user1.invoke(dai, 'approve', {
+      spender: _user2,
+      amount: l2Eth(0n).res,
+    });
+    expect(await dai.call('allowance', { owner: _user1, spender: _user2 })).to.deep.equal(
+      l2Eth(0n)
+    );
+  });
+
+  it('test trusted transfer from', async () => {
+    await user1.invoke(dai, 'approve', {
+      spender: _admin,
+      amount: l2Eth(MAX).res,
+    });
+    await admin.invoke(dai, 'transferFrom', {
+      sender: _user1,
+      recipient: _user2,
+      amount: l2Eth(200n).res,
+    });
+    expect(await dai.call('balanceOf', { user: _user2 })).to.deep.equal(l2Eth(300n));
+  });
+
+  it('test approve will modify allowance', async () => {
+    expect(await dai.call('allowance', { owner: _user1, spender: _admin })).to.deep.equal(
+      l2Eth(0n)
+    );
+    expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(0n));
+    await user1.invoke(dai, 'approve', {
+      spender: _admin,
+      amount: l2Eth(1000n).res,
+    });
+    expect(await dai.call('allowance', { owner: _user1, spender: _admin })).to.deep.equal(
+      l2Eth(1000n)
+    );
+    await admin.invoke(dai, 'transferFrom', {
+      sender: _user1,
+      recipient: _admin,
+      amount: l2Eth(500n).res,
+    });
+    expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(500n));
+    expect(await dai.call('allowance', { owner: _user1, spender: _admin })).to.deep.equal(
+      l2Eth(500n)
+    );
+  });
+
+  it('test approve will not modify allowance', async () => {
+    expect(await dai.call('allowance', { owner: _user1, spender: _admin })).to.deep.equal(
+      l2Eth(0n)
+    );
+    expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(0n));
+    await user1.invoke(dai, 'approve', {
+      spender: _admin,
+      amount: l2Eth(MAX).res,
+    });
+    expect(await dai.call('allowance', { owner: _user1, spender: _admin })).to.deep.equal(
+      l2Eth(MAX)
+    );
+    await admin.invoke(dai, 'transferFrom', {
+      sender: _user1,
+      recipient: _admin,
+      amount: l2Eth(1000n).res,
+    });
+    expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(1000n));
+    expect(await dai.call('allowance', { owner: _user1, spender: _admin })).to.deep.equal(
+      l2Eth(MAX)
+    );
+  });
 });
