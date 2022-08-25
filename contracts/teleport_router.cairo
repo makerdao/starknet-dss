@@ -9,8 +9,8 @@ from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.starknet.common.syscalls import (get_contract_address, get_caller_address)
 from starkware.cairo.common.uint256 import (Uint256)
 from starkware.cairo.common.math_cmp import (is_not_zero)
-from contracts.assertions import (assert_either)
-from contracts.teleport_GUID import (TeleportGUID)
+from contracts.starknet.assertions import (assert_either)
+from contracts.starknet.teleport_GUID import (TeleportGUID)
 
 
 # interface TokenLike {
@@ -73,15 +73,18 @@ func Rely(usr : felt):
 end
 
 # event Deny(address indexed usr);
-@event Deny(usr : felt):
+@event 
+func Deny(usr : felt):
 end
 
 # event File(bytes32 indexed what, bytes32 indexed domain, address data);
-@event File_ilk(what : felt, domain : felt, data : felt):
+@event 
+func File_ilk(what : felt, domain : felt, data : felt):
 end
 
 # event File(bytes32 indexed what, address data);
-@event File(what : felt, data : felt):
+@event 
+func File(what : felt, data : felt):
 end
 
 # modifier auth {
