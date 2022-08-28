@@ -161,6 +161,14 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     return ()
 end
 
+@view
+func wards{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(user : felt) -> (
+    res : felt
+):
+    let (res) = _wards.read(user)
+    return (res)
+end
+
 # function tCount() external view returns (uint256 count_) {
 #         count_ = srcs.length;
 #     }
@@ -168,6 +176,22 @@ end
 func tCount{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (count_ : felt):
     let (count_) = _srcs_length.read()
     return (count_)
+end
+
+@view
+func srcs{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(index : felt) -> (
+    src : felt
+):
+    let (src) = _srcs.read(index)
+    return (src)
+end
+
+@view
+func pos{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(src : felt) -> (
+    pos : felt
+):
+    let (pos) = _pos.read(src)
+    return (pos)
 end
 
 # function list() external view returns (address[] memory) {
@@ -349,7 +373,8 @@ func drop{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(src
     end
 
     _srcs_length.write(last - 1)
-
+    _pos.write(src, 0)
+    _amt.write(src, Uint256(0, 0))
     Drop.emit(src)
 
     return ()
