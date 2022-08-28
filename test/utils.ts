@@ -1,13 +1,14 @@
-import { BigNumber } from "ethers";
-import { parseEther } from "ethers/lib/utils";
-import { StarknetContract } from "hardhat/types";
-import fetch from "node-fetch";
+import { BigNumber } from 'ethers';
+import { parseEther } from 'ethers/lib/utils';
+import { StarknetContract } from 'hardhat/types';
+import fetch from 'node-fetch';
+import { validateAndParseAddress } from 'starknet';
 
 type SplitUintType = { low: bigint; high: bigint };
 type numberish = string | number | bigint | BigNumber;
 
 export function l2String(str: string): string {
-  return `0x${Buffer.from(str, "utf8").toString("hex")}`;
+  return `0x${Buffer.from(str, 'utf8').toString('hex')}`;
 }
 
 export class SplitUint {
@@ -18,7 +19,7 @@ export class SplitUint {
   }
 
   static fromUint(a: numberish): SplitUint {
-    const bits = asHex(a).padStart(64, "0");
+    const bits = asHex(a).padStart(64, '0');
     const res = {
       low: BigInt(`0x${bits.slice(32)}`),
       high: BigInt(`0x${bits.slice(0, 32)}`),
@@ -37,7 +38,7 @@ export class SplitUint {
 
   add(_a: SplitUint | numberish): SplitUint {
     let a = _a as SplitUint;
-    if (!_a.hasOwnProperty("res")) {
+    if (!_a.hasOwnProperty('res')) {
       a = SplitUint.fromUint(_a as numberish);
     }
     return SplitUint.fromUint(this.toUint() + a.toUint());
@@ -45,7 +46,7 @@ export class SplitUint {
 
   sub(_a: SplitUint | numberish): SplitUint {
     let a = _a as SplitUint;
-    if (!_a.hasOwnProperty("res")) {
+    if (!_a.hasOwnProperty('res')) {
       a = SplitUint.fromUint(_a as numberish);
     }
     return SplitUint.fromUint(this.toUint() - a.toUint());
@@ -56,10 +57,8 @@ export class SplitUint {
   }
 }
 
-function asHex(a: string | number | bigint | BigNumber): string {
-  return BigNumber.isBigNumber(a)
-    ? a.toHexString().slice(2)
-    : BigInt(a).toString(16);
+export function asHex(a: string | number | bigint | BigNumber): string {
+  return BigNumber.isBigNumber(a) ? a.toHexString().slice(2) : BigInt(a).toString(16);
 }
 
 export function split(a: BigNumber): bigint[] {
@@ -67,7 +66,7 @@ export function split(a: BigNumber): bigint[] {
 }
 
 export function toBytes32(a: string): string {
-  return `0x${BigInt(a).toString(16).padStart(64, "0")}`;
+  return `0x${BigInt(a).toString(16).padStart(64, '0')}`;
 }
 
 export function eth(amount: string) {
@@ -80,6 +79,10 @@ export function l2Eth(amount: string | number | bigint | BigNumber): SplitUint {
 
 export function asDec(a: string | number | bigint): string {
   return BigInt(a).toString();
+}
+
+export function l2Address(address: string | number | bigint | BigNumber) {
+  return validateAndParseAddress(`0x${asHex(address)}`);
 }
 
 export async function simpleDeployL2(
