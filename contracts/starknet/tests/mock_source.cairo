@@ -7,6 +7,12 @@ from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 func _cure() -> (cure : Uint256):
 end
 
+@view
+func cure{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (cure : Uint256):
+    let (cure) = _cure.read()
+    return (cure)
+end
+
 @constructor
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     cure_ : Uint256

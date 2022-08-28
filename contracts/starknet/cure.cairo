@@ -179,6 +179,12 @@ func tCount{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}()
 end
 
 @view
+func lCount{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (count_ : felt):
+    let (count_) = _lCount.read()
+    return (count_)
+end
+
+@view
 func srcs{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(index : felt) -> (
     src : felt
 ):
@@ -192,6 +198,18 @@ func pos{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(src 
 ):
     let (pos) = _pos.read(src)
     return (pos)
+end
+
+@view
+func live{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (live : felt):
+    let (live) = _live.read()
+    return (live)
+end
+
+@view
+func say{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (say : Uint256):
+    let (say) = _say.read()
+    return (say)
 end
 
 # function list() external view returns (address[] memory) {
@@ -211,6 +229,7 @@ func tell{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -
         let (lCount) = _lCount.read()
         let (timestamp) = get_block_timestamp()
         let (when) = _when.read()
+        %{ print(ids.timestamp, ids.when) %}
 
         let (not_live) = is_zero(live)
         let (same_length) = is_equal(lCount, length)
@@ -397,7 +416,6 @@ func cage{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}():
     let (timestamp) = get_block_timestamp()
     let (wait) = _wait.read()
     _when.write(timestamp + wait)
-
     Cage.emit()
 
     return ()
@@ -415,7 +433,10 @@ func load{
     syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
 }(src : felt):
     alloc_locals
-    require_live()
+    with_attr error_message("Cure/still-live"):
+        let (live) = _live.read()
+        assert live = 0
+    end
 
     let (pos_) = _pos.read(src)
     with_attr error_message("Cure/non-existing-source"):

@@ -289,4 +289,464 @@ describe('cure', async function () {
     expect(l2Address((await cure.call('srcs', { index: 2n })).src)).to.equal(addr1);
     expect((await cure.call('pos', { src: addr1 })).pos).to.equal(3n);
   });
+
+  it('test fail add source auth', async () => {
+    await admin.invoke(cure, 'deny', { user: _admin });
+    const { address: addr } = await simpleDeployL2(
+      'mock_source',
+      {
+        cure_: {
+          low: l2Eth(0n).toDec()[0],
+          high: l2Eth(0n).toDec()[1],
+        },
+      },
+      hre
+    );
+    try {
+      await admin.invoke(cure, 'lift', { src: addr });
+    } catch (err: any) {
+      expect(err.message).to.contain(`Cure/not-authorized`);
+    }
+  });
+
+  it('test fail del source auth', async () => {
+    const { address: addr } = await simpleDeployL2(
+      'mock_source',
+      {
+        cure_: {
+          low: l2Eth(0n).toDec()[0],
+          high: l2Eth(0n).toDec()[1],
+        },
+      },
+      hre
+    );
+    await admin.invoke(cure, 'lift', { src: addr });
+    await admin.invoke(cure, 'deny', { user: _admin });
+    try {
+      await admin.invoke(cure, 'drop', { src: addr });
+    } catch (err: any) {
+      expect(err.message).to.contain(`Cure/not-authorized`);
+    }
+  });
+
+  it('test fail del source non existing', async () => {
+    const { address: addr1 } = await simpleDeployL2(
+      'mock_source',
+      {
+        cure_: {
+          low: l2Eth(0n).toDec()[0],
+          high: l2Eth(0n).toDec()[1],
+        },
+      },
+      hre
+    );
+    await admin.invoke(cure, 'lift', { src: addr1 });
+
+    const { address: addr2 } = await simpleDeployL2(
+      'mock_source',
+      {
+        cure_: {
+          low: l2Eth(0n).toDec()[0],
+          high: l2Eth(0n).toDec()[1],
+        },
+      },
+      hre
+    );
+    try {
+      await admin.invoke(cure, 'drop', { src: addr2 });
+    } catch (err: any) {
+      expect(err.message).to.contain(`Cure/non-existing-source`);
+    }
+  });
+
+  it('test cage', async () => {
+    expect((await cure.call('live')).live).to.equal(1n);
+    await admin.invoke(cure, 'cage');
+    expect((await cure.call('live')).live).to.equal(0n);
+  });
+
+  it('test cure', async () => {
+    const { address: source1 } = await simpleDeployL2(
+      'mock_source',
+      {
+        cure_: {
+          low: l2Eth(15000n).toDec()[0],
+          high: l2Eth(15000n).toDec()[1],
+        },
+      },
+      hre
+    );
+    const { address: source2 } = await simpleDeployL2(
+      'mock_source',
+      {
+        cure_: {
+          low: l2Eth(30000n).toDec()[0],
+          high: l2Eth(30000n).toDec()[1],
+        },
+      },
+      hre
+    );
+    const { address: source3 } = await simpleDeployL2(
+      'mock_source',
+      {
+        cure_: {
+          low: l2Eth(50000n).toDec()[0],
+          high: l2Eth(50000n).toDec()[1],
+        },
+      },
+      hre
+    );
+    await admin.invoke(cure, 'lift', { src: source1 });
+    await admin.invoke(cure, 'lift', { src: source2 });
+    await admin.invoke(cure, 'lift', { src: source3 });
+
+    await admin.invoke(cure, 'cage');
+
+    await admin.invoke(cure, 'load', { src: source1 });
+    expect((await cure.call('say')).say).to.deep.equal(l2Eth(15000n).res);
+    expect((await cure.call('tell')).say).to.deep.equal(l2Eth(15000n).res);
+    await admin.invoke(cure, 'load', { src: source2 });
+    expect((await cure.call('say')).say).to.deep.equal(l2Eth(45000n).res);
+    expect((await cure.call('tell')).say).to.deep.equal(l2Eth(45000n).res);
+    await admin.invoke(cure, 'load', { src: source3 });
+    expect((await cure.call('say')).say).to.deep.equal(l2Eth(95000n).res);
+    expect((await cure.call('tell')).say).to.deep.equal(l2Eth(95000n).res);
+  });
+
+  it('test cure all loaded', async () => {
+    const { address: source1 } = await simpleDeployL2(
+      'mock_source',
+      {
+        cure_: {
+          low: l2Eth(15000n).toDec()[0],
+          high: l2Eth(15000n).toDec()[1],
+        },
+      },
+      hre
+    );
+    const { address: source2 } = await simpleDeployL2(
+      'mock_source',
+      {
+        cure_: {
+          low: l2Eth(30000n).toDec()[0],
+          high: l2Eth(30000n).toDec()[1],
+        },
+      },
+      hre
+    );
+    const { address: source3 } = await simpleDeployL2(
+      'mock_source',
+      {
+        cure_: {
+          low: l2Eth(50000n).toDec()[0],
+          high: l2Eth(50000n).toDec()[1],
+        },
+      },
+      hre
+    );
+    await admin.invoke(cure, 'lift', { src: source1 });
+    expect((await cure.call('tCount')).count_).to.equal(1n);
+
+    await admin.invoke(cure, 'lift', { src: source2 });
+    expect((await cure.call('tCount')).count_).to.equal(2n);
+
+    await admin.invoke(cure, 'lift', { src: source3 });
+    expect((await cure.call('tCount')).count_).to.equal(3n);
+
+    await admin.invoke(cure, 'file', {
+      what: l2String('wait'),
+      data: { low: l2Eth(10n).toDec()[0], high: l2Eth(10n).toDec()[1] },
+    });
+
+    await admin.invoke(cure, 'cage');
+
+    await admin.invoke(cure, 'load', { src: source1 });
+    expect((await cure.call('say')).say).to.deep.equal(l2Eth(15000n).res);
+    expect((await cure.call('lCount')).count_).to.equal(1n);
+    await admin.invoke(cure, 'load', { src: source2 });
+    expect((await cure.call('say')).say).to.deep.equal(l2Eth(45000n).res);
+    expect((await cure.call('lCount')).count_).to.equal(2n);
+    await admin.invoke(cure, 'load', { src: source3 });
+    expect((await cure.call('lCount')).count_).to.equal(3n);
+    expect((await cure.call('say')).say).to.deep.equal(l2Eth(95000n).res);
+    expect((await cure.call('tell')).say).to.deep.equal(l2Eth(95000n).res);
+  });
+
+  it('test cure wait passed', async () => {
+    const { address: source1 } = await simpleDeployL2(
+      'mock_source',
+      {
+        cure_: {
+          low: l2Eth(15000n).toDec()[0],
+          high: l2Eth(15000n).toDec()[1],
+        },
+      },
+      hre
+    );
+    const { address: source2 } = await simpleDeployL2(
+      'mock_source',
+      {
+        cure_: {
+          low: l2Eth(30000n).toDec()[0],
+          high: l2Eth(30000n).toDec()[1],
+        },
+      },
+      hre
+    );
+    const { address: source3 } = await simpleDeployL2(
+      'mock_source',
+      {
+        cure_: {
+          low: l2Eth(50000n).toDec()[0],
+          high: l2Eth(50000n).toDec()[1],
+        },
+      },
+      hre
+    );
+    await admin.invoke(cure, 'lift', { src: source1 });
+    await admin.invoke(cure, 'lift', { src: source2 });
+    await admin.invoke(cure, 'lift', { src: source3 });
+
+    await admin.invoke(cure, 'file', {
+      what: l2String('wait'),
+      data: { low: l2Eth(10n).toDec()[0], high: l2Eth(10n).toDec()[1] },
+    });
+
+    await admin.invoke(cure, 'cage');
+
+    await admin.invoke(cure, 'load', { src: source1 });
+    await admin.invoke(cure, 'load', { src: source2 });
+
+    await starknet.devnet.increaseTime(10);
+    expect((await cure.call('tell')).say).to.deep.equal(l2Eth(45000n).res);
+  });
+
+  it('test fail wait', async () => {
+    const { address: source1 } = await simpleDeployL2(
+      'mock_source',
+      {
+        cure_: {
+          low: l2Eth(15000n).toDec()[0],
+          high: l2Eth(15000n).toDec()[1],
+        },
+      },
+      hre
+    );
+    const { address: source2 } = await simpleDeployL2(
+      'mock_source',
+      {
+        cure_: {
+          low: l2Eth(30000n).toDec()[0],
+          high: l2Eth(30000n).toDec()[1],
+        },
+      },
+      hre
+    );
+    const { address: source3 } = await simpleDeployL2(
+      'mock_source',
+      {
+        cure_: {
+          low: l2Eth(50000n).toDec()[0],
+          high: l2Eth(50000n).toDec()[1],
+        },
+      },
+      hre
+    );
+    await admin.invoke(cure, 'lift', { src: source1 });
+    await admin.invoke(cure, 'lift', { src: source2 });
+    await admin.invoke(cure, 'lift', { src: source3 });
+
+    await admin.invoke(cure, 'file', {
+      what: l2String('wait'),
+      data: { low: l2Eth(10n).toDec()[0], high: l2Eth(10n).toDec()[1] },
+    });
+
+    await admin.invoke(cure, 'cage');
+
+    await admin.invoke(cure, 'load', { src: source1 });
+    await admin.invoke(cure, 'load', { src: source2 });
+
+    await starknet.devnet.increaseTime(9);
+    try {
+      await cure.call('tell');
+    } catch (err: any) {
+      expect(err.message).to.contain(`Cure/missing-load-and-time-not-passed`);
+    }
+  });
+
+  it('test load multiple times', async () => {
+    const source1 = await simpleDeployL2(
+      'mock_source',
+      {
+        cure_: {
+          low: l2Eth(2000n).toDec()[0],
+          high: l2Eth(2000n).toDec()[1],
+        },
+      },
+      hre
+    );
+    const source2 = await simpleDeployL2(
+      'mock_source',
+      {
+        cure_: {
+          low: l2Eth(3000n).toDec()[0],
+          high: l2Eth(3000n).toDec()[1],
+        },
+      },
+      hre
+    );
+    await admin.invoke(cure, 'lift', { src: source1.address });
+    await admin.invoke(cure, 'lift', { src: source2.address });
+
+    await admin.invoke(cure, 'cage');
+
+    await admin.invoke(cure, 'load', { src: source1.address });
+    expect((await cure.call('lCount')).count_).to.equal(1n);
+    await admin.invoke(cure, 'load', { src: source2.address });
+    expect((await cure.call('lCount')).count_).to.equal(2n);
+    expect((await cure.call('tell')).say).to.deep.equal(l2Eth(5000n).res);
+
+    await admin.invoke(source1, 'update', {
+      cure_: { low: l2Eth(4000n).toDec()[0], high: l2Eth(4000n).toDec()[1] },
+    });
+    expect((await cure.call('tell')).say).to.deep.equal(l2Eth(5000n).res);
+
+    await admin.invoke(cure, 'load', { src: source1.address });
+    expect((await cure.call('lCount')).count_).to.equal(2n);
+    expect((await cure.call('tell')).say).to.deep.equal(l2Eth(7000n).res);
+
+    await admin.invoke(source2, 'update', {
+      cure_: { low: l2Eth(6000n).toDec()[0], high: l2Eth(4000n).toDec()[1] },
+    });
+    expect((await cure.call('tell')).say).to.deep.equal(l2Eth(7000n).res);
+
+    await admin.invoke(cure, 'load', { src: source2.address });
+    expect((await cure.call('lCount')).count_).to.equal(2n);
+    expect((await cure.call('tell')).say).to.deep.equal(l2Eth(10000n).res);
+  });
+
+  it('test load no change', async () => {
+    const { address: source } = await simpleDeployL2(
+      'mock_source',
+      {
+        cure_: {
+          low: l2Eth(2000n).toDec()[0],
+          high: l2Eth(2000n).toDec()[1],
+        },
+      },
+      hre
+    );
+
+    await admin.invoke(cure, 'lift', { src: source });
+
+    await admin.invoke(cure, 'cage');
+
+    await admin.invoke(cure, 'load', { src: source });
+    expect((await cure.call('tell')).say).to.deep.equal(l2Eth(2000n).res);
+
+    await admin.invoke(cure, 'load', { src: source });
+    expect((await cure.call('tell')).say).to.deep.equal(l2Eth(2000n).res);
+  });
+
+  it('test fail load not caged', async () => {
+    const { address: source } = await simpleDeployL2(
+      'mock_source',
+      {
+        cure_: {
+          low: l2Eth(2000n).toDec()[0],
+          high: l2Eth(2000n).toDec()[1],
+        },
+      },
+      hre
+    );
+    await admin.invoke(cure, 'lift', { src: source });
+
+    try {
+      await admin.invoke(cure, 'load', { src: source });
+    } catch (err: any) {
+      expect(err.message).to.contain('Cure/still-live');
+    }
+  });
+
+  it('test fail load not added', async () => {
+    const { address: source } = await simpleDeployL2(
+      'mock_source',
+      {
+        cure_: {
+          low: l2Eth(2000n).toDec()[0],
+          high: l2Eth(2000n).toDec()[1],
+        },
+      },
+      hre
+    );
+    await admin.invoke(cure, 'cage');
+    try {
+      await admin.invoke(cure, 'load', { src: source });
+    } catch (err: any) {
+      expect(err.message).to.contain('Cure/non-existing-source');
+    }
+  });
+
+  it('test fail caged rely', async () => {
+    await admin.invoke(cure, 'cage');
+
+    try {
+      await admin.invoke(cure, 'rely', { user: TEST_ADDRESS });
+    } catch (err: any) {
+      expect(err.message).to.contain('Cure/not-live');
+    }
+  });
+
+  it('test fail caged deny', async () => {
+    await admin.invoke(cure, 'cage');
+
+    try {
+      await admin.invoke(cure, 'deny', { user: TEST_ADDRESS });
+    } catch (err: any) {
+      expect(err.message).to.contain('Cure/not-live');
+    }
+  });
+
+  it('test fail caged add source', async () => {
+    await admin.invoke(cure, 'cage');
+
+    const { address: source } = await simpleDeployL2(
+      'mock_source',
+      {
+        cure_: {
+          low: l2Eth(0n).toDec()[0],
+          high: l2Eth(0n).toDec()[1],
+        },
+      },
+      hre
+    );
+
+    try {
+      await admin.invoke(cure, 'lift', { src: source });
+    } catch (err: any) {
+      expect(err.message).to.contain('Cure/not-live');
+    }
+  });
+
+  it('test fail caged del source', async () => {
+    const { address: source } = await simpleDeployL2(
+      'mock_source',
+      {
+        cure_: {
+          low: l2Eth(0n).toDec()[0],
+          high: l2Eth(0n).toDec()[1],
+        },
+      },
+      hre
+    );
+    await admin.invoke(cure, 'lift', { src: source });
+
+    await admin.invoke(cure, 'cage');
+
+    try {
+      await admin.invoke(cure, 'drop', { src: source });
+    } catch (err: any) {
+      expect(err.message).to.contain('Cure/not-live');
+    }
+  });
 });
