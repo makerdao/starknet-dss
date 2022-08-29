@@ -229,7 +229,6 @@ func tell{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -
         let (lCount) = _lCount.read()
         let (timestamp) = get_block_timestamp()
         let (when) = _when.read()
-        %{ print(ids.timestamp, ids.when) %}
 
         let (not_live) = is_zero(live)
         let (same_length) = is_equal(lCount, length)

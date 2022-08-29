@@ -19,13 +19,23 @@
 %lang starknet
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
-from starkware.cairo.common.math import assert_not_equal, assert_not_zero
+from starkware.cairo.common.math import assert_not_zero, assert_le_felt
 from starkware.starknet.common.syscalls import (
     get_caller_address,
     get_contract_address,
     get_block_timestamp,
 )
-from contracts.starknet.safe_math import Int256, add, _add, sub, _sub, mul, _mul, add_signed
+from contracts.starknet.safe_math import (
+    Int256,
+    add,
+    _add,
+    sub,
+    _sub,
+    mul,
+    _mul,
+    add_signed,
+    div_rem,
+)
 from contracts.starknet.assertions import (
     assert_either,
     either,
@@ -43,7 +53,13 @@ from contracts.starknet.assertions import (
     check,
 )
 from starkware.cairo.common.uint256 import Uint256, uint256_le, uint256_neg
-from contracts.starknet.wad_ray_math import ray_mul, Ray
+from contracts.starknet.wad_ray_math import (
+    ray_mul,
+    Ray,
+    ray_mul_no_rounding,
+    Wad,
+    ray_to_wad_no_rounding,
+)
 from contracts.starknet.utils import _felt_to_uint
 
 # interface VatLike {
@@ -70,6 +86,9 @@ from contracts.starknet.utils import _felt_to_uint
 @contract_interface
 namespace VatLike:
     func dai(u : felt) -> (dai : Uint256):
+    end
+
+    func debt() -> (debt : Uint256):
     end
 
     func live() -> (live : felt):
@@ -100,6 +119,10 @@ namespace VatLike:
 
     # function grab(bytes32 i, address u, address v, address w, int256 dink, int256 dart) external;
     func grab(i : felt, u : felt, v : felt, w : felt, dink : Int256, dart : Int256):
+    end
+
+    # function flux(bytes32 ilk, address src, address dst, uint256 rad) external;
+    func flux(ilk : felt, src : felt, dst : felt, rad : Uint256):
     end
 end
 
@@ -165,11 +188,19 @@ end
 namespace CureLike:
     func cage():
     end
+
+    func tell() -> (say : Uint256):
+    end
 end
 
 # interface ClaimLike {
 #     function transferFrom(address src, address dst, uint256 amount) external returns (bool);
 # }
+@contract_interface
+namespace ClaimLike:
+    func transferFrom(src : felt, dst : felt, amount : Uint256) -> (res : felt):
+    end
+end
 
 # /*
 #     This is the `End` and it coordinates Global Settlement. This is an
@@ -336,10 +367,25 @@ end
 func Skim(ilk : felt, urn : felt, wad : Uint256, art : Uint256):
 end
 # event Free(bytes32 indexed ilk, address indexed usr, uint256 ink);
-#     event Thaw();
-#     event Flow(bytes32 indexed ilk);
-#     event Pack(address indexed usr, uint256 wad);
-#     event Cash(bytes32 indexed ilk, address indexed usr, uint256 wad);
+@event
+func Free(ilk : felt, usr : felt, ink : Uint256):
+end
+# event Thaw();
+@event
+func Thaw():
+end
+# event Flow(bytes32 indexed ilk);
+@event
+func Flow(ilk : felt):
+end
+# event Pack(address indexed usr, uint256 wad);
+@event
+func Pack(usr : felt, wad : Uint256):
+end
+# event Cash(bytes32 indexed ilk, address indexed usr, uint256 wad);
+@event
+func Cash(ilk : felt, usr : felt, wad : Uint256):
+end
 
 # modifier auth {
 #         require(wards[msg.sender] == 1, "End/not-authorized");
@@ -518,9 +564,9 @@ end
 
 # function skim(bytes32 ilk, address urn) external {
 @external
-func skim{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(
-    ilk : felt, urn : felt
-):
+func skim{
+    syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
+}(ilk : felt, urn : felt):
     alloc_locals
     # require(tag[ilk] != 0, "End/tag-ilk-not-defined");
     let (tag) = _tag.read(ilk)
@@ -536,9 +582,9 @@ func skim{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bit
     # uint256 owe = rmul(rmul(art, rate), tag[ilk]);
     local art_ : Ray = Ray(art)
     local rate_ : Ray = Ray(art)
-    let (mul : Ray) = ray_mul(art_, rate_)
+    let (mul : Ray) = ray_mul_no_rounding(art_, rate_)
     local tag_ : Ray = Ray(tag)
-    let (owe) = ray_mul(mul, tag_)
+    let (owe) = ray_mul_no_rounding(mul, tag_)
     # uint256 wad = min(ink, owe);
     let (wad) = _min(ink, owe.ray)
     # gap[ilk] = gap[ilk] + (owe - wad);
@@ -567,31 +613,115 @@ func skim{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bit
 end
 
 # function free(bytes32 ilk) external {
-#         require(live == 0, "End/still-live");
-#         (uint256 ink, uint256 art) = vat.urns(ilk, msg.sender);
-#         require(art == 0, "End/art-not-zero");
-#         require(ink <= 2**255, "End/overflow");
-#         vat.grab(ilk, msg.sender, msg.sender, address(vow), -int256(ink), 0);
-#         emit Free(ilk, msg.sender, ink);
-#     }
+@external
+func free{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(ilk : felt):
+    alloc_locals
+    # require(live == 0, "End/still-live");
+    require_live()
+    # (uint256 ink, uint256 art) = vat.urns(ilk, msg.sender);
+    let (vat) = _vat.read()
+    let (sender) = get_caller_address()
+    let (ink : Uint256, art : Uint256) = VatLike.urns(vat, ilk, sender)
+
+    # require(art == 0, "End/art-not-zero");
+    with_attr error_message("End/art-not-zero"):
+        assert_0(art)
+    end
+    # require(ink <= 2**255, "End/overflow");
+    with_attr error_message("End/overflow"):
+        let (max) = _felt_to_uint(2 ** 255)
+        assert_le(ink, max)
+    end
+    let (vow) = _vow.read()
+    let (minus_ink) = uint256_neg(ink)
+    # vat.grab(ilk, msg.sender, msg.sender, address(vow), -int256(ink), 0);
+    VatLike.grab(vat, ilk, sender, sender, vow, minus_ink, Uint256(0, 0))
+    # emit Free(ilk, msg.sender, ink);
+    Free.emit(ilk, sender, ink)
+    return ()
+end
+# }
 
 # function thaw() external {
-#         require(live == 0, "End/still-live");
-#         require(debt == 0, "End/debt-not-zero");
-#         require(vat.dai(address(vow)) == 0, "End/surplus-not-zero");
-#         require(block.timestamp >= when + wait, "End/wait-not-finished");
-#         debt = vat.debt() - cure.tell();
-#         emit Thaw();
-#     }
-#     function flow(bytes32 ilk) external {
-#         require(debt != 0, "End/debt-zero");
-#         require(fix[ilk] == 0, "End/fix-ilk-already-defined");
+@external
+func thaw{
+    syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
+}():
+    alloc_locals
+    # require(live == 0, "End/still-live");
+    require_live()
+    # require(debt == 0, "End/debt-not-zero");
+    let (debt) = _debt.read()
+    with_attr error_message("End/debt-not-zero"):
+        assert_0(debt)
+    end
+    # require(vat.dai(address(vow)) == 0, "End/surplus-not-zero");
+    let (vat) = _vat.read()
+    with_attr error_message("End/surplus-not-zero"):
+        let (vow) = _vow.read()
+        let (surplus) = VatLike.dai(vat, vow)
+        assert_0(surplus)
+    end
+    # require(block.timestamp >= when + wait, "End/wait-not-finished");
+    with_attr error_message("End/wait-not-finished"):
+        let (when) = _when.read()
+        let (wait) = _wait.read()
+        let (timestamp) = get_block_timestamp()
+        assert_le_felt(when + wait, timestamp)
+    end
 
-# (, uint256 rate,,,) = vat.ilks(ilk);
-#         uint256 wad = rmul(rmul(Art[ilk], rate), tag[ilk]);
-#         fix[ilk] = (wad - gap[ilk]) * RAY / (debt / RAY);
-#         emit Flow(ilk);
-#     }
+    # debt = vat.debt() - cure.tell();
+    let (cure) = _cure.read()
+    let (vat_debt) = VatLike.debt(vat)
+    let (cure_debt) = CureLike.tell(cure)
+    let (new_debt) = sub(vat_debt, cure_debt)
+    _debt.write(new_debt)
+    # emit Thaw();
+    Thaw.emit()
+    return ()
+end
+
+# function flow(bytes32 ilk) external {
+@external
+func flow{
+    syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
+}(ilk : felt):
+    alloc_locals
+    # require(debt != 0, "End/debt-zero");
+    let (debt) = _debt.read()
+    with_attr error_message("End/debt-zero"):
+        assert_not_0(debt)
+    end
+    # require(fix[ilk] == 0, "End/fix-ilk-already-defined");
+    with_attr error_message("End/fix-ilk-already-defined"):
+        let (fix) = _fix.read(ilk)
+        assert_0(fix)
+    end
+
+    # (, uint256 rate,,,) = vat.ilks(ilk);
+    let (vat) = _vat.read()
+    let (_, rate : Uint256, _, _, _) = VatLike.ilks(vat, ilk)
+
+    local rate_ : Ray = Ray(rate)
+    let (tag) = _tag.read(ilk)
+    let (Art) = _Art.read(ilk)
+    local Art_ : Ray = Ray(Art)
+    local tag_ : Ray = Ray(tag)
+
+    # uint256 wad = rmul(rmul(Art[ilk], rate), tag[ilk]);
+    let (mul_ : Ray) = ray_mul_no_rounding(Art_, rate_)
+    let (ray : Ray) = ray_mul_no_rounding(mul_, tag_)
+    let (wad : Wad) = ray_to_wad_no_rounding(ray)
+    # fix[ilk] = (wad - gap[ilk]) * RAY / (debt / RAY);
+    let (gap) = _gap.read(ilk)
+    let (res) = sub(wad.wad, gap)
+    let (ray_sub) = mul(res, Uint256(10 ** 27, 0))
+    let (ray_debt, _) = div_rem(debt, Uint256(10 ** 27, 0))
+    let (new_fix, _) = div_rem(ray_sub, ray_debt)
+    # emit Flow(ilk);
+    Flow.emit(ilk)
+    return ()
+end
 
 # function pack(uint256 wad) external {
 #         require(debt != 0, "End/debt-zero");
@@ -599,11 +729,61 @@ end
 #         bag[msg.sender] = bag[msg.sender] + wad;
 #         emit Pack(msg.sender, wad);
 #     }
-#     function cash(bytes32 ilk, uint256 wad) external {
-#         require(fix[ilk] != 0, "End/fix-ilk-not-defined");
-#         vat.flux(ilk, address(this), msg.sender, rmul(wad, fix[ilk]));
-#         out[ilk][msg.sender] = out[ilk][msg.sender] + wad;
-#         require(out[ilk][msg.sender] <= bag[msg.sender], "End/insufficient-bag-balance");
-#         emit Cash(ilk, msg.sender, wad);
-#     }
+@external
+func pack{
+    syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
+}(wad : Uint256):
+    let (debt) = _debt.read()
+    with_attr error_message("End/debt-zero"):
+        assert_not_0(debt)
+    end
+
+    let (sender) = get_caller_address()
+    with_attr error_message("End/transfer-failed"):
+        let (claim) = _claim.read()
+        let (vow) = _vow.read()
+        let (success) = ClaimLike.transferFrom(claim, sender, vow, wad)
+        assert_not_zero(success)
+    end
+
+    let (bag) = _bag.read(sender)
+    let (new_bag) = add(bag, wad)
+    _bag.write(sender, new_bag)
+
+    Pack.emit(sender, wad)
+
+    return ()
+end
+# function cash(bytes32 ilk, uint256 wad) external {
+@external
+func cash{
+    syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
+}(ilk : felt, wad : Uint256):
+    alloc_locals
+    # require(fix[ilk] != 0, "End/fix-ilk-not-defined");
+    let (fix) = _fix.read(ilk)
+    with_attr error_message("End/fix-ilk-already-defined"):
+        assert_not_0(fix)
+    end
+    let (vat) = _vat.read()
+    let (self) = get_contract_address()
+    let (sender) = get_caller_address()
+    local wad_ : Ray = Ray(wad)
+    local fix_ : Ray = Ray(fix)
+    let (new_fix) = ray_mul_no_rounding(wad_, fix_)
+    # vat.flux(ilk, address(this), msg.sender, rmul(wad, fix[ilk]));
+    VatLike.flux(vat, ilk, self, sender, new_fix.ray)
+    # out[ilk][msg.sender] = out[ilk][msg.sender] + wad;
+    let (out) = _out.read(ilk, sender)
+    let (new_out) = add(out, wad)
+    _out.write(ilk, sender, new_out)
+    # require(out[ilk][msg.sender] <= bag[msg.sender], "End/insufficient-bag-balance");
+    with_attr error_message("End/insufficient-bag-balance"):
+        let (bag) = _bag.read(sender)
+        assert_le(new_out, bag)
+    end
+    # emit Cash(ilk, msg.sender, wad);
+    Cash.emit(ilk, sender, wad)
+    return ()
+end
 # }
