@@ -595,12 +595,13 @@ func cage_ilk{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}
     let (spot) = _spot.read()
     let (pip : felt, _) = SpotLike.ilks(spot, ilk)
     # // par is a ray, pip returns a wad
-    #         tag[ilk] = wdiv(spot.par(), uint256(pip.read()));
     let (par) = SpotLike.par(spot)
     let (pip_val) = PipLike.read(pip)
     let (local pip_val_uint) = _felt_to_uint(pip_val)
     let (local pip_val_ray : Ray) = wad_to_ray(Wad(pip_val_uint))
+    # tag[ilk] = wdiv(spot.par(), uint256(pip.read()));
     let (new_tag) = ray_div(Ray(par), pip_val_ray)
+    _tag.write(ilk, new_tag.ray)
     # emit Cage(ilk);
     Cage_ilk.emit(ilk)
     # }
@@ -764,6 +765,7 @@ func flow{
     let (ray_sub) = mul(res, Uint256(10 ** 27, 0))
     let (ray_debt, _) = div_rem(debt, Uint256(10 ** 27, 0))
     let (new_fix, _) = div_rem(ray_sub, ray_debt)
+    _fix.write(ilk, new_fix)
     # emit Flow(ilk);
     Flow.emit(ilk)
     return ()
