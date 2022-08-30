@@ -431,6 +431,14 @@ func require_live{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_
     return ()
 end
 
+@view
+func wards{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(user : felt) -> (
+    res : felt
+):
+    let (res) = _wards.read(user)
+    return (res)
+end
+
 # // --- Math ---
 #     uint256 constant WAD = 10 ** 18;
 #     uint256 constant RAY = 10 ** 27;
