@@ -59,6 +59,8 @@ from contracts.starknet.wad_ray_math import (
     ray_mul_no_rounding,
     Wad,
     ray_to_wad_no_rounding,
+    wad_to_ray,
+    ray_div,
 )
 from contracts.starknet.utils import _felt_to_uint
 
@@ -165,6 +167,11 @@ end
 # interface PipLike {
 #     function read() external view returns (bytes32);
 # }
+@contract_interface
+namespace PipLike:
+    func read() -> (pip : felt):
+    end
+end
 
 # interface SpotLike {
 #     function par() external view returns (uint256);
@@ -176,6 +183,12 @@ end
 # }
 @contract_interface
 namespace SpotLike:
+    func par() -> (par : Uint256):
+    end
+
+    func ilks(ilk : felt) -> (pip : felt, mat : Uint256):
+    end
+
     func cage():
     end
 end
@@ -362,7 +375,10 @@ end
 func Cage():
 end
 # event Cage(bytes32 indexed ilk);
-#     event Skim(bytes32 indexed ilk, address indexed urn, uint256 wad, uint256 art);
+@event
+func Cage_ilk(ilk : felt):
+end
+# event Skim(bytes32 indexed ilk, address indexed urn, uint256 wad, uint256 art);
 @event
 func Skim(ilk : felt, urn : felt, wad : Uint256, art : Uint256):
 end
@@ -561,14 +577,36 @@ func cage{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}():
 end
 
 # function cage(bytes32 ilk) external {
-#         require(live == 0, "End/still-live");
-#         require(tag[ilk] == 0, "End/tag-ilk-already-defined");
-#         (Art[ilk],,,,) = vat.ilks(ilk);
-#         (PipLike pip,) = spot.ilks(ilk);
-#         // par is a ray, pip returns a wad
-#         tag[ilk] = wdiv(spot.par(), uint256(pip.read()));
-#         emit Cage(ilk);
-#     }
+@external
+func cage_ilk{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(ilk : felt):
+    alloc_locals
+    # require(live == 0, "End/still-live");
+    require_live()
+    # require(tag[ilk] == 0, "End/tag-ilk-already-defined");
+    let (tag) = _tag.read(ilk)
+    with_attr error_message("End/tag-ilk-already-defined"):
+        assert_0(tag)
+    end
+    # (Art[ilk],,,,) = vat.ilks(ilk);
+    let (vat) = _vat.read()
+    let (Art : Uint256, _, _, _, _) = VatLike.ilks(vat, ilk)
+    _Art.write(ilk, Art)
+    # (PipLike pip,) = spot.ilks(ilk);
+    let (spot) = _spot.read()
+    let (pip : felt, _) = SpotLike.ilks(spot, ilk)
+    # // par is a ray, pip returns a wad
+    #         tag[ilk] = wdiv(spot.par(), uint256(pip.read()));
+    let (par) = SpotLike.par(spot)
+    let (pip_val) = PipLike.read(pip)
+    let (local pip_val_uint) = _felt_to_uint(pip_val)
+    let (local pip_val_ray : Ray) = wad_to_ray(Wad(pip_val_uint))
+    let (new_tag) = ray_div(Ray(par), pip_val_ray)
+    # emit Cage(ilk);
+    Cage_ilk.emit(ilk)
+    # }
+
+    return ()
+end
 
 # function skim(bytes32 ilk, address urn) external {
 @external

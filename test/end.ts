@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import hre, { network, starknet } from 'hardhat';
-import { HttpNetworkConfig } from 'hardhat/types';
+import { HttpNetworkConfig, StarknetContract } from 'hardhat/types';
 
 import {
   asDec,
@@ -40,7 +40,7 @@ describe('end', async function () {
   let user2: any;
   let _user2: any;
   let end: any;
-  let vat: any;
+  let vat: StarknetContract;
   let vow: any;
   let claimToken: any;
 
@@ -68,7 +68,7 @@ describe('end', async function () {
     vow = await simpleDeployL2(
       'mock_vow',
       {
-        vat_: vat.starknetContract.address,
+        vat_: vat.address,
       },
       hre
     );
