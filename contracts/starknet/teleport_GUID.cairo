@@ -1,4 +1,7 @@
 # pragma solidity 0.8.14;
+%lang starknet
+
+from starkware.cairo.common.uint256 import Uint256
 
 # // Standard Maker Teleport GUID
 # struct TeleportGUID {
@@ -12,13 +15,13 @@
 # }
 
 struct TeleportGUID:
-  member source_domain: felt
-  member target_domain: felt
-  member receiver: felt
-  member operator: felt
-  member amount: felt
-  member nonce: felt
-  member timestamp: felt
+    member source_domain : felt
+    member target_domain : felt
+    member receiver : felt
+    member operator : felt
+    member amount : Uint256
+    member nonce : felt
+    member timestamp : felt
 end
 
 # // solhint-disable-next-line func-visibility

@@ -1,16 +1,17 @@
 from starkware.cairo.common.bitwise import bitwise_and
-from starkware.cairo.common.cairo_builtins import (HashBuiltin, BitwiseBuiltin)
+from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.cairo.common.uint256 import (
-  Uint256,
-  uint256_add,
-  uint256_sub,
-  uint256_mul,
-  uint256_eq,
-  uint256_le,
-  uint256_check,
-  uint256_signed_nn,
-  uint256_cond_neg,
-  uint256_neg
+    Uint256,
+    uint256_add,
+    uint256_sub,
+    uint256_mul,
+    uint256_eq,
+    uint256_le,
+    uint256_check,
+    uint256_signed_nn,
+    uint256_cond_neg,
+    uint256_neg,
+    uint256_unsigned_div_rem,
 )
 
 const MASK128 = 2 ** 128 - 1
@@ -21,7 +22,9 @@ using Int256 = Uint256
 # See: https://en.wikipedia.org/wiki/Two%27s_complement
 
 # unsigned wad + unsigned wad -> unsigned wad
-func add{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(lhs : Uint256, rhs : Uint256) -> (res : Uint256):
+func add{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(lhs : Uint256, rhs : Uint256) -> (
+    res : Uint256
+):
     let (res : Uint256, carry : felt) = uint256_add(lhs, rhs)
     assert carry = 0
     return (res)
@@ -53,9 +56,9 @@ func mul{range_check_ptr}(lhs : Uint256, rhs : Uint256) -> (res : Uint256):
     return (result)
 end
 
-func add_signed{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
-    lhs : Int256, rhs : Int256
-) -> (res : Int256):
+func add_signed{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(lhs : Int256, rhs : Int256) -> (
+    res : Int256
+):
     let (lhs_extend) = bitwise_and(lhs.high, 0x80000000000000000000000000000000)
     let (rhs_extend) = bitwise_and(rhs.high, 0x80000000000000000000000000000000)
     let (res : Uint256, carry : felt) = uint256_add(lhs, rhs)
@@ -66,13 +69,13 @@ func add_signed{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
     return (res)
 end
 
-
 # unsigned wad + signed wad -> unsigned wad
 # function _add(uint256 x, int256 y) internal pure returns (uint256 z) {
 #     z = y >= 0 ? x + uint256(y) : x - uint256(-y);
 # }
-func _add{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
-        x : Uint256, y : Int256) -> (res : Uint256):
+func _add{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(x : Uint256, y : Int256) -> (
+    res : Uint256
+):
     let (y_nn) = uint256_signed_nn(y)
     if y_nn == 1:
         let (res) = add(x, y)
@@ -88,8 +91,9 @@ end
 # function _sub(uint256 x, int256 y) internal pure returns (uint256 z) {
 #     z = y >= 0 ? x - uint256(y) : x + uint256(-y);
 # }
-func _sub{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
-        x : Uint256, y : Int256) -> (res : Uint256):
+func _sub{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(x : Uint256, y : Int256) -> (
+    res : Uint256
+):
     let (y_nn) = uint256_signed_nn(y)
     if y_nn == 1:
         let (res) = sub(x, y)
@@ -99,12 +103,12 @@ func _sub{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
     let (minus_y) = uint256_neg(y)
     let (res) = add(x, minus_y)
     return (res)
-
 end
 
 # unsigned * signed -> signed wad
-func _mul{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
-        lhs : Uint256, rhs : Int256) -> (res : Int256):
+func _mul{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(lhs : Uint256, rhs : Int256) -> (
+    res : Int256
+):
     alloc_locals
     let (lhs_nn) = uint256_signed_nn(lhs)
     assert lhs_nn = 1
@@ -119,4 +123,20 @@ func _mul{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
     assert msb = 0
     let (res) = uint256_cond_neg(res_abs, (lhs_nn + rhs_nn) * (2 - lhs_nn - rhs_nn))
     return (res)
+end
+
+func div_rem{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    a : Uint256, b : Uint256
+) -> (c : Uint256, rem : Uint256):
+    alloc_locals
+    uint256_check(a)
+    uint256_check(b)
+
+    let (is_zero) = uint256_eq(b, Uint256(0, 0))
+    with_attr error_message("SafeUint256: divisor cannot be zero"):
+        assert is_zero = 0
+    end
+
+    let (c : Uint256, rem : Uint256) = uint256_unsigned_div_rem(a, b)
+    return (c, rem)
 end

@@ -20,7 +20,7 @@
 
 # import {TeleportGUID} from "./TeleportGUID.sol";
 from contracts.starknet.teleport_GUID import TeleportGUID
-from contracts.starknet.safe_math import Int256, add, mul, div
+from contracts.starknet.safe_math import Int256, add, mul, div_rem
 from contracts.starknet.assertions import eq_0
 from starkware.cairo.common.uint256 import Uint256
 from starkware.cairo.common.math_cmp import is_le_felt
@@ -71,7 +71,7 @@ end
 #     constructor(uint256 _fee, uint256 _ttl) {
 @constructor
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-    fee_ : Uint256, ttl_ : Uint256
+    fee_ : Uint256, ttl_ : felt
 ):
     # fee = _fee;
     _fee.write(fee_)
@@ -80,8 +80,20 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     return ()
 end
 
+@view
+func fee{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (fee : Uint256):
+    let (fee) = _fee.read()
+    return (fee)
+end
+
+@view
+func ttl{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (ttl : felt):
+    let (ttl) = _ttl.read()
+    return (ttl)
+end
+
 # function getFee(TeleportGUID calldata guid, uint256, int256, uint256, uint256 amtToTake) override external view returns (uint256) {
-@external
+@view
 func getFee{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     guid : TeleportGUID, line : Uint256, debt : Int256, pending : Uint256, amtToTake : Uint256
 ) -> (fees : Uint256):
@@ -89,6 +101,7 @@ func getFee{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     # // is slow withdrawal?
     # if (block.timestamp >= uint256(guid.timestamp) + ttl) {
     let (timestamp) = get_block_timestamp()
+    let (ttl) = _ttl.read()
     let (time_passed) = is_le_felt(guid.timestamp + ttl, timestamp)
     if time_passed == 1:
         return (Uint256(0, 0))
@@ -108,6 +121,6 @@ func getFee{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     # return fee * amtToTake / guid.amount;
     let (fee) = _fee.read()
     let (mul_) = mul(fee, amtToTake)
-    let (fees, _) = div(mul_, guid.amount)
+    let (fees, _) = div_rem(mul_, guid.amount)
     return (fees)
 end
