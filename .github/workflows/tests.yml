@@ -43,11 +43,11 @@ jobs:
       - name: Compile Contracts
         run: yarn compile
 
-      - name: Run Cross Chain Tests
-        run: yarn test:crosschain:ci
+      # - name: Run Cross Chain Tests
+      #   run: yarn test:crosschain:ci
 
-      - name: Run L1 tests
-        run: yarn test:l1
+      # - name: Run L1 tests
+      #   run: yarn test:l1
 
       - name: Run L2 tests
         run: yarn test:l2:ci
