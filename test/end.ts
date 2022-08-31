@@ -25,6 +25,8 @@ const WAD = 10n ** 18n;
 const RAY = 10n ** 27n;
 const RAD = 10n ** 45n;
 
+const dumpFile = 'unittest-dump.dmp';
+
 function sleep(ms: number) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
@@ -81,12 +83,12 @@ describe('end', async function () {
       hre
     );
 
-    await starknet.devnet.dump('dump.pkl');
+    await starknet.devnet.dump(dumpFile);
     await sleep(5000);
   });
 
   beforeEach(async () => {
-    await starknet.devnet.load('dump.pkl');
+    await starknet.devnet.load(dumpFile);
   });
 
   async function checkAuth(base: any, contractName: string) {
