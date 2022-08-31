@@ -518,6 +518,7 @@ describe('cure', async function () {
     await admin.invoke(cure, 'load', { src: source2 });
 
     await starknet.devnet.increaseTime(10);
+    await starknet.devnet.createBlock();
     expect((await cure.call('tell')).say).to.deep.equal(l2Eth(45000n).res);
   });
 
@@ -567,6 +568,7 @@ describe('cure', async function () {
     await admin.invoke(cure, 'load', { src: source2 });
 
     await starknet.devnet.increaseTime(9);
+    await starknet.devnet.createBlock();
     try {
       await cure.call('tell');
     } catch (err: any) {
