@@ -610,8 +610,7 @@ func registerMint{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_
         let (teleport) = _teleports.read(hashGUID)
         assert teleport.blessed = 0
     end
-    let (uint_amount) = _felt_to_uint(teleportGUID.amount)
-    let new_teleport = TeleportStatus(blessed=1, pending=uint_amount)
+    let new_teleport = TeleportStatus(blessed=1, pending=teleportGUID.amount)
     _teleports.write(hashGUID, new_teleport)
 
     Register.emit(hashGUID, teleportGUID)
@@ -650,8 +649,7 @@ func requestMint{
         let (teleport) = _teleports.read(hashGUID)
         assert teleport.blessed = 0
     end
-    let (uint_amount) = _felt_to_uint(teleportGUID.amount)
-    let new_teleport = TeleportStatus(blessed=1, pending=uint_amount)
+    let new_teleport = TeleportStatus(blessed=1, pending=teleportGUID.amount)
     _teleports.write(hashGUID, new_teleport)
 
     Register.emit(hashGUID, teleportGUID)
@@ -813,12 +811,13 @@ func initiateTeleport{
     let (domain) = _domain.read()
     let (nonce) = _nonce.read()
     let (block_timestamp) = get_block_timestamp()
+    let (uamount) = _felt_to_uint(amount)
     let teleport : TeleportGUID = TeleportGUID(
         source_domain=domain,
         target_domain=target_domain,
         receiver=receiver,
         operator=operator,
-        amount=amount,
+        amount=uamount,
         nonce=nonce + 1,
         timestamp=block_timestamp,
     )
