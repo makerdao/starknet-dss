@@ -12,6 +12,7 @@ from starkware.cairo.common.uint256 import (
     uint256_signed_nn,
     uint256_cond_neg,
     uint256_neg,
+    uint256_unsigned_div_rem,
 )
 
 const MASK128 = 2 ** 128 - 1
@@ -154,4 +155,20 @@ func _felt_to_uint{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check
     res.high = high
     res.low = low
     return (res)
+end
+
+func div_rem{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    a : Uint256, b : Uint256
+) -> (c : Uint256, rem : Uint256):
+    alloc_locals
+    uint256_check(a)
+    uint256_check(b)
+
+    let (is_zero) = uint256_eq(b, Uint256(0, 0))
+    with_attr error_message("SafeUint256: divisor cannot be zero"):
+        assert is_zero = 0
+    end
+
+    let (c : Uint256, rem : Uint256) = uint256_unsigned_div_rem(a, b)
+    return (c, rem)
 end

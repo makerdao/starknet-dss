@@ -1,4 +1,5 @@
 # pragma solidity 0.8.14;
+%lang starknet
 
 # // Standard Maker Teleport GUID
 # struct TeleportGUID {
@@ -10,16 +11,16 @@
 #     uint80 nonce;
 #     uint48 timestamp;
 # }
-%lang starknet
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin, SignatureBuiltin
+from starkware.cairo.common.uint256 import Uint256
 
 struct TeleportGUID:
     member source_domain : felt
     member target_domain : felt
     member receiver : felt
     member operator : felt
-    member amount : felt
+    member amount : Uint256
     member nonce : felt
     member timestamp : felt
 end
