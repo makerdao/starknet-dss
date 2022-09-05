@@ -2,7 +2,7 @@
 # pragma solidity 0.8.14;
 
 # import "./TeleportGUID.sol";
-from contracts.teleport_GUID import TeleportGUID, getGUIDHash
+from contracts.starknet.teleport_GUID import TeleportGUID, getGUIDHash
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.starknet.common.syscalls import (
     get_caller_address,
@@ -16,7 +16,7 @@ from starkware.cairo.common.uint256 import (
     uint256_neg,
     uint256_lt,
 )
-from contracts.safe_math import (
+from contracts.starknet.safe_math import (
     Int256,
     add,
     _add,
@@ -29,7 +29,7 @@ from contracts.safe_math import (
     _felt_to_uint,
     _uint_to_felt,
 )
-from contracts.assertions import eq_0, either, le_int, _ge_0, assert_either, is_eq, check
+from contracts.starknet.assertions import eq_0, either, le_int, _ge_0, assert_either, is_eq, check
 
 struct Urn:
     member ink : Uint256  # Locked Collateral  [wad]
@@ -255,7 +255,7 @@ func InitiateTeleport(teleport : TeleportGUID):
 end
 # event Flush(bytes32 indexed targetDomain, uint256 dai);
 @event
-func Flush(target_domain : felt, dai: Uint256):
+func Flush(target_domain : felt, dai : Uint256):
 end
 
 @event

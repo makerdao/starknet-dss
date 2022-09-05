@@ -6,12 +6,11 @@
 %lang starknet
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin
-from starkware.starknet.common.syscalls import (get_contract_address, get_caller_address)
-from starkware.cairo.common.uint256 import (Uint256)
-from starkware.cairo.common.math_cmp import (is_not_zero)
-from contracts.assertions import (assert_either)
-from contracts.teleport_GUID import (TeleportGUID)
-
+from starkware.starknet.common.syscalls import get_contract_address, get_caller_address
+from starkware.cairo.common.uint256 import Uint256
+from starkware.cairo.common.math_cmp import is_not_zero
+from contracts.starknet.assertions import assert_either
+from contracts.starknet.teleport_GUID import TeleportGUID
 
 # interface TokenLike {
 #     function approve(address, uint256) external returns (bool);
@@ -19,11 +18,11 @@ from contracts.teleport_GUID import (TeleportGUID)
 # }
 @contract_interface
 namespace TokenLike:
-  func approve(spender : felt, amount : Uint256) -> (res : felt):
-  end
+    func approve(spender : felt, amount : Uint256) -> (res : felt):
+    end
 
-  func transferFrom(src : felt, dest : felt, amount : Uint256) -> (res : felt):
-  end
+    func transferFrom(src : felt, dest : felt, amount : Uint256) -> (res : felt):
+    end
 end
 
 # interface GatewayLike {
@@ -32,13 +31,12 @@ end
 # }
 @contract_interface
 namespace GatewayLike:
-  func registerMint(teleportGUID : TeleportGUID):
-  end
+    func registerMint(teleportGUID : TeleportGUID):
+    end
 
-  func settle(source_domain : felt, target_domain : felt, amount : Uint256):
-  end
+    func settle(source_domain : felt, target_domain : felt, amount : Uint256):
+    end
 end
-
 
 # mapping (address => uint256) public wards;          // Auth
 @storage_var
@@ -66,50 +64,42 @@ end
 func _dai() -> (res : felt):
 end
 
-
 # event Rely(address indexed usr);
 @event
 func Rely(usr : felt):
 end
 
 # event Deny(address indexed usr);
-@event Deny(usr : felt):
+@event
+func Deny(usr : felt):
 end
 
 # event File(bytes32 indexed what, bytes32 indexed domain, address data);
-@event File_ilk(what : felt, domain : felt, data : felt):
+@event
+func File_ilk(what : felt, domain : felt, data : felt):
 end
 
 # event File(bytes32 indexed what, address data);
-@event File(what : felt, data : felt):
+@event
+func File(what : felt, data : felt):
 end
 
 # modifier auth {
 #     require(wards[msg.sender] == 1, "TeleportRouter/not-authorized");
 #     _;
 # }
-func auth{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }():
+func auth{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}():
     let (caller) = get_caller_address()
     let (ward) = _wards.read(caller)
     with_attr error_message("l2_dai_bridge/not-authorized"):
-      assert ward = 1
+        assert ward = 1
     end
     return ()
 end
 
 # constructor(address dai_) {
 @constructor
-func constructor{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(
-    dai : felt
-  ):
+func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(dai : felt):
     # dai = TokenLike(dai_);
     _dai.write(dai)
 
@@ -127,11 +117,7 @@ end
 # // --- Administration ---
 # function rely(address usr) external auth {
 @external
-func rely{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(usr : felt):
+func rely{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(usr : felt):
     auth()
 
     # require(live == 1, "Vat/not-live");
@@ -146,14 +132,9 @@ func rely{
     return ()
 end
 
-
 # function deny(address usr) external auth {
 @external
-func deny{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(user : felt):
+func deny{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(user : felt):
     auth()
 
     # wards[usr] = 0;
@@ -165,33 +146,26 @@ func deny{
     return ()
 end
 
-
 # function file(bytes32 what, bytes32 domain, address data) external auth {
 @external
-func file{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(
-    what : felt,
-    domain : felt,
-    data : felt
-  ):
-    #address prevGateway = gateways[domain];
+func file{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    what : felt, domain : felt, data : felt
+):
+    # address prevGateway = gateways[domain];
     let prev_gateway = _gateways.read(domain)
 
     # if(prevGateway == address(0)) {
     if prev_gateway == 0:
-      # if(data != address(0)) allDomains.add(domain);
-      let (is_data_zero) = is_not_zero(data)
-      if is_data_zero == 0:
-        # allDomains.add(domain); TODO
-      end
+        # if(data != address(0)) allDomains.add(domain);
+        let (is_data_zero) = is_not_zero(data)
+        if is_data_zero == 0:
+            # allDomains.add(domain); TODO
+        end
     else:
-      # if(data == address(0)) allDomains.remove(domain);
-      if data == 0:
-        # allDomains.remove(domain); TODO
-      end
+        # if(data == address(0)) allDomains.remove(domain);
+        if data == 0:
+            # allDomains.remove(domain); TODO
+        end
     end
 
     # gateways[domain] = data;
@@ -210,73 +184,56 @@ end
 
 # function file(bytes32 what, address data) external auth {
 @external
-func file{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(
-    what : felt,
-    data : Uint256
-  ):
+func file{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    what : felt, data : Uint256
+):
     auth()
 
     # if (what == "parent") parent = data;
     # else revert("TeleportRouter/file-unrecognized-param");
     with_attr error_message("TeleportRouter/file-unrecognized-param"):
-      assert what = 'parent'
+        assert what = 'parent'
     end
     _parent.write(data)
 
     # emit File(what, data);
     File.emit(what, data)
 
-    return()
+    return ()
 end
 
 # function numDomains() external view returns (uint256) {
 @view
-func numDomains{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }() -> (res : felt):
+func numDomains{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
+    res : felt
+):
     # return allDomains.length(); TODO
 end
 
 # function domainAt(uint256 index) external view returns (bytes32) {
 @view
-func domainAt{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(index : felt):
+func domainAt{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(index : felt):
     # return allDomains.at(index); TODO
 end
 
 # function hasDomain(bytes32 domain) external view returns (bool) {
 @view
-func hasDomain{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(domain : felt):
+func hasDomain{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(domain : felt):
     # return allDomains.contains(domain); TODO
 end
 
 # function registerMint(TeleportGUID calldata teleportGUID) external {
 @external
-func registerMint{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(teleportGUID : TeleportGUID):
+func registerMint{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    teleportGUID : TeleportGUID
+):
     # require(msg.sender == parent || msg.sender == gateways[teleportGUID.sourceDomain], "TeleportRouter/sender-not-gateway");
     with_attr error_message("TeleportRouter/sender-not-gateway"):
-      let (caller) = get_caller_address()
-      let (parent_eq) = is_not_zero(caller - parent)
-      let (source_gateway) = _gateways.read(teleportGUID.sourceDomain)
-      let (gateway_eq) = is_not_zero(caller - source_gateway)
-      assert_either(parent_eq, gateway_eq)
+        let (caller) = get_caller_address()
+        let (parent_eq) = is_not_zero(caller - parent)
+        let (source_gateway) = _gateways.read(teleportGUID.sourceDomain)
+        let (gateway_eq) = is_not_zero(caller - source_gateway)
+        assert_either(parent_eq, gateway_eq)
     end
 
     # address gateway = gateways[teleportGUID.targetDomain];
@@ -284,7 +241,7 @@ func registerMint{
 
     # if (gateway == address(0)) gateway = parent;
     if gateway == 0:
-      _gateway.write(parent)
+        _gateway.write(parent)
     end
 
     # require(gateway != address(0), "TeleportRouter/unsupported-target-domain");
@@ -300,24 +257,18 @@ end
 
 # function settle(bytes32 sourceDomain, bytes32 targetDomain, uint256 amount) external {
 @external
-func settle{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(
-    source_domain : felt,
-    target_domain : felt,
-    amount : Uint256
-  ):
+func settle{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    source_domain : felt, target_domain : felt, amount : Uint256
+):
     let (caller) = get_caller_address()
     let (contract_address) = get_contract_address()
 
     # require(msg.sender == parent || msg.sender == gateways[sourceDomain], "TeleportRouter/sender-not-gateway");
     with_attr error_message("TeleportRouter/sender-not-gateway"):
-      let (parent_eq) = is_not_zero(caller - parent)
-      let (source_gateway) = _gateways.read(source_domain)
-      let (gateway_eq) = is_not_zero(caller - source_gateway)
-      assert_either(parent_eq, gateway_eq)
+        let (parent_eq) = is_not_zero(caller - parent)
+        let (source_gateway) = _gateways.read(source_domain)
+        let (gateway_eq) = is_not_zero(caller - source_gateway)
+        assert_either(parent_eq, gateway_eq)
     end
 
     # address gateway = gateways[targetDomain];
@@ -325,12 +276,12 @@ func settle{
 
     # if (gateway == address(0)) gateway = parent;
     if gateway == 0:
-      gateway = parent
+        gateway = parent
     end
 
     # require(gateway != address(0), "TeleportRouter/unsupported-target-domain")
     with_attr error_message("TeleportRouter/unsupported-target-domain"):
-      assert_not_zero(gateway)
+        assert_not_zero(gateway)
     end
 
     let (dai) = _dai.read()

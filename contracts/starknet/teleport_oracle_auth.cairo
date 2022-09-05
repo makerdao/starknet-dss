@@ -1,9 +1,12 @@
 %lang starknet
 
-from starkware.cairo.common.cairo_builtins import (HashBuiltin, SignatureBuiltin)
-from starkware.starknet.common.syscalls import (get_caller_address)
-from starkware.cairo.common.math import (assert_lt)
+from starkware.cairo.common.cairo_builtins import HashBuiltin, SignatureBuiltin
+from starkware.starknet.common.syscalls import get_caller_address
+from starkware.cairo.common.math import assert_lt
+from starkware.cairo.common.Uint256 import Uint256
 from starkware.cairo.common.signature import verify_ecdsa_signature
+from contracts.starknet.assertions import is_eq
+from contracts.starknet.teleport_GUID import TeleportGUID
 
 # import "./TeleportGUID.sol";
 
@@ -16,32 +19,33 @@ from starkware.cairo.common.signature import verify_ecdsa_signature
 # }
 
 struct Signature:
-  member pk: felt
-  member r: felt
-  member s: felt
+    member pk : felt
+    member r : felt
+    member s : felt
 end
-
 
 # // TeleportOracleAuth provides user authentication for TeleportJoin, by means of Maker Oracle Attestations
 # contract TeleportOracleAuth {
 
-#     mapping (address => uint256) public wards;   // Auth
+# mapping (address => uint256) public wards;   // Auth
 @storage_var
 func _wards(user : felt) -> (res : felt):
 end
 
-#     mapping (address => uint256) public signers; // Oracle feeds
+# mapping (address => uint256) public signers; // Oracle feeds
 @storage_var
-func _signers(address: felt) -> (res : felt):
+func _signers(address : felt) -> (res : felt):
 end
 
-
-#     TeleportJoinLike immutable public teleportJoin;
+# TeleportJoinLike immutable public teleportJoin;
 @storage_var
 func _teleport_join() -> (join : felt):
 end
 
-#     uint256 public threshold;
+# uint256 public threshold;
+@storage_var
+func _threshold() -> (threshold : felt):
+end
 
 # event Rely(address indexed usr);
 @event
@@ -53,40 +57,29 @@ end
 func Deny(user : felt):
 end
 
-
-#     event File(bytes32 indexed what, uint256 data);
+# event File(bytes32 indexed what, uint256 data);
 #     event SignersAdded(address[] signers);
 #     event SignersRemoved(address[] signers);
 
-#     modifier auth {
+# modifier auth {
 #         require(wards[msg.sender] == 1, "TeleportOracleAuth/not-authorized");
 #         _;
 #     }
-func auth{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }():
+func auth{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}():
     let (caller) = get_caller_address()
     let (ward) = _wards.read(caller)
     with_attr error_message("teleport_oracle_auth/not-authorized"):
-      assert ward = 1
+        assert ward = 1
     end
     return ()
 end
 
-
 # TODO: do we still need to send ward as constructor param?
 #     constructor(address teleportJoin_) {
 @constructor
-func constructor{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(
-    ward : felt,
-    teleport_join_: felt
-  ):
+func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    ward : felt, teleport_join_ : felt
+):
     # wards[msg.sender] = 1;
     _wards.write(ward, 1)
 
@@ -101,11 +94,7 @@ end
 
 # function rely(address usr) external auth {
 @external
-func rely{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(usr : felt):
+func rely{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(usr : felt):
     auth()
 
     # wards[usr] = 1;
@@ -117,14 +106,9 @@ func rely{
     return ()
 end
 
-
 # function deny(address usr) external auth {
 @external
-func deny{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr
-  }(user : felt):
+func deny{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(user : felt):
     auth()
 
     # wards[usr] = 0;
@@ -136,9 +120,7 @@ func deny{
     return ()
 end
 
-
-
-#     function file(bytes32 what, uint256 data) external auth {
+# function file(bytes32 what, uint256 data) external auth {
 #         if (what == "threshold") {
 #             threshold = data;
 #         } else {
@@ -147,21 +129,21 @@ end
 #         emit File(what, data);
 #     }
 
-#     function addSigners(address[] calldata signers_) external auth {
+# function addSigners(address[] calldata signers_) external auth {
 #         for(uint i; i < signers_.length; i++) {
 #             signers[signers_[i]] = 1;
 #         }
 #         emit SignersAdded(signers_);
 #     }
 
-#     function removeSigners(address[] calldata signers_) external auth {
+# function removeSigners(address[] calldata signers_) external auth {
 #         for(uint i; i < signers_.length; i++) {
 #             signers[signers_[i]] = 0;
 #         }
 #         emit SignersRemoved(signers_);
 #     }
 
-#     /**
+# /**
 #      * @notice Verify oracle signatures and call TeleportJoin to mint DAI if the signatures are valid
 #      * (only callable by teleport's operator or receiver)
 #      * @param teleportGUID The teleport GUID to register
@@ -178,45 +160,39 @@ end
 #         uint256 maxFeePercentage,
 #         uint256 operatorFee
 func request_mint{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr,
-    ecdsa_ptr : SignatureBuiltin*
-  }(
+    syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, ecdsa_ptr : SignatureBuiltin*
+}(
     teleport_GUID : TeleportGUID,
-    sigs: Signature*,
-    sigs_len: felt,
-    max_fee_percentage: Uint256,
-    operator_fee: Uint256
-  ) -> (
-    post_fee_amount: Uint256,
-    operator_fee: Uint256
-  ):
+    sigs : Signature*,
+    sigs_len : felt,
+    max_fee_percentage : Uint256,
+    operator_fee : Uint256,
+) -> (post_fee_amount : Uint256, operator_fee : Uint256):
     # require(bytes32ToAddress(teleportGUID.receiver) == msg.sender ||
     #   bytes32ToAddress(teleportGUID.operator) == msg.sender, "TeleportOracleAuth/not-receiver-nor-operator");
     let (caller) = get_caller_address()
-    let is_receiver = caller = teleport_GUID.receiver
+    let is_receiver = is_eq(caller, teleport_GUID.receiver)
     if is_receiver == 0:
-      with_attr error_message("teleport_oracle_auth/not-receiver-nor-operator"):
-        assert caller = teleport_GUID.operator
-      end
+        with_attr error_message("teleport_oracle_auth/not-receiver-nor-operator"):
+            assert caller = teleport_GUID.operator
+        end
     end
 
     # require(isValid(getSignHash(teleportGUID), signatures, threshold), "TeleportOracleAuth/not-enough-valid-sig");
     let (threshold_) = _threshold.read()
-    let teleport_hash = () # TODO!
+    let teleport_hash = ()  # TODO!
     validate(teleport_hash, sigs, sigs_len, threshold_)
 
     # (postFeeAmount, totalFee) = teleportJoin.requestMint(teleportGUID, maxFeePercentage, operatorFee);
     let teleport_join_ = _teleport_join.read()
-    let (post_fee_amount, operator_fee) = TeleportJoinLike.request_mint(teleport_join_, teleport_guid, max_fee_percentage, operator_fee)
+    let (post_fee_amount, operator_fee) = TeleportJoinLike.request_mint(
+        teleport_join_, teleport_guid, max_fee_percentage, operator_fee
+    )
 
     return (post_fee_amount, operator_fee)
-
 end
 
-
-#     /**
+# /**
 #      * @notice Returns true if `signatures` contains at least `threshold_` valid signatures of a given `signHash`
 #      * @param signHash The signed message hash
 #      * @param signatures The byte array of concatenated signatures ordered by increasing signer addresses.
@@ -228,7 +204,7 @@ end
 #         uint256 count = signatures.length / 65;
 #         require(count >= threshold_, "TeleportOracleAuth/not-enough-sig");
 
-#         uint8 v;
+# uint8 v;
 #         bytes32 r;
 #         bytes32 s;
 #         uint256 numValid;
@@ -248,19 +224,15 @@ end
 #         }
 #     }
 func validate{
-    syscall_ptr : felt*,
-    pedersen_ptr : HashBuiltin*,
-    range_check_ptr,
-    ecdsa_ptr : SignatureBuiltin*
-  }(message : felt, sigs: Signature*, sigs_len: felt, threshold_: felt):
-
+    syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, ecdsa_ptr : SignatureBuiltin*
+}(message : felt, sigs : Signature*, sigs_len : felt, threshold_ : felt):
     if threshold_ == 0:
         return ()
     end
 
     assert_lt(0, sigs_len)
 
-    let sig: Signature = sigs[0]
+    let sig : Signature = sigs[0]
 
     let (valid_sig) = _signers.read(sig.pk)
 
@@ -271,11 +243,9 @@ func validate{
     validate(message, sigs + 1, sigs_len - 1, threshold_ - 1)
 
     return ()
-
 end
 
-
-#     /**
+# /**
 #      * @notice This has to match what oracles are signing
 #      * @param teleportGUID The teleport GUID to calculate hash
 #      */
@@ -286,7 +256,7 @@ end
 #         ));
 #     }
 
-#     /**
+# /**
 #      * @notice Parses the signatures and extract (r, s, v) for a signature at a given index.
 #      * @param signatures concatenated signatures. Each signature is {bytes32 r}{bytes32 s}{uint8 v}
 #      * @param index which signature to read (0, 1, 2, ...)
