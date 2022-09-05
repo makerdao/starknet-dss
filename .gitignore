@@ -3,3 +3,6 @@ artifacts
 env/
 build
 .idea
+node_modules
+cache/
+starknet-artifacts/
