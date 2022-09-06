@@ -151,6 +151,10 @@ end
 func file{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     what : felt, domain : felt, data : felt
 ):
+    with_attr error_message("TeleportRouter/file-unrecognized-param"):
+        assert what = 'gateway'
+    end
+
     # address prevGateway = gateways[domain];
     let prev_gateway = _gateways.read(domain)
 
@@ -170,11 +174,6 @@ func file{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
 
     # gateways[domain] = data;
     _gateways.write(domain, data)
-
-    # else revert("TeleportRouter/file-unrecognized-param");
-    with_attr error_message("TeleportRouter/file-unrecognized-param"):
-        assert what = 'gateway'
-    end
 
     # emit File(what, domain, data);
     File_ilk.emit(ilk, what, data)
@@ -230,19 +229,13 @@ func registerMint{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_
     # require(msg.sender == parent || msg.sender == gateways[teleportGUID.sourceDomain], "TeleportRouter/sender-not-gateway");
     with_attr error_message("TeleportRouter/sender-not-gateway"):
         let (caller) = get_caller_address()
-        let (parent_eq) = is_not_zero(caller - parent)
+        let (parent_eq) = is_zero(caller - parent)
         let (source_gateway) = _gateways.read(teleportGUID.sourceDomain)
-        let (gateway_eq) = is_not_zero(caller - source_gateway)
+        let (gateway_eq) = is_zero(caller - source_gateway)
         assert_either(parent_eq, gateway_eq)
     end
 
-    # address gateway = gateways[teleportGUID.targetDomain];
-    let gateway = _gateways.read(teleportGUID.targetDomain)
-
-    # if (gateway == address(0)) gateway = parent;
-    if gateway == 0:
-        _gateway.write(parent)
-    end
+    let (gateway) = get_gateway(teleportGUID.targetDomain, parent)
 
     # require(gateway != address(0), "TeleportRouter/unsupported-target-domain");
     with_attr error_message("TeleportRouter/unsupported-target-domain"):
@@ -253,6 +246,17 @@ func registerMint{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_
     GatewayLike.registerMint(gateway, teleportGUID)
 
     return ()
+end
+
+func get_gateway{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    targetDomain : felt, parent : felt
+) -> (gateway : felt):
+    let (_gateway) = _gateways.read(targetDomain)
+    if _gateway == 0:
+        return (gateway=parent)
+    else:
+        return (gateway=_gateway)
+    end
 end
 
 # function settle(bytes32 sourceDomain, bytes32 targetDomain, uint256 amount) external {

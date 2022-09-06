@@ -25,7 +25,7 @@ from contracts.starknet.safe_math import (
     mul,
     _mul,
     add_signed,
-    _min,
+    min,
     _felt_to_uint,
     _uint_to_felt,
 )
@@ -63,19 +63,22 @@ namespace VatLike:
     func live() -> (live : felt):
     end
 
-    func hope(usr : felt):
+    func urns(i : felt, u : felt) -> (urn : Urn):
     end
 
     func frob(i : felt, u : felt, v : felt, w : felt, dink : Uint256, dart : Uint256):
     end
 
-    func slip(ilk : felt, usr : felt, wad : Int256):
-    end
-
-    func urns(i : felt, u : felt) -> (urn : Urn):
+    func hope(usr : felt):
     end
 
     func move(src : felt, dst : felt, rad : Uint256):
+    end
+
+    func nope(usr : felt):
+    end
+
+    func slip(ilk : felt, usr : felt, wad : Int256):
     end
 end
 
@@ -117,7 +120,7 @@ namespace FeesLike:
     func getFee(
         calldata : TeleportGUID,
         line : Uint256,
-        debt : Uint256,
+        debt : Int256,
         pending : Uint256,
         amtToTake : Uint256,
     ) -> (fees : Uint256):
@@ -453,7 +456,7 @@ func _mint{
     #                                 uint256(int256(line_) - debt_)
     #                             );
     let (under_ceiling : Uint256) = _sub(line_, debt_)
-    let (amt_to_take : Uint256) = _min(pending, under_ceiling)
+    let (amt_to_take : Uint256) = min(pending, under_ceiling)
 
     # uint256 fee = vatLive ? FeesLike(fees[teleportGUID.sourceDomain]).getFee(teleportGUID, line_, debt_, pending, amtToTake) : 0;
     #         require(fee <= maxFeePercentage * amtToTake / WAD, "TeleportJoin/max-fee-exceed");
@@ -749,7 +752,7 @@ func settle{
     if live == 1:
         let (ilk) = _ilk.read()
         let (urn_ : Urn) = VatLike.urns(vat, ilk, self)  # rate == RAY => normalized debt == actual debt
-        let (amt_to_payback : Uint256) = _min(amount, urn_.art)
+        let (amt_to_payback : Uint256) = min(amount, urn_.art)
         let (minus_amt_to_payback : Int256) = uint256_neg(amt_to_payback)
         VatLike.frob(vat, ilk, self, self, self, minus_amt_to_payback, minus_amt_to_payback)
         VatLike.slip(vat, ilk, self, minus_amt_to_payback)

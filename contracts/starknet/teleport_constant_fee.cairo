@@ -20,7 +20,7 @@
 
 # import {TeleportGUID} from "./TeleportGUID.sol";
 from contracts.starknet.teleport_GUID import TeleportGUID
-from contracts.starknet.safe_math import Int256, add, mul, div_rem
+from contracts.starknet.safe_math import Int256, add, mul, div
 from contracts.starknet.assertions import eq_0
 from starkware.cairo.common.uint256 import Uint256
 from starkware.cairo.common.math_cmp import is_le_felt
@@ -121,6 +121,6 @@ func getFee{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     # return fee * amtToTake / guid.amount;
     let (fee) = _fee.read()
     let (mul_) = mul(fee, amtToTake)
-    let (fees, _) = div_rem(mul_, guid.amount)
+    let (fees) = div(mul_, guid.amount)
     return (fees)
 end

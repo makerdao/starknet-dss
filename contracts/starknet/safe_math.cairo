@@ -129,7 +129,7 @@ end
 # function _min(uint256 x, uint256 y) internal pure returns (uint256 z) {
 #         z = x <= y ? x : y;
 #     }
-func _min{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+func min{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     x : Uint256, y : Uint256
 ) -> (z : Uint256):
     let (x_le : felt) = uint256_le(x, y)
@@ -157,9 +157,9 @@ func _felt_to_uint{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check
     return (res)
 end
 
-func div_rem{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+func div{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     a : Uint256, b : Uint256
-) -> (c : Uint256, rem : Uint256):
+) -> (c : Uint256):
     alloc_locals
     uint256_check(a)
     uint256_check(b)
@@ -170,5 +170,5 @@ func div_rem{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     end
 
     let (c : Uint256, rem : Uint256) = uint256_unsigned_div_rem(a, b)
-    return (c, rem)
+    return (c)
 end
