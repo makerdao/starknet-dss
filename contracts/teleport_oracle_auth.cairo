@@ -260,7 +260,7 @@ func add_signers_internal{
 end
 
 
-#     function removeSigners(address[] calldata signers_) external auth {
+# function removeSigners(address[] calldata signers_) external auth {
 @external
 func remove_signers{
     syscall_ptr : felt*,
@@ -314,7 +314,7 @@ func request_mint{
   ):
     alloc_locals
 
-    # TODO: check(post_fee_amount), check(operator_fee)
+    # TODO: check(max_fee_percentage), check(operator_fee)
 
     # require(bytes32ToAddress(teleportGUID.receiver) == msg.sender ||
     #   bytes32ToAddress(teleportGUID.operator) == msg.sender, "TeleportOracleAuth/not-receiver-nor-operator");
