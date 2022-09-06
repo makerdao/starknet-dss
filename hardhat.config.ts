@@ -53,7 +53,7 @@ const config: HardhatUserConfig = {
       chainId: 31337,
     },
     starknetLocal: {
-      url: 'http://localhost:8500',
+      url: 'http://localhost:8000',
     },
   },
   gasReporter: {

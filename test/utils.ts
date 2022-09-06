@@ -4,7 +4,7 @@ import { parseEther } from 'ethers/lib/utils';
 import { Account, StarknetContract } from 'hardhat/types';
 import fetch from 'node-fetch';
 
-type SplitUintType<T> = { low: T; high: T };
+export type SplitUintType<T> = { low: T; high: T };
 type numberish = string | number | bigint | BigNumber;
 
 const TEST_ADDRESS = '9379074284324409537785911406195';
@@ -136,22 +136,22 @@ export async function checkAuth(base: any, contractName: string, admin: Account)
   // await GodMode.setWard(base.address, this, ward);
 }
 
-export function wad(a: bigint): SplitUintType<string> {
-  const _a = SplitUint.fromUint(a * WAD);
-  return { low: _a.toDec()[0], high: _a.toDec()[1] };
+export function wad(a: bigint): SplitUintType<bigint> {
+  const _a = l2Eth(a * WAD);
+  return { low: BigInt(_a.toDec()[0]), high: BigInt(_a.toDec()[1]) };
 }
 
-export function ray(a: bigint): SplitUintType<string> {
-  const _a = SplitUint.fromUint(a * RAY);
-  return { low: _a.toDec()[0], high: _a.toDec()[1] };
+export function ray(a: bigint): SplitUintType<bigint> {
+  const _a = l2Eth(a * RAY);
+  return { low: BigInt(_a.toDec()[0]), high: BigInt(_a.toDec()[1]) };
 }
 
-export function rad(a: bigint): SplitUintType<string> {
-  const _a = SplitUint.fromUint(a * RAD);
-  return { low: _a.toDec()[0], high: _a.toDec()[1] };
+export function rad(a: bigint): SplitUintType<bigint> {
+  const _a = l2Eth(a * RAD);
+  return { low: BigInt(_a.toDec()[0]), high: BigInt(_a.toDec()[1]) };
 }
 
-export function uint(a: bigint): SplitUintType<string> {
-  const _a = SplitUint.fromUint(a);
-  return { low: _a.toDec()[0], high: _a.toDec()[1] };
+export function uint(a: bigint): SplitUintType<bigint> {
+  const _a = l2Eth(a);
+  return { low: BigInt(_a.toDec()[0]), high: BigInt(_a.toDec()[1]) };
 }

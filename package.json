@@ -1,7 +1,7 @@
 {
-  "name": "snapshot-x",
+  "name": "starknet-dss",
   "version": "1.0.0",
-  "repository": "snapshot-labs/snapshot-x",
+  "repository": "makerdao/starknet-dss",
   "license": "MIT",
   "scripts": {
     "compile:l1": "hardhat compile",
