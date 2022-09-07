@@ -239,7 +239,7 @@ func remove_signers_internal{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ran
         return ();
     }
    _signers.write(signers_[0], 0);
-    add_signers_internal(signers__len - 1, signers_ + 1);
+  remove_signers_internal(signers__len - 1, signers_ + 1);
     return ();
 }
 
