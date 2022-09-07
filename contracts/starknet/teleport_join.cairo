@@ -2,8 +2,8 @@
 // pragma solidity 0.8.14;
 
 // import "./TeleportGUID.sol";
-from contracts.starknet.teleport_GUID import TeleportGUID, getGUIDHash
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
+from starkware.cairo.common.registers import get_fp_and_pc
 from starkware.starknet.common.syscalls import (
     get_caller_address,
     get_contract_address,
@@ -30,6 +30,7 @@ from contracts.starknet.safe_math import (
     _uint_to_felt,
 )
 from contracts.starknet.assertions import eq_0, either, le_int, _ge_0, assert_either, is_eq, check
+from contracts.starknet.teleport_GUID import TeleportGUID, get_GUID_hash
 
 struct Urn {
     ink: Uint256,  // Locked Collateral  [wad]
@@ -601,7 +602,8 @@ func registerMint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
 ) {
     alloc_locals;
     auth();
-    let (hashGUID) = getGUIDHash(teleportGUID);
+    let (__fp__, _) = get_fp_and_pc();
+    let (hashGUID) = get_GUID_hash(&teleportGUID);
     with_attr error_message("TeleportJoin/already-blessed") {
         let (teleport) = _teleports.read(hashGUID);
         assert teleport.blessed = 0;
@@ -640,7 +642,8 @@ func requestMint{
     post_fee_amount: Uint256, total_fee: Uint256
 ) {
     auth();
-    let (hashGUID) = getGUIDHash(teleportGUID);
+    let (__fp__, _) = get_fp_and_pc();
+    let (hashGUID) = get_GUID_hash(&teleportGUID);
     with_attr error_message("TeleportJoin/already-blessed") {
         let (teleport) = _teleports.read(hashGUID);
         assert teleport.blessed = 0;
@@ -687,8 +690,8 @@ func mintPending{
         let (is_operator) = is_eq(teleportGUID.operator, caller);
         assert_either(is_receiver, is_operator);
     }
-
-    let (hashGUID) = getGUIDHash(teleportGUID);
+    let (__fp__, _) = get_fp_and_pc();
+    let (hashGUID) = get_GUID_hash(&teleportGUID);
     let (post_fee_amount: Uint256, total_fee: Uint256) = _mint(
         teleportGUID, hashGUID, max_fee_percentage, operator_fee
     );

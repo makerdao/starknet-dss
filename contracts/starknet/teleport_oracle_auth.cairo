@@ -2,15 +2,14 @@
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin, SignatureBuiltin
 from starkware.starknet.common.syscalls import get_caller_address
+
 from starkware.cairo.common.math import assert_lt
 from starkware.cairo.common.math_cmp import is_not_zero
 from starkware.cairo.common.uint256 import Uint256
 from starkware.cairo.common.signature import verify_ecdsa_signature
 from starkware.cairo.common.registers import get_fp_and_pc
-from starkware.cairo.common.hash import hash2
 
-from contracts.teleport_GUID import TeleportGUID
-
+from contracts.starknet.teleport_GUID import TeleportGUID, get_GUID_hash
 // import "./TeleportGUID.sol";
 
 // interface TeleportJoinLike {
@@ -276,7 +275,7 @@ func request_mint{
     // require(isValid(getSignHash(teleportGUID), signatures, threshold), "TeleportOracleAuth/not-enough-valid-sig");
     let (__fp__, _) = get_fp_and_pc();
     let (local threshold_) = _threshold.read();
-    let (message) = teleport_hash(&teleport_GUID);
+    let (message) = get_GUID_hash(&teleport_GUID);
     validate(message, signatures_len, signatures, threshold_);
 
     // (postFeeAmount, totalFee) = teleportJoin.requestMint(teleportGUID, maxFeePercentage, operatorFee);
@@ -286,23 +285,6 @@ func request_mint{
     );
 
     return (post_fee_amount, operator_fee);
-}
-
-func teleport_hash{pedersen_ptr: HashBuiltin*}(t: TeleportGUID*) -> (res: felt) {
-    // h(source_domain, h(target_domain, h(receiver, h(operator, h(amount, h(nonce, timestamp))))))
-
-    let hash_ptr = pedersen_ptr;
-    with hash_ptr {
-        let (_hash1) = hash2(t.timestamp, t.nonce);
-        let (_hash2) = hash2(_hash1, t.amount);
-        let (_hash3) = hash2(_hash2, t.operator);
-        let (_hash4) = hash2(_hash3, t.receiver);
-        let (_hash5) = hash2(_hash4, t.target_domain);
-        let (hash) = hash2(_hash5, t.source_domain);
-    }
-
-    let pedersen_ptr = hash_ptr;
-    return (hash,);
 }
 
 // /**
