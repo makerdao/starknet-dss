@@ -203,6 +203,17 @@ describe('vat', async function () {
     await invoke(user, vat, 'frob', { i, u, v, w, dink, dart });
   }
 
+  async function fork(
+    user: Account,
+    ilk: any,
+    src: any,
+    dst: any,
+    dink: SplitUintType<bigint>,
+    dart: SplitUintType<bigint>
+  ) {
+    await invoke(user, vat, 'frob', { ilk, src, dst, dink, dart });
+  }
+
   async function suck(u: any, v: any, rad: SplitUintType<bigint>) {
     await invoke(admin, vat, 'suck', { u, v, rad });
   }
@@ -797,120 +808,170 @@ describe('vat', async function () {
     });
 
     it('test fork self other', async () => {
-      // usr1.frob(ILK, ausr1, ausr1, ausr1, int256(100 * WAD), int256(100 * WAD));
-      // usr2.hope(ausr1);
-      // assertEq(usr1.art(ILK), 100 * WAD);
-      // assertEq(usr1.ink(ILK), 100 * WAD);
-      // assertEq(usr2.art(ILK), 0);
-      // assertEq(usr2.ink(ILK), 0);
+      await frob(user1, ILK, _user1, _user1, _user1, wad(100n), wad(100n));
+      await hope(user2, _user1);
+      expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
+      expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
+      expect((await vat.call('art', { i: ILK, u: _user2 })).res).to.deep.equal(wad(0n));
+      expect((await vat.call('ink', { i: ILK, u: _user2 })).res).to.deep.equal(wad(0n));
       // vm.expectEmit(true, true, true, true);
       // emit Fork(ILK, ausr1, ausr2, int256(100 * WAD), int256(100 * WAD));
-      // usr1.fork(ILK, ausr1, ausr2, int256(100 * WAD), int256(100 * WAD));
-      // assertEq(usr1.art(ILK), 0);
-      // assertEq(usr1.ink(ILK), 0);
-      // assertEq(usr2.art(ILK), 100 * WAD);
-      // assertEq(usr2.ink(ILK), 100 * WAD);
+      await fork(user1, ILK, _user1, _user2, wad(100n), wad(100n));
+      expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(0n));
+      expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(0n));
+      expect((await vat.call('art', { i: ILK, u: _user2 })).res).to.deep.equal(wad(100n));
+      expect((await vat.call('ink', { i: ILK, u: _user2 })).res).to.deep.equal(wad(100n));
     });
     it('test fork self other negative', async () => {
-      // usr1.frob(ILK, ausr1, ausr1, ausr1, int256(100 * WAD), int256(100 * WAD));
-      // usr2.frob(ILK, ausr2, ausr2, ausr2, int256(100 * WAD), int256(100 * WAD));
-      // usr2.hope(ausr1);
-      // assertEq(usr1.art(ILK), 100 * WAD);
-      // assertEq(usr1.ink(ILK), 100 * WAD);
-      // assertEq(usr2.art(ILK), 100 * WAD);
-      // assertEq(usr2.ink(ILK), 100 * WAD);
+      await frob(user1, ILK, _user1, _user1, _user1, wad(100n), wad(100n));
+      await frob(user2, ILK, _user2, _user2, _user2, wad(100n), wad(100n));
+      await hope(user2, _user1);
+      expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
+      expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
+      expect((await vat.call('art', { i: ILK, u: _user2 })).res).to.deep.equal(wad(100n));
+      expect((await vat.call('ink', { i: ILK, u: _user2 })).res).to.deep.equal(wad(100n));
       // vm.expectEmit(true, true, true, true);
       // emit Fork(ILK, ausr1, ausr2, -int256(100 * WAD), -int256(100 * WAD));
-      // usr1.fork(ILK, ausr1, ausr2, -int256(100 * WAD), -int256(100 * WAD));
-      // assertEq(usr1.art(ILK), 200 * WAD);
-      // assertEq(usr1.ink(ILK), 200 * WAD);
-      // assertEq(usr2.art(ILK), 0);
-      // assertEq(usr2.ink(ILK), 0);
+      await fork(user1, ILK, _user1, _user2, wad(-100n), wad(-100n));
+      expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(200n));
+      expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(200n));
+      expect((await vat.call('art', { i: ILK, u: _user2 })).res).to.deep.equal(wad(0n));
+      expect((await vat.call('ink', { i: ILK, u: _user2 })).res).to.deep.equal(wad(0n));
     });
     it('test fork self other no permission', async () => {
       // usr1.frob(ILK, ausr1, ausr1, ausr1, int256(100 * WAD), int256(100 * WAD));
+      await frob(user1, ILK, _user1, _user1, _user1, wad(100n), wad(100n));
+
       // vm.expectRevert("Vat/not-allowed");
       // usr1.fork(ILK, ausr1, ausr2, int256(100 * WAD), int256(100 * WAD));
+      try {
+        await fork(user1, ILK, _user1, _user2, wad(100n), wad(100n));
+      } catch (err: any) {
+        expect(err.message).to.contain('Vat/not-allowed');
+      }
     });
     it('test fork other self', async () => {
-      // usr1.frob(ILK, ausr1, ausr1, ausr1, int256(100 * WAD), int256(100 * WAD));
-      // usr1.hope(ausr2);
-      // assertEq(usr1.art(ILK), 100 * WAD);
-      // assertEq(usr1.ink(ILK), 100 * WAD);
-      // assertEq(usr2.art(ILK), 0);
-      // assertEq(usr2.ink(ILK), 0);
+      await frob(user1, ILK, _user1, _user1, _user1, wad(100n), wad(100n));
+      await hope(user2, _user1);
+      expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
+      expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
+      expect((await vat.call('art', { i: ILK, u: _user2 })).res).to.deep.equal(wad(0n));
+      expect((await vat.call('ink', { i: ILK, u: _user2 })).res).to.deep.equal(wad(0n));
+
       // vm.expectEmit(true, true, true, true);
       // emit Fork(ILK, ausr1, ausr2, int256(100 * WAD), int256(100 * WAD));
-      // usr2.fork(ILK, ausr1, ausr2, int256(100 * WAD), int256(100 * WAD));
-      // assertEq(usr1.art(ILK), 0);
-      // assertEq(usr1.ink(ILK), 0);
-      // assertEq(usr2.art(ILK), 100 * WAD);
-      // assertEq(usr2.ink(ILK), 100 * WAD);
+      await fork(user2, ILK, _user1, _user2, wad(100n), wad(100n));
+      expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(0n));
+      expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(0n));
+      expect((await vat.call('art', { i: ILK, u: _user2 })).res).to.deep.equal(wad(100n));
+      expect((await vat.call('ink', { i: ILK, u: _user2 })).res).to.deep.equal(wad(100n));
     });
     it('test fork other self negative', async () => {
       // usr1.frob(ILK, ausr1, ausr1, ausr1, int256(100 * WAD), int256(100 * WAD));
+      await frob(user1, ILK, _user1, _user1, _user1, wad(100n), wad(100n));
+
       // usr2.frob(ILK, ausr2, ausr2, ausr2, int256(100 * WAD), int256(100 * WAD));
+      await frob(user2, ILK, _user2, _user2, _user2, wad(100n), wad(100n));
+
       // usr1.hope(ausr2);
+      await hope(user2, _user1);
+
       // assertEq(usr1.art(ILK), 100 * WAD);
       // assertEq(usr1.ink(ILK), 100 * WAD);
       // assertEq(usr2.art(ILK), 100 * WAD);
       // assertEq(usr2.ink(ILK), 100 * WAD);
+      expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
+      expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
+      expect((await vat.call('art', { i: ILK, u: _user2 })).res).to.deep.equal(wad(100n));
+      expect((await vat.call('ink', { i: ILK, u: _user2 })).res).to.deep.equal(wad(100n));
+
       // vm.expectEmit(true, true, true, true);
       // emit Fork(ILK, ausr1, ausr2, -int256(100 * WAD), -int256(100 * WAD));
       // usr2.fork(ILK, ausr1, ausr2, -int256(100 * WAD), -int256(100 * WAD));
+      await fork(user2, ILK, _user1, _user2, wad(-100n), wad(-100n));
       // assertEq(usr1.art(ILK), 200 * WAD);
       // assertEq(usr1.ink(ILK), 200 * WAD);
       // assertEq(usr2.art(ILK), 0);
       // assertEq(usr2.ink(ILK), 0);
+      expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(200n));
+      expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(200n));
+      expect((await vat.call('art', { i: ILK, u: _user2 })).res).to.deep.equal(wad(0n));
+      expect((await vat.call('ink', { i: ILK, u: _user2 })).res).to.deep.equal(wad(0n));
     });
     it('test fork other self no permission', async () => {
-      // usr1.frob(ILK, ausr1, ausr1, ausr1, int256(100 * WAD), int256(100 * WAD));
+      await frob(user1, ILK, _user1, _user1, _user1, wad(100n), wad(100n));
+
       // vm.expectRevert("Vat/not-allowed");
-      // usr2.fork(ILK, ausr1, ausr2, int256(100 * WAD), int256(100 * WAD));
+      try {
+        await fork(user2, ILK, _user1, _user2, wad(100n), wad(100n));
+      } catch (err: any) {
+        expect(err.message).to.contain('Vat/not-allowed');
+      }
     });
     it('test fork self self', async () => {
       // usr1.frob(ILK, ausr1, ausr1, ausr1, int256(100 * WAD), int256(100 * WAD));
-      // assertEq(usr1.art(ILK), 100 * WAD);
-      // assertEq(usr1.ink(ILK), 100 * WAD);
-      // assertEq(usr2.art(ILK), 0);
-      // assertEq(usr2.ink(ILK), 0);
+      await frob(user1, ILK, _user1, _user1, _user1, wad(100n), wad(100n));
+      expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
+      expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
+      expect((await vat.call('art', { i: ILK, u: _user2 })).res).to.deep.equal(wad(0n));
+      expect((await vat.call('ink', { i: ILK, u: _user2 })).res).to.deep.equal(wad(0n));
       // vm.expectEmit(true, true, true, true);
       // emit Fork(ILK, ausr1, ausr1, int256(100 * WAD), int256(100 * WAD));
-      // usr1.fork(ILK, ausr1, ausr1, int256(100 * WAD), int256(100 * WAD));
-      // assertEq(usr1.art(ILK), 100 * WAD);
-      // assertEq(usr1.ink(ILK), 100 * WAD);
-      // assertEq(usr2.art(ILK), 0);
-      // assertEq(usr2.ink(ILK), 0);
+      await fork(user1, ILK, _user1, _user1, wad(100n), wad(100n));
+      expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
+      expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
+      expect((await vat.call('art', { i: ILK, u: _user2 })).res).to.deep.equal(wad(0n));
+      expect((await vat.call('ink', { i: ILK, u: _user2 })).res).to.deep.equal(wad(0n));
     });
     it('test fork not safe src', async () => {
-      // usr1.frob(ILK, ausr1, ausr1, ausr1, int256(100 * WAD), int256(100 * WAD));
-      // usr2.frob(ILK, ausr2, ausr2, ausr2, int256(100 * WAD), int256(100 * WAD));
-      // usr2.hope(ausr1);
-      // vat.file(ILK, "spot", RAY / 2);     // Vaults are underwater
-      // vm.expectRevert("Vat/not-safe-src");
-      // usr1.fork(ILK, ausr1, ausr2, int256(20 * WAD), int256(20 * WAD));
+      await frob(user1, ILK, _user1, _user1, _user1, wad(100n), wad(100n));
+      await frob(user2, ILK, _user2, _user2, _user2, wad(100n), wad(100n));
+      await hope(user2, _user1);
+      // Vaults are underwater
+      await invoke(admin, vat, 'file', {
+        what: spot,
+        data: SplitUint.fromUint(RAY / 2n).res,
+      });
+      try {
+        await fork(user1, ILK, _user1, _user2, wad(20n), wad(20n));
+      } catch (err: any) {
+        expect(err.message).to.contain('Vat/not-safe-src');
+      }
     });
     it('test fork not safe dst', async () => {
-      // usr1.frob(ILK, ausr1, ausr1, ausr1, int256(100 * WAD), int256(50 * WAD));
-      // usr2.frob(ILK, ausr2, ausr2, ausr2, int256(100 * WAD), int256(100 * WAD));
-      // usr2.hope(ausr1);
-      // vat.file(ILK, "spot", RAY / 2);     // usr2 vault is underwater
-      // vm.expectRevert("Vat/not-safe-dst");
-      // usr1.fork(ILK, ausr1, ausr2, int256(20 * WAD), int256(10 * WAD));
+      await frob(user1, ILK, _user1, _user1, _user1, wad(100n), wad(50n));
+      await frob(user2, ILK, _user2, _user2, _user2, wad(100n), wad(100n));
+      await hope(user2, _user1);
+      // usr2 vault is underwater
+      await invoke(admin, vat, 'file', {
+        what: spot,
+        data: SplitUint.fromUint(RAY / 2n).res,
+      });
+      try {
+        await fork(user1, ILK, _user1, _user2, wad(20n), wad(10n));
+      } catch (err: any) {
+        expect(err.message).to.contain('Vat/not-safe-dst');
+      }
     });
     it('test fork dust src', async () => {
-      // usr1.frob(ILK, ausr1, ausr1, ausr1, int256(100 * WAD), int256(100 * WAD));
-      // usr2.frob(ILK, ausr2, ausr2, ausr2, int256(100 * WAD), int256(100 * WAD));
-      // usr2.hope(ausr1);
-      // vm.expectRevert("Vat/dust-src");
-      // usr1.fork(ILK, ausr1, ausr2, int256(95 * WAD), int256(95 * WAD));
+      await frob(user1, ILK, _user1, _user1, _user1, wad(100n), wad(100n));
+      await frob(user2, ILK, _user2, _user2, _user2, wad(100n), wad(100n));
+      await hope(user2, _user1);
+      try {
+        await fork(user1, ILK, _user1, _user2, wad(95n), wad(95n));
+      } catch (err: any) {
+        expect(err.message).to.contain('Vat/dust-src');
+      }
     });
     it('test fork dust dst', async () => {
-      // usr1.frob(ILK, ausr1, ausr1, ausr1, int256(100 * WAD), int256(100 * WAD));
-      // usr2.frob(ILK, ausr2, ausr2, ausr2, int256(100 * WAD), int256(100 * WAD));
-      // usr2.hope(ausr1);
-      // vm.expectRevert("Vat/dust-dst");
-      // usr1.fork(ILK, ausr1, ausr2, -int256(95 * WAD), -int256(95 * WAD));
+      await frob(user1, ILK, _user1, _user1, _user1, wad(100n), wad(100n));
+      await frob(user2, ILK, _user2, _user2, _user2, wad(100n), wad(100n));
+      await hope(user2, _user1);
+      try {
+        await fork(user1, ILK, _user1, _user2, wad(-95n), wad(-95n));
+      } catch (err: any) {
+        expect(err.message).to.contain('Vat/dust-dst');
+      }
     });
   });
 
