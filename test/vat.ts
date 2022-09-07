@@ -214,6 +214,18 @@ describe('vat', async function () {
     await invoke(user, vat, 'frob', { ilk, src, dst, dink, dart });
   }
 
+  async function grab(
+    // user: Account,
+    i: any,
+    u: any,
+    v: any,
+    w: any,
+    dink: SplitUintType<bigint>,
+    dart: SplitUintType<bigint>
+  ) {
+    await invoke(admin, vat, 'grab', { i, u, v, w, dink, dart });
+  }
+
   async function suck(u: any, v: any, rad: SplitUintType<bigint>) {
     await invoke(admin, vat, 'suck', { u, v, rad });
   }
@@ -224,6 +236,10 @@ describe('vat', async function () {
 
   async function hope(from: Account, to: string) {
     await invoke(from, vat, 'hope', { user: to });
+  }
+
+  async function heal(from: Account, rad: SplitUintType<bigint>) {
+    await invoke(from, vat, 'heal', { rad });
   }
 
   it('test constructor', async () => {
@@ -981,91 +997,97 @@ describe('vat', async function () {
     });
 
     it('test grab', async () => {
-      // usr1.frob(ILK, ausr1, ausr1, ausr1, int256(100 * WAD), int256(100 * WAD));
-      // assertEq(usr1.art(ILK), 100 * WAD);
-      // assertEq(usr1.ink(ILK), 100 * WAD);
-      // assertEq(vat.Art(ILK), 100 * WAD);
-      // assertEq(usr2.gems(ILK), 100 * WAD);
-      // assertEq(vat.sin(TEST_ADDRESS), 0);
-      // assertEq(vat.vice(), 0);
+      await frob(user1, ILK, _user1, _user1, _user1, wad(100n), wad(100n));
+      expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
+      expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
+      expect((await vat.call('ilks', { i: ILK })).ilk.Art).to.deep.equal(wad(100n));
+      expect((await vat.call('gem', { i: ILK, u: _user2 })).gem).to.deep.equal(wad(100n));
+      expect((await vat.call('sin', { u: TEST_ADDRESS })).sin).to.deep.equal(rad(0n));
+      expect((await vat.call('vice')).vice).to.deep.equal(rad(0n));
       // vm.expectEmit(true, true, true, true);
       // emit Grab(ILK, ausr1, ausr2, TEST_ADDRESS, -int256(100 * WAD), -int256(100 * WAD));
-      // vat.grab(ILK, ausr1, ausr2, TEST_ADDRESS, -int256(100 * WAD), -int256(100 * WAD));
-      // assertEq(usr1.art(ILK), 0);
-      // assertEq(usr1.ink(ILK), 0);
-      // assertEq(vat.Art(ILK), 0);
-      // assertEq(usr2.gems(ILK), 200 * WAD);
-      // assertEq(vat.sin(TEST_ADDRESS), 100 * RAD);
-      // assertEq(vat.vice(), 100 * RAD);
+      await grab(ILK, _user1, _user2, TEST_ADDRESS, wad(-100n), wad(-100n));
+      expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(0n));
+      expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(0n));
+      expect((await vat.call('ilks', { i: ILK })).ilk.Art).to.deep.equal(wad(0n));
+      expect((await vat.call('gem', { i: ILK, u: _user2 })).gem).to.deep.equal(wad(200n));
+      expect((await vat.call('sin', { u: TEST_ADDRESS })).sin).to.deep.equal(rad(100n));
+      expect((await vat.call('vice')).vice).to.deep.equal(rad(100n));
     });
     it('test grab partial', async () => {
-      // usr1.frob(ILK, ausr1, ausr1, ausr1, int256(100 * WAD), int256(100 * WAD));
-      // assertEq(usr1.art(ILK), 100 * WAD);
-      // assertEq(usr1.ink(ILK), 100 * WAD);
-      // assertEq(vat.Art(ILK), 100 * WAD);
-      // assertEq(usr2.gems(ILK), 100 * WAD);
-      // assertEq(vat.sin(TEST_ADDRESS), 0);
-      // assertEq(vat.vice(), 0);
+      await frob(user1, ILK, _user1, _user1, _user1, wad(100n), wad(100n));
+      expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
+      expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
+      expect((await vat.call('ilks', { i: ILK })).ilk.Art).to.deep.equal(wad(100n));
+      expect((await vat.call('gem', { i: ILK, u: _user2 })).gem).to.deep.equal(wad(100n));
+      expect((await vat.call('sin', { u: TEST_ADDRESS })).sin).to.deep.equal(rad(0n));
+      expect((await vat.call('vice')).vice).to.deep.equal(rad(0n));
       // vm.expectEmit(true, true, true, true);
       // emit Grab(ILK, ausr1, ausr2, TEST_ADDRESS, -int256(50 * WAD), -int256(50 * WAD));
-      // vat.grab(ILK, ausr1, ausr2, TEST_ADDRESS, -int256(50 * WAD), -int256(50 * WAD));
-      // assertEq(usr1.art(ILK), 50 * WAD);
-      // assertEq(usr1.ink(ILK), 50 * WAD);
-      // assertEq(vat.Art(ILK), 50 * WAD);
-      // assertEq(usr2.gems(ILK), 150 * WAD);
-      // assertEq(vat.sin(TEST_ADDRESS), 50 * RAD);
-      // assertEq(vat.vice(), 50 * RAD);
+      await grab(ILK, _user1, _user2, TEST_ADDRESS, wad(-100n), wad(-100n));
+      expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(50n));
+      expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(50n));
+      expect((await vat.call('ilks', { i: ILK })).ilk.Art).to.deep.equal(wad(50n));
+      expect((await vat.call('gem', { i: ILK, u: _user2 })).gem).to.deep.equal(wad(150n));
+      expect((await vat.call('sin', { u: TEST_ADDRESS })).sin).to.deep.equal(rad(50n));
+      expect((await vat.call('vice')).vice).to.deep.equal(rad(50n));
     });
     it('test grab positive', async () => {
       // usr1.frob(ILK, ausr1, ausr1, ausr1, int256(100 * WAD), int256(100 * WAD));
+      await frob(user1, ILK, _user1, _user1, _user1, wad(100n), wad(100n));
+
       // vat.suck(TEST_ADDRESS, TEST_ADDRESS, 100 * RAD);
+      await suck(TEST_ADDRESS, TEST_ADDRESS, rad(100n));
       // assertEq(usr1.art(ILK), 100 * WAD);
       // assertEq(usr1.ink(ILK), 100 * WAD);
       // assertEq(vat.Art(ILK), 100 * WAD);
       // assertEq(usr2.gems(ILK), 100 * WAD);
       // assertEq(vat.sin(TEST_ADDRESS), 100 * RAD);
       // assertEq(vat.vice(), 100 * RAD);
+      expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
+      expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
+      expect((await vat.call('ilks', { i: ILK })).ilk.Art).to.deep.equal(wad(100n));
+      expect((await vat.call('gem', { i: ILK, u: _user2 })).gem).to.deep.equal(wad(100n));
+      expect((await vat.call('sin', { u: TEST_ADDRESS })).sin).to.deep.equal(rad(100n));
+      expect((await vat.call('vice')).vice).to.deep.equal(rad(100n));
       // vm.expectEmit(true, true, true, true);
       // emit Grab(ILK, ausr1, ausr2, TEST_ADDRESS, int256(100 * WAD), int256(100 * WAD));
-      // vat.grab(ILK, ausr1, ausr2, TEST_ADDRESS, int256(100 * WAD), int256(100 * WAD));
-      // assertEq(usr1.art(ILK), 200 * WAD);
-      // assertEq(usr1.ink(ILK), 200 * WAD);
-      // assertEq(vat.Art(ILK), 200 * WAD);
-      // assertEq(usr2.gems(ILK), 0);
-      // assertEq(vat.sin(TEST_ADDRESS), 0);
-      // assertEq(vat.vice(), 0);
+      await grab(ILK, _user1, _user2, TEST_ADDRESS, wad(100n), wad(100n));
+      expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(200n));
+      expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(200n));
+      expect((await vat.call('ilks', { i: ILK })).ilk.Art).to.deep.equal(wad(200n));
+      expect((await vat.call('gem', { i: ILK, u: _user2 })).gem).to.deep.equal(wad(0n));
+      expect((await vat.call('sin', { u: TEST_ADDRESS })).sin).to.deep.equal(rad(0n));
+      expect((await vat.call('vice')).vice).to.deep.equal(rad(0n));
     });
   });
 
   it('test heal', async () => {
-    // vat.suck(ausr1, ausr1, 100 * RAD);
-    //
-    // assertEq(usr1.sin(), 100 * RAD);
-    // assertEq(usr1.dai(), 100 * RAD);
-    // assertEq(vat.vice(), 100 * RAD);
-    // assertEq(vat.debt(), 100 * RAD);
+    await suck(_user1, _user1, rad(100n));
+    expect((await vat.call('sin', { u: _user1 })).sin).to.deep.equal(rad(100n));
+    expect((await vat.call('dai', { u: _user1 })).dai).to.deep.equal(rad(100n));
+    expect((await vat.call('vice')).vice).to.deep.equal(rad(100n));
+    expect((await vat.call('debt')).debt).to.deep.equal(rad(100n));
     // vm.expectEmit(true, true, true, true);
     // emit Heal(ausr1, 100 * RAD);
-    // usr1.heal(100 * RAD);
-    //
-    // assertEq(usr1.sin(), 0);
-    // assertEq(usr1.dai(), 0);
-    // assertEq(vat.vice(), 0);
-    // assertEq(vat.debt(), 0);
+    await heal(user1, rad(100n));
+    expect((await vat.call('sin', { u: _user1 })).sin).to.deep.equal(rad(0n));
+    expect((await vat.call('dai', { u: _user1 })).dai).to.deep.equal(rad(0n));
+    expect((await vat.call('vice')).vice).to.deep.equal(rad(0n));
+    expect((await vat.call('debt')).debt).to.deep.equal(rad(0n));
   });
   it('test suck', async () => {
-    // assertEq(usr1.sin(), 0);
-    // assertEq(usr2.dai(), 0);
-    // assertEq(vat.vice(), 0);
-    // assertEq(vat.debt(), 0);
+    expect((await vat.call('sin', { u: _user1 })).sin).to.deep.equal(rad(0n));
+    expect((await vat.call('dai', { u: _user2 })).dai).to.deep.equal(rad(0n));
+    expect((await vat.call('vice')).vice).to.deep.equal(rad(0n));
+    expect((await vat.call('debt')).debt).to.deep.equal(rad(0n));
     // vm.expectEmit(true, true, true, true);
     // emit Suck(ausr1, ausr2, 100 * RAD);
-    // vat.suck(ausr1, ausr2, 100 * RAD);
-    //
-    // assertEq(usr1.sin(), 100 * RAD);
-    // assertEq(usr2.dai(), 100 * RAD);
-    // assertEq(vat.vice(), 100 * RAD);
-    // assertEq(vat.debt(), 100 * RAD);
+    await suck(_user1, _user2, rad(100n));
+    expect((await vat.call('sin', { u: _user1 })).sin).to.deep.equal(rad(100n));
+    expect((await vat.call('dai', { u: _user2 })).dai).to.deep.equal(rad(100n));
+    expect((await vat.call('vice')).vice).to.deep.equal(rad(100n));
+    expect((await vat.call('debt')).debt).to.deep.equal(rad(100n));
   });
 
   describe('fold', async function () {
@@ -1085,7 +1107,7 @@ describe('vat', async function () {
       expect((await vat.call('ilks', { i: ILK })).ilk.Art).to.deep.equal(wad(100n));
       expect((await vat.call('ilks', { i: ILK })).ilk.rate).to.deep.equal(ray(1n));
       expect((await vat.call('dai', { u: TEST_ADDRESS })).dai).to.deep.equal(uint(0n));
-      expect((await vat.call('debt')).debt).to.deep.equal(wad(100n));
+      expect((await vat.call('debt')).debt).to.deep.equal(rad(100n));
 
       // vm.expectEmit(true, true, true, true);
       // emit Fold(ILK, TEST_ADDRESS, int256(1 * RAY / 10));
