@@ -3,7 +3,7 @@
 from starkware.cairo.common.cairo_builtins import HashBuiltin, EcOpBuiltin, SignatureBuiltin
 from starkware.starknet.common.syscalls import get_caller_address
 
-from starkware.cairo.common.math import assert_lt
+from starkware.cairo.common.math import assert_lt, assert_lt_felt
 from starkware.cairo.common.math_cmp import is_not_zero
 from starkware.cairo.common.uint256 import Uint256
 from starkware.cairo.common.signature import check_ecdsa_signature
@@ -118,7 +118,7 @@ func SignersRemoved(signers_len: felt, signers: felt*) {
 func auth{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     let (caller) = get_caller_address();
     let (ward) = _wards.read(caller);
-    with_attr error_message("teleport_oracle_auth/not-authorized") {
+    with_attr error_message("TeleportOracleAuth/not-authorized") {
         assert ward = 1;
     }
     return ();
@@ -180,7 +180,7 @@ func file{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(what:
     // } else {
     //  revert("TeleportOracleAuth/file-unrecognized-param");
     // }
-    with_attr error_message("TeleportRouter/file-unrecognized-param") {
+    with_attr error_message("TeleportOracleAuth/file-unrecognized-param(what={what})") {
         assert what = 'threshold';
     }
     _threshold.write(data);
@@ -267,7 +267,7 @@ func request_mint{
     let (caller) = get_caller_address();
     let not_receiver = is_not_zero(caller - teleport_GUID.receiver);
     if (not_receiver == 1) {
-        with_attr error_message("teleport_oracle_auth/not-receiver-nor-operator") {
+        with_attr error_message("TeleportOracleAuth/not-receiver-nor-operator(caller={caller})") {
             assert caller = teleport_GUID.operator;
         }
     }
@@ -276,7 +276,7 @@ func request_mint{
     let (__fp__, _) = get_fp_and_pc();
     let (local threshold_) = _threshold.read();
     let (message) = get_GUID_hash(&teleport_GUID);
-    validate(message, signatures_len, signatures, threshold_);
+    validate(message, signatures_len, signatures, threshold_, 0);
 
     // (postFeeAmount, totalFee) = teleportJoin.requestMint(teleportGUID, maxFeePercentage, operatorFee);
     let (teleport_join_) = _teleport_join.read();
@@ -320,30 +320,36 @@ func request_mint{
 //     }
 func validate{
     syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, ec_op_ptr: EcOpBuiltin*
-}(message: felt, signatures_len: felt, signatures: Signature*, threshold_: felt) {
+}(message: felt, signatures_len: felt, signatures: Signature*, threshold_: felt, previous: felt) {
     alloc_locals;
 
     if (threshold_ == 0) {
         return ();
     }
 
-    assert_lt(0, signatures_len);
+    with_attr error_message("TeleportOracleAuth/not-enough-signatures") {
+        assert_lt(0, signatures_len);
+    }
 
     let sig: Signature = signatures[0];
+
+    with_attr error_message("TeleportOracleAuth/signer-not-unique(signer={sig.pk})") {
+        assert_lt_felt(previous, sig.pk);
+    }
 
     let (valid_signer) = _signers.read(sig.pk);
 
     if (valid_signer == 1) {
         let (valid_signature) = check_ecdsa_signature(message, sig.pk, sig.r, sig.s);
         if (valid_signature == 1) {
-            validate(message, signatures_len - 1, signatures + 1, threshold_ - 1);
+            validate(message, signatures_len - 1, signatures + 1, threshold_ - 1, sig.pk);
             return ();
         }
         tempvar ec_op_ptr = ec_op_ptr;
     } else {
         tempvar ec_op_ptr = ec_op_ptr;
     }
-    validate(message, signatures_len - 1, signatures + 1, threshold_);
+    validate(message, signatures_len - 1, signatures + 1, threshold_, sig.pk);
     return ();
 }
 
