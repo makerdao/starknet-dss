@@ -1,12 +1,12 @@
 %lang starknet
 
-from starkware.cairo.common.cairo_builtins import HashBuiltin, SignatureBuiltin
+from starkware.cairo.common.cairo_builtins import HashBuiltin, EcOpBuiltin, SignatureBuiltin
 from starkware.starknet.common.syscalls import get_caller_address
 
 from starkware.cairo.common.math import assert_lt
 from starkware.cairo.common.math_cmp import is_not_zero
 from starkware.cairo.common.uint256 import Uint256
-from starkware.cairo.common.signature import verify_ecdsa_signature
+from starkware.cairo.common.signature import check_ecdsa_signature
 from starkware.cairo.common.registers import get_fp_and_pc
 
 from contracts.starknet.teleport_GUID import TeleportGUID, get_GUID_hash
@@ -250,7 +250,7 @@ func remove_signers_internal{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ran
 //     uint256 operatorFee
 @external
 func request_mint{
-    syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, ecdsa_ptr: SignatureBuiltin*
+    syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, ec_op_ptr: EcOpBuiltin*
 }(
     teleport_GUID: TeleportGUID,
     signatures_len: felt,
@@ -319,8 +319,10 @@ func request_mint{
 //         }
 //     }
 func validate{
-    syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, ecdsa_ptr: SignatureBuiltin*
+    syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, ec_op_ptr: EcOpBuiltin*
 }(message: felt, signatures_len: felt, signatures: Signature*, threshold_: felt) {
+    alloc_locals;
+
     if (threshold_ == 0) {
         return ();
     }
@@ -329,14 +331,19 @@ func validate{
 
     let sig: Signature = signatures[0];
 
-    let (valid_sig) = _signers.read(sig.pk);
+    let (valid_signer) = _signers.read(sig.pk);
 
-    assert valid_sig = 1;
-
-    verify_ecdsa_signature(message, sig.pk, sig.r, sig.s);
-
-    validate(message, signatures_len - 1, signatures + 1, threshold_ - 1);
-
+    if (valid_signer == 1) {
+        let (valid_signature) = check_ecdsa_signature(message, sig.pk, sig.r, sig.s);
+        if (valid_signature == 1) {
+            validate(message, signatures_len - 1, signatures + 1, threshold_ - 1);
+            return ();
+        }
+        tempvar ec_op_ptr = ec_op_ptr;
+    } else {
+        tempvar ec_op_ptr = ec_op_ptr;
+    }
+    validate(message, signatures_len - 1, signatures + 1, threshold_);
     return ();
 }
 
