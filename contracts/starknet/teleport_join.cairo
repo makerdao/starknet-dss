@@ -276,11 +276,11 @@ func Settle(source_domain: felt, amount: Uint256) {
 //     }
 @constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    vat_: felt, daiJoin_: felt, ilk_: felt, domain_: felt, router_: felt
+    ward: felt, vat_: felt, daiJoin_: felt, ilk_: felt, domain_: felt, router_: felt
 ) {
-    let (caller) = get_caller_address();
-    _wards.write(caller, 1);
-    Rely.emit(caller);
+    // let (caller) = get_caller_address();
+    _wards.write(ward, 1);
+    Rely.emit(ward);
     _vat.write(vat_);
     _daiJoin.write(daiJoin_);
 

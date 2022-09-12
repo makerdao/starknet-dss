@@ -31,7 +31,6 @@
 #     uint256 internal constant WAD = 10**18;
 #     uint256 internal constant RAD = 10**45;
 #     uint256 internal constant TTL = 8 days;
-
 #     function setUp() public {
 #         vat = new VatMock();
 #         dai = new DaiMock();
