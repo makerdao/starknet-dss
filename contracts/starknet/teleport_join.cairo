@@ -28,8 +28,18 @@ from contracts.starknet.safe_math import (
     min,
     _felt_to_uint,
     _uint_to_felt,
+    div,
 )
-from contracts.starknet.assertions import eq_0, either, le_int, _ge_0, assert_either, is_eq, check
+from contracts.starknet.assertions import (
+    eq_0,
+    either,
+    _le,
+    _ge_0,
+    assert_either,
+    is_eq,
+    check,
+    assert_le,
+)
 
 struct Urn {
     ink: Uint256,  // Locked Collateral  [wad]
@@ -436,7 +446,7 @@ func _mint{
     let (_teleport: TeleportStatus) = _teleports.read(hashGUID);
     let pending: Uint256 = _teleport.pending;
     let (pending_null) = eq_0(pending);
-    let (over_ceiling) = le_int(line_, debt_);
+    let (over_ceiling) = _le(line_, debt_);
     let (nothing_to_withdraw) = either(over_ceiling, pending_null);
 
     if (nothing_to_withdraw == 1) {
@@ -459,6 +469,11 @@ func _mint{
         domain_fees, teleportGUID, line_, debt_, pending, amt_to_take
     );
     let (fee: Uint256) = mul(Uint256(vat_live, 0), teleport_fee);
+    let (amt_to_take_div) = div(amt_to_take, Uint256(WAD, 0));
+    let (max_fee: Uint256) = mul(max_fee_percentage, amt_to_take_div);
+    with_attr error_message("TeleportJoin/max-fee-exceed") {
+        assert_le(fee, max_fee);
+    }
 
     // // No need of overflow check here as amtToTake is bounded by teleports[hashGUID].pending
     //         // which is already a uint248. Also int256 >> uint248. Then both castings are safe.
@@ -486,8 +501,9 @@ func _mint{
 
     let (debt_pos) = _ge_0(debt_);
     let (minus_debt) = uint256_neg(debt_);
-    let (mint_needed) = le_int(minus_debt, amt_to_take);
+    let (mint_needed) = uint256_lt(minus_debt, amt_to_take);
     let (should_mint) = either(debt_pos, mint_needed);
+    // TODO : lazy evaluate condition
     if (should_mint == 1) {
         let (amt_to_generate: Int256) = get_amount_to_generate(amt_to_take, debt_, debt_pos);
         let (local ilk) = _ilk.read();
