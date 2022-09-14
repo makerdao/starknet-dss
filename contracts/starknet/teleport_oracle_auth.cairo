@@ -64,7 +64,7 @@ func signers{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(ad
 
 // TeleportJoinLike immutable public teleportJoin;
 @storage_var
-func _teleport_join() -> (join: felt) {
+func _teleport_join() -> (res: felt) {
 }
 
 @view
