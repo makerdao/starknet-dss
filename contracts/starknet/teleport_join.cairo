@@ -157,42 +157,42 @@ func _wards(user: felt) -> (res: felt) {
 }
 // mapping (bytes32 =>        address) public fees;      // Fees contract per source domain
 @storage_var
-func _fees(d: felt) -> (fee: felt) {
+func _fees(d: felt) -> (res: felt) {
 }
 // mapping (bytes32 =>        uint256) public line;      // Debt ceiling per source domain
 @storage_var
-func _lines(d: felt) -> (line: Uint256) {
+func _lines(d: felt) -> (res: Uint256) {
 }
 // mapping (bytes32 =>         int256) public debt;      // Outstanding debt per source domain (can be < 0 when settlement occurs before mint)
 @storage_var
-func _debts(d: felt) -> (debt: Int256) {
+func _debts(d: felt) -> (res: Int256) {
 }
 // mapping (bytes32 => TeleportStatus) public teleports; // Approved teleports and pending unpaid
 @storage_var
-func _teleports(hash: felt) -> (teleport: TeleportStatus) {
+func _teleports(hash: felt) -> (res: TeleportStatus) {
 }
 // mapping (bytes32 => uint256)        public batches;   // Pending DAI to flush per target domain
 @storage_var
-func _batches(d: felt) -> (batch: Uint256) {
+func _batches(d: felt) -> (res: Uint256) {
 }
 // address public vow;
 @storage_var
-func _vow() -> (vow: felt) {
+func _vow() -> (res: felt) {
 }
 
 // uint256 internal art; // We need to preserve the last art value before the position being skimmed (End)
 @storage_var
-func _art() -> (art: Uint256) {
+func _art() -> (res: Uint256) {
 }
 
 // uint80  public nonce;
 @storage_var
-func _nonce() -> (nonce: felt) {
+func _nonce() -> (res: felt) {
 }
 
 // uint256 public fdust; // The minimum amount of DAI to be flushed per target domain (prevent spam)
 @storage_var
-func _fdust() -> (fdust: Uint256) {
+func _fdust() -> (res: Uint256) {
 }
 
 // VatLike     immutable public vat;
@@ -209,15 +209,15 @@ func _dai() -> (res: felt) {
 }
 // bytes32     immutable public ilk;
 @storage_var
-func _ilk() -> (ilk: felt) {
+func _ilk() -> (res: felt) {
 }
 // bytes32     immutable public domain;
 @storage_var
-func _domain() -> (domain: felt) {
+func _domain() -> (res: felt) {
 }
 // GatewayLike immutable public router;
 @storage_var
-func _router() -> (router: felt) {
+func _router() -> (res: felt) {
 }
 
 // uint256 constant public WAD = 10 ** 18;
@@ -235,12 +235,21 @@ func Deny(user: felt) {
 }
 // event File(bytes32 indexed what, address data);
 @event
-func File(what: felt, data: Uint256) {
+func File_vow(what: felt, data: felt) {
 }
 // event File(bytes32 indexed what, uint256 data);
-//     event File(bytes32 indexed what, bytes32 indexed domain, address data);
-//     event File(bytes32 indexed what, bytes32 indexed domain, uint256 data);
-//     event Register(bytes32 indexed hashGUID, TeleportGUID teleportGUID);
+@event
+func File_fdust(what: felt, data: Uint256) {
+}
+// event File(bytes32 indexed what, bytes32 indexed domain, address data);
+@event
+func File_fees(what: felt, domain: felt, data: felt) {
+}
+// event File(bytes32 indexed what, bytes32 indexed domain, uint256 data);
+@event
+func File_line(what: felt, domain: felt, data: Uint256) {
+}
+// event Register(bytes32 indexed hashGUID, TeleportGUID teleportGUID);
 @event
 func Register(hashGUID: felt, teleportGUID: TeleportGUID) {
 }
@@ -305,6 +314,64 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     return ();
 }
 
+@view
+func vat{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _vat.read();
+    return (res,);
+}
+
+@view
+func vow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _vow.read();
+    return (res,);
+}
+
+@view
+func daiJoin{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _daiJoin.read();
+    return (res,);
+}
+
+@view
+func ilk{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _ilk.read();
+    return (res,);
+}
+
+@view
+func teleports{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(hash: felt) -> (
+    res: TeleportStatus
+) {
+    let (res) = _teleports.read(hash);
+    return (res,);
+}
+
+@view
+func fees{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(d: felt) -> (res: felt) {
+    let (res) = _fees.read(d);
+    return (res,);
+}
+
+@view
+func fdust{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: Uint256) {
+    let (res) = _fdust.read();
+    return (res,);
+}
+
+@view
+func domain{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _domain.read();
+    return (res,);
+}
+
+@view
+func wards{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user: felt) -> (
+    res: felt
+) {
+    let (res) = _wards.read(user);
+    return (res,);
+}
+
 // modifier auth {
 //         require(wards[msg.sender] == 1, "TeleportJoin/not-authorized");
 //         _;
@@ -360,6 +427,22 @@ func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user:
 //         }
 //         emit File(what, data);
 //     }
+@external
+func file_vow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    what: felt, data: felt
+) {
+    auth();
+
+    with_attr error_message("TeleportJoin/file-unrecognized-param") {
+        assert what = 'vow';
+    }
+
+    _vow.write(data);
+
+    File_vow.emit(what, data);
+
+    return ();
+}
 
 // function file(bytes32 what, uint256 data) external auth {
 //         if (what == "fdust") {
@@ -369,6 +452,22 @@ func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user:
 //         }
 //         emit File(what, data);
 //     }
+@external
+func file_fdust{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    what: felt, data: Uint256
+) {
+    auth();
+
+    with_attr error_message("TeleportJoin/file-unrecognized-param") {
+        assert what = 'fdust';
+    }
+
+    _fdust.write(data);
+
+    File_fdust.emit(what, data);
+
+    return ();
+}
 
 // function file(bytes32 what, bytes32 domain_, address data) external auth {
 //         if (what == "fees") {
@@ -379,6 +478,23 @@ func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user:
 //         emit File(what, domain_, data);
 //     }
 
+@external
+func file_fees{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    what: felt, domain_: felt, data: felt
+) {
+    auth();
+
+    with_attr error_message("TeleportJoin/file-unrecognized-param") {
+        assert what = 'fees';
+    }
+
+    _fees.write(domain_, data);
+
+    File_fees.emit(what, domain_, data);
+
+    return ();
+}
+
 // function file(bytes32 what, bytes32 domain_, uint256 data) external auth {
 //         if (what == "line") {
 //             require(data <= 2 ** 255 - 1, "TeleportJoin/not-allowed-bigger-int256");
@@ -388,6 +504,26 @@ func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user:
 //         }
 //         emit File(what, domain_, data);
 //     }
+@external
+func file_line{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    what: felt, domain_: felt, data: Uint256
+) {
+    auth();
+
+    with_attr error_message("TeleportJoin/file-unrecognized-param") {
+        assert what = 'line';
+    }
+
+    with_attr error_message("TeleportJoin/not-allowed-bigger-int256") {
+        uint256_check(data);
+    }
+
+    _lines.write(domain_, data);
+
+    File_line.emit(what, domain_, data);
+
+    return ();
+}
 
 // /**
 //     * @dev External view function to get the total debt used by this contract [RAD]

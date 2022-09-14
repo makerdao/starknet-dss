@@ -34,6 +34,12 @@ func _vat() -> (felt,) {
 func _dai() -> (felt,) {
 }
 
+@view
+func dai{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _dai.read();
+    return (res,);
+}
+
 @constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     vat_: felt, dai_: felt
