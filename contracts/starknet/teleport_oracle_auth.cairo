@@ -340,6 +340,7 @@ func validate{
     let (valid_signer) = _signers.read(sig.pk);
 
     if (valid_signer == 1) {
+    // TODO: switch to ecrecover like function when available
         let (valid_signature) = check_ecdsa_signature(message, sig.pk, sig.r, sig.s);
         if (valid_signature == 1) {
             validate(message, signatures_len - 1, signatures + 1, threshold_ - 1, sig.pk);
