@@ -531,6 +531,12 @@ func file_line{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 //     function cure() external view returns (uint256 cure_) {
 //         cure_ = art * RAY;
 //     }
+@view
+func cure{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: Uint256) {
+    let (art) = _art.read();
+    let (res) = mul(art, Uint256(RAY, 0));
+    return (res,);
+}
 
 // /**
 //     * @dev Internal function that executes the mint after a teleport is registered
