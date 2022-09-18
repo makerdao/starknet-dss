@@ -12,6 +12,7 @@ import {
   l2String,
   invoke,
   MAX_UINT,
+  SplitUintType,
 } from './utils';
 
 // Cairo encoding of "valid_domains"
@@ -163,6 +164,10 @@ describe('teleport join', async function () {
     return _teleport[1];
   }
 
+  async function debt(domain: string) {
+    return await join.call('debt', { d: domain });
+  }
+
   async function _tryRely(account: Account, usr: string): Promise<boolean> {
     try {
       await invoke(account, join, 'rely', { usr });
@@ -206,12 +211,37 @@ describe('teleport join', async function () {
     }
   }
 
+  async function suck(u: any, v: any, rad: SplitUintType<bigint>) {
+    await invoke(admin, vat, 'suck', { u, v, rad });
+  }
+
+  async function settle(
+    source_domain: string,
+    target_domain: string,
+    amount: SplitUintType<bigint>
+  ) {
+    await invoke(admin, join, 'settle', { source_domain, target_domain, amount });
+  }
+
   async function requestMint(
     guid: any,
     maxFeePercentage: number | string | bigint,
     operatorFee: number | string | bigint
   ) {
-    const [postFeeAmount, totalFee] = await admin.invoke(join, 'requestMint', {
+    const [postFeeAmount, totalFee] = await invoke(admin, join, 'requestMint', {
+      teleportGUID: guid,
+      max_fee_percentage: l2Eth(maxFeePercentage).res,
+      operator_fee: l2Eth(operatorFee).res,
+    });
+    return [postFeeAmount, totalFee];
+  }
+
+  async function mintPending(
+    guid: any,
+    maxFeePercentage: number | string | bigint,
+    operatorFee: number | string | bigint
+  ) {
+    const [postFeeAmount, totalFee] = await invoke(admin, join, 'mintPending', {
       teleportGUID: guid,
       max_fee_percentage: l2Eth(maxFeePercentage).res,
       operator_fee: l2Eth(operatorFee).res,
@@ -563,5 +593,686 @@ describe('teleport join', async function () {
     expect(await _ink()).to.deep.equal(l2Eth(eth('250000')));
     expect(await _art()).to.deep.equal(l2Eth(eth('250000')));
     expect(await join.call('cure')).to.deep.equal(l2Eth(250000n * RAD));
+  });
+
+  it('test register and withdraw partial paying fee', async () => {
+    const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
+
+    const guid = {
+      source_domain: l2String('l2network'),
+      target_domain: l2String('ethereum'),
+      receiver: toBytes32(TEST_RECEIVER_ADDRESS),
+      operator: toBytes32(_admin),
+      amount: l2Eth(eth('250000')).res,
+      nonce: 5,
+      timestamp: new Date().getTime() * 1000,
+    };
+
+    expect((await vat.call('dai', { u: VOW_ADDRESS })).dai).to.deep.equal(l2Eth(0).res);
+
+    await invoke(admin, join, 'file_line', {
+      what: l2String('line'),
+      domain_: l2String('l2network'),
+      data: l2Eth(eth('200000')).res,
+    });
+    const fees = await simpleDeployL2(
+      'teleport_constant_fee',
+      {
+        fee_: l2Eth(eth('100')).res,
+        ttl_: ttl,
+      },
+      hre
+    );
+    await invoke(admin, join, 'file_fees', {
+      what: l2String('fees'),
+      domain_: l2String('l2network'),
+      data: fees.address,
+    });
+    // 0.04% * 200K = 80 (just enough as fee is also proportional)
+    await requestMint(guid, (4n * WAD) / 10000n, 0);
+
+    expect((await vat.call('dai', { u: VOW_ADDRESS })).dai).to.deep.equal(l2Eth(80n * RAD).res);
+    expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
+      l2Eth(eth('199920'))
+    );
+    expect(await _blessed(guid)).to.be.true;
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')));
+    expect(await _ink()).to.deep.equal(l2Eth(eth('200000')));
+    expect(await _art()).to.deep.equal(l2Eth(eth('200000')));
+    expect(await join.call('cure')).to.deep.equal(l2Eth(200000n * RAD));
+
+    await invoke(admin, join, 'file_line', {
+      what: l2String('line'),
+      domain_: l2String('l2network'),
+      data: l2Eth(eth('250000')).res,
+    });
+    await mintPending(guid, (4n * WAD) / 10000n, 0);
+
+    expect((await vat.call('dai', { u: VOW_ADDRESS })).dai).to.deep.equal(l2Eth(100n * RAD).res);
+    expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
+      l2Eth(eth('249900'))
+    );
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('0')));
+    expect(await _ink()).to.deep.equal(l2Eth(eth('250000')));
+    expect(await _art()).to.deep.equal(l2Eth(eth('250000')));
+    expect(await join.call('cure')).to.deep.equal(l2Eth(250000n * RAD));
+  });
+
+  it('test fail register and withdraw partial paying fee', async () => {
+    const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
+
+    const guid = {
+      source_domain: l2String('l2network'),
+      target_domain: l2String('ethereum'),
+      receiver: toBytes32(TEST_RECEIVER_ADDRESS),
+      operator: toBytes32(_admin),
+      amount: l2Eth(eth('250000')).res,
+      nonce: 5,
+      timestamp: new Date().getTime() * 1000,
+    };
+
+    expect((await vat.call('dai', { u: VOW_ADDRESS })).dai).to.deep.equal(l2Eth(0).res);
+
+    await invoke(admin, join, 'file_line', {
+      what: l2String('line'),
+      domain_: l2String('l2network'),
+      data: l2Eth(eth('200000')).res,
+    });
+    const fees = await simpleDeployL2(
+      'teleport_constant_fee',
+      {
+        fee_: l2Eth(eth('100')).res,
+        ttl_: ttl,
+      },
+      hre
+    );
+    await invoke(admin, join, 'file_fees', {
+      what: l2String('fees'),
+      domain_: l2String('l2network'),
+      data: fees.address,
+    });
+    try {
+      await requestMint(guid, (3n * WAD) / 10000n, 0);
+    } catch (err: any) {
+      expect(err.message).to.contain('TeleportJoin/max-fee-exceed');
+    }
+  });
+
+  it('test fail register and withdraw partial paying fee 2', async () => {
+    const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
+
+    const guid = {
+      source_domain: l2String('l2network'),
+      target_domain: l2String('ethereum'),
+      receiver: toBytes32(TEST_RECEIVER_ADDRESS),
+      operator: toBytes32(_admin),
+      amount: l2Eth(eth('250000')).res,
+      nonce: 5,
+      timestamp: new Date().getTime() * 1000,
+    };
+
+    expect((await vat.call('dai', { u: VOW_ADDRESS })).dai).to.deep.equal(l2Eth(0).res);
+
+    await invoke(admin, join, 'file_line', {
+      what: l2String('line'),
+      domain_: l2String('l2network'),
+      data: l2Eth(eth('200000')).res,
+    });
+    const fees = await simpleDeployL2(
+      'teleport_constant_fee',
+      {
+        fee_: l2Eth(eth('100')).res,
+        ttl_: ttl,
+      },
+      hre
+    );
+    await invoke(admin, join, 'file_fees', {
+      what: l2String('fees'),
+      domain_: l2String('l2network'),
+      data: fees.address,
+    });
+    await requestMint(guid, (4n * WAD) / 10000n, 0);
+
+    await invoke(admin, join, 'file_line', {
+      what: l2String('line'),
+      domain_: l2String('l2network'),
+      data: l2Eth(eth('250000')).res,
+    });
+
+    try {
+      // 0.03% * 50 < 20 (not enough)
+      await mintPending(guid, (3n * WAD) / 10000n, 0);
+    } catch (err: any) {
+      expect(err.message).to.contain('TeleportJoin/max-fee-exceed');
+    }
+  });
+
+  it('test mint pending by operator', async () => {
+    const guid = {
+      source_domain: l2String('l2network'),
+      target_domain: l2String('ethereum'),
+      receiver: toBytes32(_admin),
+      operator: toBytes32(_admin),
+      amount: l2Eth(eth('250000')).res,
+      nonce: 5,
+      timestamp: new Date().getTime() * 1000,
+    };
+
+    await invoke(admin, join, 'file_line', {
+      what: l2String('line'),
+      domain_: l2String('l2network'),
+      data: l2Eth(eth('200000')).res,
+    });
+    await requestMint(guid, 0, 0);
+
+    expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('200000')));
+    expect(_blessed(guid)).to.be.true;
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')));
+
+    await invoke(admin, join, 'file_line', {
+      what: l2String('line'),
+      domain_: l2String('l2network'),
+      data: l2Eth(eth('225000')).res,
+    });
+    await mintPending(guid, 0, 0);
+
+    expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('225000')));
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('25000')));
+  });
+
+  it('test mint pending by operator not receiver', async () => {
+    const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
+
+    const guid = {
+      source_domain: l2String('l2network'),
+      target_domain: l2String('ethereum'),
+      receiver: toBytes32(TEST_RECEIVER_ADDRESS),
+      operator: toBytes32(_admin),
+      amount: l2Eth(eth('250000')).res,
+      nonce: 5,
+      timestamp: new Date().getTime() * 1000,
+    };
+
+    await invoke(admin, join, 'file_line', {
+      what: l2String('line'),
+      domain_: l2String('l2network'),
+      data: l2Eth(eth('200000')).res,
+    });
+    await requestMint(guid, 0, 0);
+
+    expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
+      l2Eth(eth('200000'))
+    );
+    expect(_blessed(guid)).to.be.true;
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')));
+
+    await invoke(admin, join, 'file_line', {
+      what: l2String('line'),
+      domain_: l2String('l2network'),
+      data: l2Eth(eth('225000')).res,
+    });
+    await mintPending(guid, 0, 0);
+
+    expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
+      l2Eth(eth('225000'))
+    );
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('25000')));
+  });
+
+  it('test mint pending by receiver', async () => {
+    const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
+
+    const guid = {
+      source_domain: l2String('l2network'),
+      target_domain: l2String('ethereum'),
+      receiver: toBytes32(_admin),
+      operator: toBytes32(TEST_RECEIVER_ADDRESS),
+      amount: l2Eth(eth('250000')).res,
+      nonce: 5,
+      timestamp: new Date().getTime() * 1000,
+    };
+
+    await invoke(admin, join, 'file_line', {
+      what: l2String('line'),
+      domain_: l2String('l2network'),
+      data: l2Eth(eth('200000')).res,
+    });
+    await requestMint(guid, 0, 0);
+
+    expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('200000')));
+    expect(_blessed(guid)).to.be.true;
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')));
+
+    await invoke(admin, join, 'file_line', {
+      what: l2String('line'),
+      domain_: l2String('l2network'),
+      data: l2Eth(eth('225000')).res,
+    });
+    await mintPending(guid, 0, 0);
+
+    expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
+      l2Eth(eth('225000'))
+    );
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('25000')));
+  });
+
+  it('test fail mint pending wrong operator', async () => {
+    const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
+    const TEST_OPERATOR_ADDRESS = '9379024284324553537185931466192';
+
+    const guid = {
+      source_domain: l2String('l2network'),
+      target_domain: l2String('ethereum'),
+      receiver: toBytes32(TEST_RECEIVER_ADDRESS),
+      operator: toBytes32(TEST_OPERATOR_ADDRESS),
+      amount: l2Eth(eth('250000')).res,
+      nonce: 5,
+      timestamp: new Date().getTime() * 1000,
+    };
+
+    await invoke(admin, join, 'file_line', {
+      what: l2String('line'),
+      domain_: l2String('l2network'),
+      data: l2Eth(eth('200000')).res,
+    });
+    await requestMint(guid, 0, 0);
+
+    await invoke(admin, join, 'file_line', {
+      what: l2String('line'),
+      domain_: l2String('l2network'),
+      data: l2Eth(eth('225000')).res,
+    });
+
+    try {
+      await mintPending(guid, 0, 0);
+    } catch (err: any) {
+      expect(err.message).to.contain('TeleportJoin/not-receiver-nor-operator');
+    }
+  });
+
+  it('test settle', async () => {
+    expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(0));
+
+    await suck(0, _admin, l2Eth(100000n * RAD).res);
+    await invoke(admin, daiJoin, 'exit', { usr: _admin, wad: l2Eth(eth('100000')).res });
+    await invoke(admin, dai, 'approve', { spender: join.address, amount: l2Eth(eth('100000')) });
+
+    await settle(l2String('l2network'), VALID_DOMAINS, l2Eth(eth('100000')).res);
+
+    expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(eth('-100000')));
+    expect(await join.call('cure')).to.deep.equal(l2Eth(0));
+  });
+
+  it('test withdraw negative debt', async () => {
+    await suck(0, _admin, l2Eth(100000n * RAD).res);
+    await invoke(admin, daiJoin, 'exit', { usr: _admin, wad: l2Eth(eth('100000')).res });
+    await invoke(admin, dai, 'approve', { spender: join.address, amount: l2Eth(eth('100000')) });
+
+    await settle(l2String('l2network'), VALID_DOMAINS, l2Eth(eth('100000')).res);
+
+    expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(eth('-100000')));
+    expect(await join.call('cure')).to.deep.equal(l2Eth(0));
+
+    const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
+    const TEST_OPERATOR_ADDRESS = '9379024284324553537185931466192';
+
+    const guid = {
+      source_domain: l2String('l2network'),
+      target_domain: l2String('ethereum'),
+      receiver: toBytes32(TEST_RECEIVER_ADDRESS),
+      operator: toBytes32(TEST_OPERATOR_ADDRESS),
+      amount: l2Eth(eth('250000')).res,
+      nonce: 5,
+      timestamp: new Date().getTime() * 1000,
+    };
+
+    await requestMint(guid, 0, 0);
+
+    expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
+      l2Eth(eth('250000'))
+    );
+    expect(await _ink()).to.deep.equal(l2Eth(eth('150000')));
+    expect(await _art()).to.deep.equal(l2Eth(eth('150000')));
+    expect(await join.call('cure')).to.deep.equal(l2Eth(150000n * RAD));
+  });
+
+  it('test withdraw partial negative debt', async () => {
+    await suck(0, _admin, l2Eth(100000n * RAD).res);
+    await invoke(admin, daiJoin, 'exit', { usr: _admin, wad: l2Eth(eth('100000')).res });
+    await invoke(admin, dai, 'approve', { spender: join.address, amount: l2Eth(eth('100000')) });
+
+    await settle(l2String('l2network'), VALID_DOMAINS, l2Eth(eth('100000')).res);
+
+    expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(eth('-100000')));
+    expect(await join.call('cure')).to.deep.equal(l2Eth(0));
+
+    const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
+    const TEST_OPERATOR_ADDRESS = '9379024284324553537185931466192';
+
+    const guid = {
+      source_domain: l2String('l2network'),
+      target_domain: l2String('ethereum'),
+      receiver: toBytes32(TEST_RECEIVER_ADDRESS),
+      operator: toBytes32(TEST_OPERATOR_ADDRESS),
+      amount: l2Eth(eth('250000')).res,
+      nonce: 5,
+      timestamp: new Date().getTime() * 1000,
+    };
+
+    await invoke(admin, join, 'file_line', {
+      what: l2String('line'),
+      domain_: l2String('l2network'),
+      data: l2Eth(eth('100000')).res,
+    });
+    await requestMint(guid, 0, 0);
+
+    expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
+      l2Eth(eth('200000'))
+    );
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')));
+    expect(await _ink()).to.deep.equal(l2Eth(eth('100000')));
+    expect(await _art()).to.deep.equal(l2Eth(eth('100000')));
+    expect(await join.call('cure')).to.deep.equal(l2Eth(100000n * RAD));
+  });
+
+  it('test withdraw vat caged', async () => {
+    await suck(0, _admin, l2Eth(100000n * RAD).res);
+    await invoke(admin, daiJoin, 'exit', { usr: _admin, wad: l2Eth(eth('100000')).res });
+    await invoke(admin, dai, 'approve', { spender: join.address, amount: l2Eth(eth('100000')) });
+
+    await settle(l2String('l2network'), VALID_DOMAINS, l2Eth(eth('100000')).res);
+
+    expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(eth('-100000')));
+    expect(await join.call('cure')).to.deep.equal(l2Eth(0));
+
+    const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
+    const TEST_OPERATOR_ADDRESS = '9379024284324553537185931466192';
+
+    const guid = {
+      source_domain: l2String('l2network'),
+      target_domain: l2String('ethereum'),
+      receiver: toBytes32(TEST_RECEIVER_ADDRESS),
+      operator: toBytes32(TEST_OPERATOR_ADDRESS),
+      amount: l2Eth(eth('250000')).res,
+      nonce: 5,
+      timestamp: new Date().getTime() * 1000,
+    };
+
+    await invoke(admin, vat, 'cage');
+    expect((await vat.call('live')).live).to.equal(0n);
+
+    const fees = await simpleDeployL2(
+      'teleport_constant_fee',
+      {
+        fee_: l2Eth(eth('100')).res,
+        ttl_: ttl,
+      },
+      hre
+    );
+    await invoke(admin, join, 'file_fees', {
+      what: l2String('fees'),
+      domain_: l2String('l2network'),
+      data: fees.address,
+    });
+    await requestMint(guid, 0, 0);
+
+    expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
+      l2Eth(eth('100000'))
+    ); // Can't pay more than DAI is already in the join
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('150000')));
+    expect(await _ink()).to.deep.equal(l2Eth(eth('0')));
+    expect(await _art()).to.deep.equal(l2Eth(eth('0')));
+    // No fees regardless the contract set
+    expect((await vat.call('dai', { u: VOW_ADDRESS })).dai).to.deep.equal(l2Eth(0).res);
+    expect(await join.call('cure')).to.deep.equal(l2Eth(0));
+  });
+
+  it('test settle vat caged', async () => {
+    const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
+    const TEST_OPERATOR_ADDRESS = '9379024284324553537185931466192';
+
+    const guid = {
+      source_domain: l2String('l2network'),
+      target_domain: l2String('ethereum'),
+      receiver: toBytes32(TEST_RECEIVER_ADDRESS),
+      operator: toBytes32(TEST_OPERATOR_ADDRESS),
+      amount: l2Eth(eth('250000')).res,
+      nonce: 5,
+      timestamp: new Date().getTime() * 1000,
+    };
+
+    await requestMint(guid, 0, 0);
+
+    expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(eth('250000')));
+    expect(await _ink()).to.deep.equal(l2Eth(eth('250000')));
+    expect(await _art()).to.deep.equal(l2Eth(eth('250000')));
+    expect(await join.call('cure')).to.deep.equal(l2Eth(250000n * RAD));
+
+    await invoke(admin, vat, 'cage');
+
+    await suck(0, _admin, l2Eth(100000n * RAD).res);
+    await invoke(admin, daiJoin, 'exit', { usr: _admin, wad: l2Eth(eth('100000')).res });
+    await invoke(admin, dai, 'approve', { spender: join.address, amount: l2Eth(eth('100000')) });
+
+    await settle(l2String('l2network'), VALID_DOMAINS, l2Eth(eth('250000')).res);
+
+    expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(0));
+    expect(await _ink()).to.deep.equal(l2Eth(eth('100000')));
+    expect(await _art()).to.deep.equal(l2Eth(eth('100000')));
+    expect(await join.call('cure')).to.deep.equal(l2Eth(100000n * RAD));
+  });
+
+  it('test register and withdraw paying operator fee', async () => {
+    const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
+
+    const guid = {
+      source_domain: l2String('l2network'),
+      target_domain: l2String('ethereum'),
+      receiver: toBytes32(TEST_RECEIVER_ADDRESS),
+      operator: toBytes32(_admin),
+      amount: l2Eth(eth('250000')).res,
+      nonce: 5,
+      timestamp: new Date().getTime() * 1000,
+    };
+
+    expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(0));
+    const [daiSent, totalFee] = await requestMint(guid, 0, eth('250').toBigInt());
+
+    expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('250')));
+    expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('249750')));
+
+    expect(await _pending(guid)).to.deep.equal(l2Eth(0));
+    expect(await _ink()).to.deep.equal(l2Eth(eth('250000')));
+    expect(await _art()).to.deep.equal(l2Eth(eth('250000')));
+    expect(daiSent).to.deep.equal(l2Eth(249750n * WAD).res);
+    expect(totalFee).to.deep.equal(l2Eth(eth('250')).res);
+  });
+
+  it('test fail operator fee too high', async () => {
+    const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
+
+    const guid = {
+      source_domain: l2String('l2network'),
+      target_domain: l2String('ethereum'),
+      receiver: toBytes32(TEST_RECEIVER_ADDRESS),
+      operator: toBytes32(_admin),
+      amount: l2Eth(eth('250000')).res,
+      nonce: 5,
+      timestamp: new Date().getTime() * 1000,
+    };
+
+    try {
+      await requestMint(guid, 0, eth('250001').toBigInt());
+    } catch (err: any) {}
+  });
+
+  it('test register and withdraw partial paying operator fee', async () => {
+    const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
+
+    const guid = {
+      source_domain: l2String('l2network'),
+      target_domain: l2String('ethereum'),
+      receiver: toBytes32(TEST_RECEIVER_ADDRESS),
+      operator: toBytes32(_admin),
+      amount: l2Eth(eth('250000')).res,
+      nonce: 5,
+      timestamp: new Date().getTime() * 1000,
+    };
+
+    await invoke(admin, join, 'file_line', {
+      what: l2String('line'),
+      domain_: l2String('l2network'),
+      data: l2Eth(eth('200000')).res,
+    });
+    await requestMint(guid, 0, eth('200').toBigInt());
+
+    expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('200')));
+    expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
+      l2Eth(eth('199800'))
+    );
+    expect(await _blessed(guid)).to.be.true;
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')));
+    expect(await _ink()).to.deep.equal(l2Eth(eth('200000')));
+    expect(await _art()).to.deep.equal(l2Eth(eth('200000')));
+
+    await invoke(admin, join, 'file_line', {
+      what: l2String('line'),
+      domain_: l2String('l2network'),
+      data: l2Eth(eth('250000')).res,
+    });
+    await mintPending(guid, 0, eth('5').toBigInt());
+
+    expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('205')));
+    expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
+      l2Eth(eth('249795'))
+    );
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('0')));
+    expect(await _ink()).to.deep.equal(l2Eth(eth('250000')));
+    expect(await _art()).to.deep.equal(l2Eth(eth('250000')));
+  });
+
+  it('test register and withdraw paying two fees', async () => {
+    const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
+
+    const guid = {
+      source_domain: l2String('l2network'),
+      target_domain: l2String('ethereum'),
+      receiver: toBytes32(TEST_RECEIVER_ADDRESS),
+      operator: toBytes32(_admin),
+      amount: l2Eth(eth('250000')).res,
+      nonce: 5,
+      timestamp: new Date().getTime() * 1000,
+    };
+
+    expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('0')));
+
+    const fees = await simpleDeployL2(
+      'teleport_constant_fee',
+      {
+        fee_: l2Eth(eth('100')).res,
+        ttl_: ttl,
+      },
+      hre
+    );
+    await invoke(admin, join, 'file_fees', {
+      what: l2String('fees'),
+      domain_: l2String('l2network'),
+      data: fees.address,
+    });
+    await requestMint(guid, (40n * 10n ** 18n) / 10000n, eth('249').toBigInt());
+    expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('249')));
+    expect((await vat.call('dai', { u: VOW_ADDRESS })).dai).to.deep.equal(l2Eth(1000n * RAD).res);
+    expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
+      l2Eth(eth('248_751'))
+    );
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('0')));
+    expect(await _ink()).to.deep.equal(l2Eth(eth('250000')));
+    expect(await _art()).to.deep.equal(l2Eth(eth('250000')));
+  });
+
+  it('test fail register and withdraw operator fee too high', async () => {
+    const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
+
+    const guid = {
+      source_domain: l2String('l2network'),
+      target_domain: l2String('ethereum'),
+      receiver: toBytes32(TEST_RECEIVER_ADDRESS),
+      operator: toBytes32(_admin),
+      amount: l2Eth(eth('250000')).res,
+      nonce: 5,
+      timestamp: new Date().getTime() * 1000,
+    };
+
+    const fees = await simpleDeployL2(
+      'teleport_constant_fee',
+      {
+        fee_: l2Eth(eth('100')).res,
+        ttl_: ttl,
+      },
+      hre
+    );
+    await invoke(admin, join, 'file_fees', {
+      what: l2String('fees'),
+      domain_: l2String('l2network'),
+      data: fees.address,
+    });
+    try {
+      await requestMint(guid, (40n * 10n ** 18n) / 10000n, eth('249001').toBigInt());
+    } catch (err: any) {}
+  });
+
+  it('test total debt several domains', async () => {});
+
+  it('test cure after position being manipulated', async () => {});
+
+  it('test initiate teleport', async () => {});
+
+  it('test flush', async () => {
+    const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
+
+    await suck(0, _admin, l2Eth(100000n * RAD).res);
+    await invoke(admin, daiJoin, 'exit', { usr: _admin, wad: l2Eth(eth('100000')).res });
+    await invoke(admin, dai, 'approve', { spender: join.address, amount: l2Eth(eth('100000')) });
+
+    await invoke(admin, join, 'initiateTeleport', {
+      target_domain: l2String('ethereum'),
+      receiver: TEST_RECEIVER_ADDRESS,
+      amount: l2Eth(eth('100000')).res,
+      operator: 0,
+    });
+
+    expect(await join.call('batches', { d: l2String('ethereum') })).to.deep.equal(
+      l2Eth(eth('100000'))
+    );
+
+    await invoke(admin, join, 'flush', { target_domain: l2String('ethereum') });
+
+    expect(await join.call('batches', { d: l2String('ethereum') })).to.deep.equal(l2Eth(eth('0')));
+  });
+
+  it('test fail flush dust', async () => {
+    const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
+
+    await suck(0, _admin, l2Eth(100000n * RAD).res);
+    await invoke(admin, daiJoin, 'exit', { usr: _admin, wad: l2Eth(eth('100000')).res });
+    await invoke(admin, dai, 'approve', { spender: join.address, amount: l2Eth(eth('100000')) });
+
+    await invoke(admin, join, 'initiateTeleport', {
+      target_domain: l2String('ethereum'),
+      receiver: TEST_RECEIVER_ADDRESS,
+      amount: l2Eth(eth('100000')).res,
+      operator: 0,
+    });
+
+    expect(await join.call('batches', { d: l2String('ethereum') })).to.deep.equal(
+      l2Eth(eth('100000'))
+    );
+
+    await invoke(admin, join, 'file_fdust', { what: 'fdust', data: l2Eth(eth('200000')).res });
+    try {
+      await invoke(admin, join, 'flush', { target_domain: l2String('ethereum') });
+    } catch (err: any) {
+      expect(err.message).to.contain('DomainGuest/flush-dust');
+    }
   });
 });

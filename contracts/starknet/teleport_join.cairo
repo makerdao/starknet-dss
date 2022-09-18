@@ -2,13 +2,14 @@
 // pragma solidity 0.8.14;
 
 // import "./TeleportGUID.sol";
-from contracts.starknet.teleport_GUID import TeleportGUID, getGUIDHash
+from contracts.starknet.teleport_GUID import TeleportGUID, get_GUID_hash
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.starknet.common.syscalls import (
     get_caller_address,
     get_contract_address,
     get_block_timestamp,
 )
+from starkware.cairo.common.registers import get_fp_and_pc
 from starkware.cairo.common.uint256 import (
     Uint256,
     uint256_check,
@@ -321,6 +322,14 @@ func vat{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
 }
 
 @view
+func debt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(d: felt) -> (
+    res: Uint256
+) {
+    let (res) = _debts.read(d);
+    return (res,);
+}
+
+@view
 func vow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
     let (res) = _vow.read();
     return (res,);
@@ -369,6 +378,14 @@ func wards{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user
     res: felt
 ) {
     let (res) = _wards.read(user);
+    return (res,);
+}
+
+@view
+func batches{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(d: felt) -> (
+    res: Uint256
+) {
+    let (res) = _batches.read(d);
     return (res,);
 }
 
@@ -759,7 +776,9 @@ func registerMint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
 ) {
     alloc_locals;
     auth();
-    let (hashGUID) = getGUIDHash(teleportGUID);
+    let (__fp__, _) = get_fp_and_pc();
+
+    let (hashGUID) = get_GUID_hash(&teleportGUID);
     with_attr error_message("TeleportJoin/already-blessed") {
         let (teleport) = _teleports.read(hashGUID);
         assert teleport.blessed = 0;
@@ -798,7 +817,8 @@ func requestMint{
     post_fee_amount: Uint256, total_fee: Uint256
 ) {
     auth();
-    let (hashGUID) = getGUIDHash(teleportGUID);
+    let (__fp__, _) = get_fp_and_pc();
+    let (hashGUID) = get_GUID_hash(&teleportGUID);
     with_attr error_message("TeleportJoin/already-blessed") {
         let (teleport) = _teleports.read(hashGUID);
         assert teleport.blessed = 0;
@@ -846,7 +866,8 @@ func mintPending{
         assert_either(is_receiver, is_operator);
     }
 
-    let (hashGUID) = getGUIDHash(teleportGUID);
+    let (__fp__, _) = get_fp_and_pc();
+    let (hashGUID) = get_GUID_hash(&teleportGUID);
     let (post_fee_amount: Uint256, total_fee: Uint256) = _mint(
         teleportGUID, hashGUID, max_fee_percentage, operator_fee
     );

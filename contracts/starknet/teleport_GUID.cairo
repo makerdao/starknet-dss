@@ -13,6 +13,7 @@
 // }
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin, SignatureBuiltin
+from starkware.cairo.common.hash import hash2
 from starkware.cairo.common.uint256 import Uint256
 
 struct TeleportGUID {
@@ -47,8 +48,20 @@ struct TeleportGUID {
 //         teleportGUID.timestamp
 //     ));
 // }
-func getGUIDHash{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    teleportGUID: TeleportGUID
-) -> (guidHash: felt) {
-    return (guidHash=0);
+func get_GUID_hash{pedersen_ptr: HashBuiltin*}(t: TeleportGUID*) -> (res: felt) {
+    // h(source_domain, h(target_domain, h(receiver, h(operator, h(amount, h(nonce, timestamp))))))
+
+    let hash_ptr = pedersen_ptr;
+    with hash_ptr {
+        let (_hash1) = hash2(t.timestamp, t.nonce);
+        let (_hash2) = hash2(_hash1, t.amount.low);
+        let (_hash3) = hash2(_hash2, t.amount.high);
+        let (_hash4) = hash2(_hash3, t.operator);
+        let (_hash5) = hash2(_hash4, t.receiver);
+        let (_hash6) = hash2(_hash5, t.target_domain);
+        let (hash) = hash2(_hash6, t.source_domain);
+    }
+
+    let pedersen_ptr = hash_ptr;
+    return (hash,);
 }
