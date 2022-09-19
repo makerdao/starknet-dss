@@ -1221,11 +1221,182 @@ describe('teleport join', async function () {
     } catch (err: any) {}
   });
 
-  it('test total debt several domains', async () => {});
+  it('test total debt several domains', async () => {
+    await invoke(admin, join, 'file_line', {
+      what: l2String('line'),
+      domain_: l2String('l2network_2'),
+      data: l2Eth(eth('1_000_000')).res,
+    });
+    await invoke(admin, join, 'file_fees', {
+      what: l2String('fees'),
+      domain_: l2String('l2network_2'),
+      data: (
+        await simpleDeployL2(
+          'teleport_constant_fee',
+          {
+            fee_: l2Eth(0).res,
+            ttl_: ttl,
+          },
+          hre
+        )
+      ).address,
+    });
+    await invoke(admin, join, 'file_line', {
+      what: l2String('line'),
+      domain_: l2String('l2network_3'),
+      data: l2Eth(eth('1_000_000')).res,
+    });
+    await invoke(admin, join, 'file_fees', {
+      what: l2String('fees'),
+      domain_: l2String('l2network_3'),
+      data: (
+        await simpleDeployL2(
+          'teleport_constant_fee',
+          {
+            fee_: l2Eth(0).res,
+            ttl_: ttl,
+          },
+          hre
+        )
+      ).address,
+    });
 
-  it('test cure after position being manipulated', async () => {});
+    await suck(0, _admin, l2Eth(100000n * RAD).res);
+    await invoke(admin, daiJoin, 'exit', { usr: _admin, wad: l2Eth(eth('100000')).res });
+    await invoke(admin, dai, 'approve', { spender: join.address, amount: l2Eth(eth('100000')) });
+    await settle(l2String('l2network'), VALID_DOMAINS, l2Eth(eth('100000')).res);
 
-  it('test initiate teleport', async () => {});
+    const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
+    const TEST_OPERATOR_ADDRESS = '9379024284324553537185931466192';
+
+    let guid = {
+      source_domain: l2String('l2network_2'),
+      target_domain: l2String('ethereum'),
+      receiver: toBytes32(TEST_RECEIVER_ADDRESS),
+      operator: toBytes32(TEST_OPERATOR_ADDRESS),
+      amount: l2Eth(eth('150000')).res,
+      nonce: 5,
+      timestamp: new Date().getTime() * 1000,
+    };
+    await requestMint(guid, 0, 0);
+
+    guid = {
+      source_domain: l2String('l2network_3'),
+      target_domain: l2String('ethereum'),
+      receiver: toBytes32(TEST_RECEIVER_ADDRESS),
+      operator: toBytes32(TEST_OPERATOR_ADDRESS),
+      amount: l2Eth(eth('50000')).res,
+      nonce: 5,
+      timestamp: new Date().getTime() * 1000,
+    };
+    await requestMint(guid, 0, 0);
+
+    expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(eth('-100000')));
+    expect(await debt(l2String('l2network_2'))).to.deep.equal(l2Eth(eth('150000')));
+    expect(await debt(l2String('l2network_3'))).to.deep.equal(l2Eth(eth('50000')));
+    expect(await join.call('cure')).to.deep.equal(l2Eth(200000n * RAD));
+
+    guid = {
+      source_domain: l2String('l2network'),
+      target_domain: l2String('ethereum'),
+      receiver: toBytes32(TEST_RECEIVER_ADDRESS),
+      operator: toBytes32(TEST_OPERATOR_ADDRESS),
+      amount: l2Eth(eth('50000')).res,
+      nonce: 5,
+      timestamp: new Date().getTime() * 1000,
+    };
+    await requestMint(guid, 0, 0);
+
+    expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(eth('-50000')));
+    expect(await debt(l2String('l2network_2'))).to.deep.equal(l2Eth(eth('150000')));
+    expect(await debt(l2String('l2network_3'))).to.deep.equal(l2Eth(eth('50000')));
+    expect(await join.call('cure')).to.deep.equal(l2Eth(200000n * RAD));
+
+    await suck(0, _admin, l2Eth(10000n * RAD).res);
+    await invoke(admin, daiJoin, 'exit', { usr: _admin, wad: l2Eth(eth('10000')).res });
+    await invoke(admin, dai, 'approve', { spender: join.address, amount: l2Eth(eth('100000')) });
+    await settle(l2String('l2network_3'), VALID_DOMAINS, l2Eth(eth('10000')).res);
+
+    expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(eth('-50000')));
+    expect(await debt(l2String('l2network_2'))).to.deep.equal(l2Eth(eth('150000')));
+    expect(await debt(l2String('l2network_3'))).to.deep.equal(l2Eth(eth('40000')));
+    expect(await join.call('cure')).to.deep.equal(l2Eth(190000n * RAD));
+  });
+
+  it('test cure after position being manipulated', async () => {
+    const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
+
+    let guid = {
+      source_domain: l2String('l2network'),
+      target_domain: l2String('ethereum'),
+      receiver: toBytes32(TEST_RECEIVER_ADDRESS),
+      operator: toBytes32(_admin),
+      amount: l2Eth(eth('250000')).res,
+      nonce: 5,
+      timestamp: new Date().getTime() * 1000,
+    };
+    await requestMint(guid, 0, 0);
+
+    expect(await _ink()).to.deep.equal(l2Eth(eth('250000')));
+    expect(await _art()).to.deep.equal(l2Eth(eth('250000')));
+    expect(await join.call('cure')).to.deep.equal(l2Eth(250000n * RAD));
+
+    // TODO: Emulate removal of position debt (third party repayment or position being skimmed)
+    // hevm.store(
+    //   address(vat),
+    //   bytes32(
+    //     uint256(
+    //       keccak256(abi.encode(address(join), keccak256(abi.encode(bytes32(ilk), uint256(2)))))
+    //     ) + 1
+    //   ),
+    //   bytes32(0)
+    // );
+    expect(await _art()).to.deep.equal(l2Eth(0));
+    expect(await join.call('cure')).to.deep.equal(l2Eth(250000n * RAD));
+
+    // In case of not caged, then debt can keep changing which will reload cure to the new value
+    guid = {
+      source_domain: l2String('l2network'),
+      target_domain: l2String('ethereum'),
+      receiver: toBytes32(TEST_RECEIVER_ADDRESS),
+      operator: toBytes32(_admin),
+      amount: l2Eth(eth('100000')).res,
+      nonce: 6,
+      timestamp: new Date().getTime() * 1000,
+    };
+    await requestMint(guid, 0, 0);
+
+    expect(await _ink()).to.deep.equal(l2Eth(eth('350000')));
+    expect(await _art()).to.deep.equal(l2Eth(eth('100000')));
+    expect(await join.call('cure')).to.deep.equal(l2Eth(100000n * RAD));
+  });
+
+  it('test initiate teleport', async () => {
+    const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
+
+    await suck(0, _admin, l2Eth(100000n * RAD).res);
+    await invoke(admin, daiJoin, 'exit', { usr: _admin, wad: l2Eth(eth('100000')).res });
+    await invoke(admin, dai, 'approve', { spender: join.address, amount: l2Eth(eth('100000')) });
+
+    expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('100000')));
+    expect(await join.call('batches', { d: l2String('ethereum') })).to.deep.equal(
+      l2Eth(eth('100000'))
+    );
+    expect(await join.call('nonce')).to.be.equal(0);
+
+    await invoke(admin, join, 'initiateTeleport', {
+      target_domain: l2String('ethereum'),
+      receiver: TEST_RECEIVER_ADDRESS,
+      amount: l2Eth(eth('100000')).res,
+      operator: 0,
+    });
+
+    expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('0')));
+    expect(await join.call('batches', { d: l2String('ethereum') })).to.deep.equal(
+      l2Eth(eth('100000'))
+    );
+    expect(await join.call('nonce')).to.be.equal(1);
+  });
 
   it('test flush', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';

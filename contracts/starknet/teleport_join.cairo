@@ -348,6 +348,12 @@ func ilk{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
 }
 
 @view
+func nonce{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _nonce.read();
+    return (res,);
+}
+
+@view
 func teleports{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(hash: felt) -> (
     res: TeleportStatus
 ) {
