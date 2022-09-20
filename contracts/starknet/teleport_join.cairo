@@ -430,14 +430,14 @@ func rely{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: 
 //         emit Deny(usr);
 //     }
 @external
-func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user: felt) {
+func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: felt) {
     auth();
 
     // wards[usr] = 0;
-    _wards.write(user, 0);
+    _wards.write(usr, 0);
 
     // emit Deny(usr);
-    Deny.emit(user);
+    Deny.emit(usr);
 
     return ();
 }

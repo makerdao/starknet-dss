@@ -173,6 +173,7 @@ describe('teleport join', async function () {
       await invoke(account, join, 'rely', { usr });
       return Promise.resolve(true);
     } catch (error) {
+      // console.error(error);
       return Promise.resolve(false);
     }
   }
@@ -182,6 +183,7 @@ describe('teleport join', async function () {
       await invoke(account, join, 'deny', { usr });
       return Promise.resolve(true);
     } catch (error) {
+      // console.error(error);
       return Promise.resolve(false);
     }
   }
@@ -250,23 +252,23 @@ describe('teleport join', async function () {
   }
 
   it('test constructor', async () => {
-    expect((await join.call('vat')).res).to.equal(vat.address);
-    expect((await join.call('daiJoin')).res).to.equal(daiJoin.address);
-    expect((await join.call('ilk')).res).to.equal(ILK);
-    expect((await join.call('domain')).res).to.equal(VALID_DOMAINS);
-    expect((await join.call('wards', { user: _admin })).res).to.be.true;
+    expect((await join.call('vat')).res).to.equal(BigInt(vat.address));
+    expect((await join.call('daiJoin')).res).to.equal(BigInt(daiJoin.address));
+    expect((await join.call('ilk')).res).to.equal(BigInt(ILK));
+    expect((await join.call('domain')).res).to.equal(BigInt(VALID_DOMAINS));
+    expect((await join.call('wards', { user: _admin })).res).to.be.equal(1n);
   });
 
   it('test rely deny', async () => {
-    expect((await join.call('wards', { user: TEST_ADDRESS })).res).to.be.false;
-    expect(_tryRely(admin, TEST_ADDRESS)).to.be.true;
-    expect((await join.call('wards', { user: TEST_ADDRESS })).res).to.be.true;
-    expect(_tryDeny(admin, TEST_ADDRESS)).to.be.true;
-    expect((await join.call('wards', { user: TEST_ADDRESS })).res).to.be.false;
+    expect((await join.call('wards', { user: TEST_ADDRESS })).res).to.be.equal(0n);
+    expect(await _tryRely(admin, TEST_ADDRESS)).to.be.true;
+    expect((await join.call('wards', { user: TEST_ADDRESS })).res).to.be.equal(1n);
+    expect(await _tryDeny(admin, TEST_ADDRESS)).to.be.true;
+    expect((await join.call('wards', { user: TEST_ADDRESS })).res).to.be.equal(0n);
 
     await invoke(admin, join, 'deny', { usr: _admin });
-    expect(_tryRely(admin, TEST_ADDRESS)).to.be.false;
-    expect(_tryDeny(admin, TEST_ADDRESS)).to.be.false;
+    expect(await _tryRely(admin, TEST_ADDRESS)).to.be.false;
+    expect(await _tryDeny(admin, TEST_ADDRESS)).to.be.false;
   });
 
   it('test file', async () => {
