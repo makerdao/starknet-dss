@@ -581,7 +581,7 @@ func nope{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user:
 @external
 func slip{
     syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*
-}(ilk: felt, user: felt, wad: Int256) {
+}(ilk: felt, usr: felt, wad: Int256) {
     alloc_locals;
 
     auth();
@@ -589,12 +589,12 @@ func slip{
     check(wad);
 
     // gem[ilk][user] = _add(gem[ilk][usr], wad);
-    let (gem) = _gem.read(ilk, user);
+    let (gem) = _gem.read(ilk, usr);
     let (gem) = _add(gem, wad);
-    _gem.write(ilk, user, gem);
+    _gem.write(ilk, usr, gem);
 
     // emit Slip(ilk, usr, wad);
-    Slip.emit(ilk, user, wad);
+    Slip.emit(ilk, usr, wad);
 
     return ();
 }

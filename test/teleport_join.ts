@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import hre, { network, starknet } from 'hardhat';
 import { Account, HttpNetworkConfig, StarknetContract } from 'hardhat/types';
+import { pedersen } from 'starknet/dist/utils/hash';
 
 import {
   asDec,
@@ -30,6 +31,16 @@ const zero_uint = { low: 0n, high: 0n };
 
 const fee = eth('0.01');
 const ttl = 60 * 60 * 24 * 8; // 8 days
+
+type TeleportGUID = {
+  source_domain: string;
+  target_domain: string;
+  receiver: string;
+  operator: string;
+  amount: SplitUintType<bigint>;
+  nonce: number;
+  timestamp: number;
+};
 
 function sleep(ms: number) {
   return new Promise((resolve) => {
@@ -62,16 +73,10 @@ describe('teleport join', async function () {
     user2 = await starknet.deployAccount('OpenZeppelin');
     _user2 = user2.address;
 
-    vat = await simpleDeployL2(
-      'vat',
-      {
-        ward: _admin,
-      },
-      hre
-    );
+    vat = await simpleDeployL2('mock_vat', {}, hre);
 
     dai = await simpleDeployL2(
-      'dai',
+      'mock_token',
       {
         ward: _admin,
       },
@@ -126,7 +131,10 @@ describe('teleport join', async function () {
       data: teleportConstantFee.address,
     });
 
-    await invoke(admin, vat, 'hope', { user: daiJoin.address });
+    await invoke(admin, vat, 'hope', { usr: daiJoin.address });
+
+    // NEEDED AS WE DONT USE VAT MOCK HERE
+    // await admin.invoke(vat, 'rely', { user: join.address });
 
     await starknet.devnet.dump('unittest-dump.dmp');
     await sleep(5000);
@@ -136,17 +144,30 @@ describe('teleport join', async function () {
     await starknet.devnet.load('unittest-dump.dmp');
   });
 
-  function getGUIDHash(guid: any) {
-    return 0;
+  function getGUIDHash(guid: TeleportGUID): string {
+    let hash1 = pedersen([guid.timestamp.toString(), guid.nonce.toString()]);
+    let hash2 = pedersen([hash1, guid.amount.low.toString()]);
+    let hash3 = pedersen([hash2, guid.amount.high.toString()]);
+    let hash4 = pedersen([hash3, guid.operator]);
+    let hash5 = pedersen([hash4, guid.receiver]);
+    let hash6 = pedersen([hash5, guid.target_domain]);
+    let hash = pedersen([hash6, guid.source_domain]);
+    return hash;
   }
 
   async function _ink() {
-    const { urn: _urn } = await vat.call('urns', { i: await join.call('ilk'), u: join.address });
+    const { urn: _urn } = await vat.call('urns', {
+      i: (await join.call('ilk')).res,
+      u: join.address,
+    });
     return _urn['ink'];
   }
 
   async function _art() {
-    const { urn: _urn } = await vat.call('urns', { i: await join.call('ilk'), u: join.address });
+    const { urn: _urn } = await vat.call('urns', {
+      i: (await join.call('ilk')).res,
+      u: join.address,
+    });
     return _urn['art'];
   }
 
@@ -323,20 +344,20 @@ describe('teleport join', async function () {
 
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(l2Eth(0));
     expect(await _blessed(guid)).to.be.equal(0n);
-    expect(await _pending(guid)).to.deep.equal(l2Eth(0));
-    expect(await _ink()).to.deep.equal(l2Eth(0));
-    expect(await _art()).to.deep.equal(l2Eth(0));
+    expect(await _pending(guid)).to.deep.equal(l2Eth(0).res);
+    expect(await _ink()).to.deep.equal(l2Eth(0).res);
+    expect(await _art()).to.deep.equal(l2Eth(0).res);
 
     await admin.invoke(join, 'registerMint', { teleportGUID: guid });
 
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(l2Eth(0));
     expect(await _blessed(guid)).to.be.equal(1n);
-    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('250000')));
-    expect(await _ink()).to.deep.equal(l2Eth(0));
-    expect(await _art()).to.deep.equal(l2Eth(0));
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('250000')).res);
+    expect(await _ink()).to.deep.equal(l2Eth(0).res);
+    expect(await _art()).to.deep.equal(l2Eth(0).res);
   });
 
-  it('test register and withdraw all', async () => {
+  it.only('test register and withdraw all', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
 
     const guid = {
@@ -351,9 +372,9 @@ describe('teleport join', async function () {
 
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(l2Eth(0));
     expect(await _blessed(guid)).to.be.equal(0n);
-    expect(await _pending(guid)).to.deep.equal(l2Eth(0));
-    expect(await _ink()).to.deep.equal(l2Eth(0));
-    expect(await _art()).to.deep.equal(l2Eth(0));
+    expect(await _pending(guid)).to.deep.equal(l2Eth(0).res);
+    expect(await _ink()).to.deep.equal(l2Eth(0).res);
+    expect(await _art()).to.deep.equal(l2Eth(0).res);
 
     const [daiSent, totalFee] = await requestMint(guid, 0, 0);
 
@@ -361,9 +382,9 @@ describe('teleport join', async function () {
       l2Eth(eth('250000'))
     );
     expect(await _blessed(guid)).to.be.equal(1n);
-    expect(await _pending(guid)).to.deep.equal(l2Eth(0));
-    expect(await _ink()).to.deep.equal(l2Eth(eth('250000')));
-    expect(await _art()).to.deep.equal(l2Eth(eth('250000')));
+    expect(await _pending(guid)).to.deep.equal(l2Eth(0).res);
+    expect(await _ink()).to.deep.equal(l2Eth(eth('250000')).res);
+    expect(await _art()).to.deep.equal(l2Eth(eth('250000')).res);
     expect(await join.call('cure')).to.deep.equal(l2Eth(250000n * RAD));
     expect(daiSent).to.deep.equal(l2Eth(250000n * WAD));
     expect(totalFee).to.deep.equal(l2Eth(0));
@@ -393,9 +414,9 @@ describe('teleport join', async function () {
       l2Eth(eth('200000'))
     );
     expect(await _blessed(guid)).to.be.equal(1n);
-    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')));
-    expect(await _ink()).to.deep.equal(l2Eth(eth('200000')));
-    expect(await _art()).to.deep.equal(l2Eth(eth('200000')));
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')).res);
+    expect(await _ink()).to.deep.equal(l2Eth(eth('200000')).res);
+    expect(await _art()).to.deep.equal(l2Eth(eth('200000')).res);
     expect(await join.call('cure')).to.deep.equal(l2Eth(200000n * RAD));
     expect(daiSent).to.deep.equal(l2Eth(200000n * WAD));
     expect(totalFee).to.deep.equal(l2Eth(0));
@@ -424,9 +445,9 @@ describe('teleport join', async function () {
       l2Eth(eth('0'))
     );
     expect(await _blessed(guid)).to.be.equal(1n);
-    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('250000')));
-    expect(await _ink()).to.deep.equal(l2Eth(eth('0')));
-    expect(await _art()).to.deep.equal(l2Eth(eth('0')));
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('250000')).res);
+    expect(await _ink()).to.deep.equal(l2Eth(eth('0')).res);
+    expect(await _art()).to.deep.equal(l2Eth(eth('0')).res);
     expect(await join.call('cure')).to.deep.equal(l2Eth(0n * RAD));
     expect(daiSent).to.deep.equal(l2Eth(0n * WAD));
     expect(totalFee).to.deep.equal(l2Eth(0));
@@ -509,9 +530,9 @@ describe('teleport join', async function () {
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
       l2Eth(eth('249900'))
     );
-    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('0')));
-    expect(await _ink()).to.deep.equal(l2Eth(eth('250000')));
-    expect(await _art()).to.deep.equal(l2Eth(eth('250000')));
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('0')).res);
+    expect(await _ink()).to.deep.equal(l2Eth(eth('250000')).res);
+    expect(await _art()).to.deep.equal(l2Eth(eth('250000')).res);
     expect(await join.call('cure')).to.deep.equal(l2Eth(250000n * RAD));
     expect(daiSent).to.deep.equal(l2Eth(249900n * WAD));
     expect(totalFee).to.deep.equal(l2Eth(eth('100')));
@@ -590,9 +611,9 @@ describe('teleport join', async function () {
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
       l2Eth(eth('250000'))
     );
-    expect(await _pending(guid)).to.deep.equal(l2Eth(0));
-    expect(await _ink()).to.deep.equal(l2Eth(eth('250000')));
-    expect(await _art()).to.deep.equal(l2Eth(eth('250000')));
+    expect(await _pending(guid)).to.deep.equal(l2Eth(0).res);
+    expect(await _ink()).to.deep.equal(l2Eth(eth('250000')).res);
+    expect(await _art()).to.deep.equal(l2Eth(eth('250000')).res);
     expect(await join.call('cure')).to.deep.equal(l2Eth(250000n * RAD));
   });
 
@@ -637,9 +658,9 @@ describe('teleport join', async function () {
       l2Eth(eth('199920'))
     );
     expect(await _blessed(guid)).to.be.equal(1n);
-    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')));
-    expect(await _ink()).to.deep.equal(l2Eth(eth('200000')));
-    expect(await _art()).to.deep.equal(l2Eth(eth('200000')));
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')).res);
+    expect(await _ink()).to.deep.equal(l2Eth(eth('200000')).res);
+    expect(await _art()).to.deep.equal(l2Eth(eth('200000')).res);
     expect(await join.call('cure')).to.deep.equal(l2Eth(200000n * RAD));
 
     await invoke(admin, join, 'file_line', {
@@ -653,9 +674,9 @@ describe('teleport join', async function () {
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
       l2Eth(eth('249900'))
     );
-    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('0')));
-    expect(await _ink()).to.deep.equal(l2Eth(eth('250000')));
-    expect(await _art()).to.deep.equal(l2Eth(eth('250000')));
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('0')).res);
+    expect(await _ink()).to.deep.equal(l2Eth(eth('250000')).res);
+    expect(await _art()).to.deep.equal(l2Eth(eth('250000')).res);
     expect(await join.call('cure')).to.deep.equal(l2Eth(250000n * RAD));
   });
 
@@ -768,7 +789,7 @@ describe('teleport join', async function () {
 
     expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('200000')));
     expect(_blessed(guid)).to.be.true;
-    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')));
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')).res);
 
     await invoke(admin, join, 'file_line', {
       what: l2String('line'),
@@ -778,7 +799,7 @@ describe('teleport join', async function () {
     await mintPending(guid, 0, 0);
 
     expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('225000')));
-    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('25000')));
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('25000')).res);
   });
 
   it('test mint pending by operator not receiver', async () => {
@@ -805,7 +826,7 @@ describe('teleport join', async function () {
       l2Eth(eth('200000'))
     );
     expect(_blessed(guid)).to.be.true;
-    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')));
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')).res);
 
     await invoke(admin, join, 'file_line', {
       what: l2String('line'),
@@ -817,7 +838,7 @@ describe('teleport join', async function () {
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
       l2Eth(eth('225000'))
     );
-    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('25000')));
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('25000')).res);
   });
 
   it('test mint pending by receiver', async () => {
@@ -842,7 +863,7 @@ describe('teleport join', async function () {
 
     expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('200000')));
     expect(_blessed(guid)).to.be.true;
-    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')));
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')).res);
 
     await invoke(admin, join, 'file_line', {
       what: l2String('line'),
@@ -854,7 +875,7 @@ describe('teleport join', async function () {
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
       l2Eth(eth('225000'))
     );
-    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('25000')));
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('25000')).res);
   });
 
   it('test fail mint pending wrong operator', async () => {
@@ -932,8 +953,8 @@ describe('teleport join', async function () {
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
       l2Eth(eth('250000'))
     );
-    expect(await _ink()).to.deep.equal(l2Eth(eth('150000')));
-    expect(await _art()).to.deep.equal(l2Eth(eth('150000')));
+    expect(await _ink()).to.deep.equal(l2Eth(eth('150000')).res);
+    expect(await _art()).to.deep.equal(l2Eth(eth('150000')).res);
     expect(await join.call('cure')).to.deep.equal(l2Eth(150000n * RAD));
   });
 
@@ -970,9 +991,9 @@ describe('teleport join', async function () {
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
       l2Eth(eth('200000'))
     );
-    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')));
-    expect(await _ink()).to.deep.equal(l2Eth(eth('100000')));
-    expect(await _art()).to.deep.equal(l2Eth(eth('100000')));
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')).res);
+    expect(await _ink()).to.deep.equal(l2Eth(eth('100000')).res);
+    expect(await _art()).to.deep.equal(l2Eth(eth('100000')).res);
     expect(await join.call('cure')).to.deep.equal(l2Eth(100000n * RAD));
   });
 
@@ -1020,9 +1041,9 @@ describe('teleport join', async function () {
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
       l2Eth(eth('100000'))
     ); // Can't pay more than DAI is already in the join
-    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('150000')));
-    expect(await _ink()).to.deep.equal(l2Eth(eth('0')));
-    expect(await _art()).to.deep.equal(l2Eth(eth('0')));
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('150000')).res);
+    expect(await _ink()).to.deep.equal(l2Eth(eth('0')).res);
+    expect(await _art()).to.deep.equal(l2Eth(eth('0')).res);
     // No fees regardless the contract set
     expect((await vat.call('dai', { u: VOW_ADDRESS })).dai).to.deep.equal(l2Eth(0).res);
     expect(await join.call('cure')).to.deep.equal(l2Eth(0));
@@ -1045,8 +1066,8 @@ describe('teleport join', async function () {
     await requestMint(guid, 0, 0);
 
     expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(eth('250000')));
-    expect(await _ink()).to.deep.equal(l2Eth(eth('250000')));
-    expect(await _art()).to.deep.equal(l2Eth(eth('250000')));
+    expect(await _ink()).to.deep.equal(l2Eth(eth('250000')).res);
+    expect(await _art()).to.deep.equal(l2Eth(eth('250000')).res);
     expect(await join.call('cure')).to.deep.equal(l2Eth(250000n * RAD));
 
     await invoke(admin, vat, 'cage');
@@ -1058,8 +1079,8 @@ describe('teleport join', async function () {
     await settle(l2String('l2network'), VALID_DOMAINS, l2Eth(eth('250000')).res);
 
     expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(0));
-    expect(await _ink()).to.deep.equal(l2Eth(eth('100000')));
-    expect(await _art()).to.deep.equal(l2Eth(eth('100000')));
+    expect(await _ink()).to.deep.equal(l2Eth(eth('100000')).res);
+    expect(await _art()).to.deep.equal(l2Eth(eth('100000')).res);
     expect(await join.call('cure')).to.deep.equal(l2Eth(100000n * RAD));
   });
 
@@ -1082,9 +1103,9 @@ describe('teleport join', async function () {
     expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('250')));
     expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('249750')));
 
-    expect(await _pending(guid)).to.deep.equal(l2Eth(0));
-    expect(await _ink()).to.deep.equal(l2Eth(eth('250000')));
-    expect(await _art()).to.deep.equal(l2Eth(eth('250000')));
+    expect(await _pending(guid)).to.deep.equal(l2Eth(0).res);
+    expect(await _ink()).to.deep.equal(l2Eth(eth('250000')).res);
+    expect(await _art()).to.deep.equal(l2Eth(eth('250000')).res);
     expect(daiSent).to.deep.equal(l2Eth(249750n * WAD).res);
     expect(totalFee).to.deep.equal(l2Eth(eth('250')).res);
   });
@@ -1132,9 +1153,9 @@ describe('teleport join', async function () {
       l2Eth(eth('199800'))
     );
     expect(await _blessed(guid)).to.be.equal(1n);
-    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')));
-    expect(await _ink()).to.deep.equal(l2Eth(eth('200000')));
-    expect(await _art()).to.deep.equal(l2Eth(eth('200000')));
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')).res);
+    expect(await _ink()).to.deep.equal(l2Eth(eth('200000')).res);
+    expect(await _art()).to.deep.equal(l2Eth(eth('200000')).res);
 
     await invoke(admin, join, 'file_line', {
       what: l2String('line'),
@@ -1147,9 +1168,9 @@ describe('teleport join', async function () {
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
       l2Eth(eth('249795'))
     );
-    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('0')));
-    expect(await _ink()).to.deep.equal(l2Eth(eth('250000')));
-    expect(await _art()).to.deep.equal(l2Eth(eth('250000')));
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('0')).res);
+    expect(await _ink()).to.deep.equal(l2Eth(eth('250000')).res);
+    expect(await _art()).to.deep.equal(l2Eth(eth('250000')).res);
   });
 
   it('test register and withdraw paying two fees', async () => {
@@ -1186,9 +1207,9 @@ describe('teleport join', async function () {
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
       l2Eth(eth('248_751'))
     );
-    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('0')));
-    expect(await _ink()).to.deep.equal(l2Eth(eth('250000')));
-    expect(await _art()).to.deep.equal(l2Eth(eth('250000')));
+    expect(await _pending(guid)).to.deep.equal(l2Eth(eth('0')).res);
+    expect(await _ink()).to.deep.equal(l2Eth(eth('250000')).res);
+    expect(await _art()).to.deep.equal(l2Eth(eth('250000')).res);
   });
 
   it('test fail register and withdraw operator fee too high', async () => {
@@ -1338,8 +1359,8 @@ describe('teleport join', async function () {
     };
     await requestMint(guid, 0, 0);
 
-    expect(await _ink()).to.deep.equal(l2Eth(eth('250000')));
-    expect(await _art()).to.deep.equal(l2Eth(eth('250000')));
+    expect(await _ink()).to.deep.equal(l2Eth(eth('250000')).res);
+    expect(await _art()).to.deep.equal(l2Eth(eth('250000')).res);
     expect(await join.call('cure')).to.deep.equal(l2Eth(250000n * RAD));
 
     // TODO: Emulate removal of position debt (third party repayment or position being skimmed)
@@ -1367,8 +1388,8 @@ describe('teleport join', async function () {
     };
     await requestMint(guid, 0, 0);
 
-    expect(await _ink()).to.deep.equal(l2Eth(eth('350000')));
-    expect(await _art()).to.deep.equal(l2Eth(eth('100000')));
+    expect(await _ink()).to.deep.equal(l2Eth(eth('350000')).res);
+    expect(await _art()).to.deep.equal(l2Eth(eth('100000')).res);
     expect(await join.call('cure')).to.deep.equal(l2Eth(100000n * RAD));
   });
 
