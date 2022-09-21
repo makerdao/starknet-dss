@@ -330,6 +330,14 @@ func debt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(d: fe
 }
 
 @view
+func line{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(d: felt) -> (
+    res: Uint256
+) {
+    let (res) = _lines.read(d);
+    return (res,);
+}
+
+@view
 func vow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
     let (res) = _vow.read();
     return (res,);

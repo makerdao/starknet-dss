@@ -16,7 +16,7 @@ import {
 } from './utils';
 
 // Cairo encoding of "valid_domains"
-const VALID_DOMAINS = '9379074284324409537785911406195';
+const VALID_DOMAINS = l2String('ethereum');
 const TEST_ADDRESS = '9379074284324409537785911406195';
 const VOW_ADDRESS = '9379074284324409537785911406192';
 
@@ -111,24 +111,20 @@ describe('teleport join', async function () {
       hre
     );
 
-    console.log('a');
     await invoke(admin, join, 'file_line', {
       what: l2String('line'),
-      domain_: VALID_DOMAINS,
+      domain_: l2String('l2network'),
       data: l2Eth(eth('1000000')).res,
     });
-    console.log('b');
     await invoke(admin, join, 'file_vow', {
       what: l2String('vow'),
       data: VOW_ADDRESS,
     });
-    console.log('c');
     await invoke(admin, join, 'file_fees', {
       what: l2String('fees'),
-      domain_: VALID_DOMAINS,
+      domain_: l2String('l2network'),
       data: teleportConstantFee.address,
     });
-    console.log('d');
 
     await invoke(admin, vat, 'hope', { user: daiJoin.address });
 
@@ -145,23 +141,23 @@ describe('teleport join', async function () {
   }
 
   async function _ink() {
-    const _urn = await vat.call('urns', { i: await join.call('ilk'), u: join.address });
-    return _urn[0];
+    const { urn: _urn } = await vat.call('urns', { i: await join.call('ilk'), u: join.address });
+    return _urn['ink'];
   }
 
   async function _art() {
-    const _urn = await vat.call('urns', { i: await join.call('ilk'), u: join.address });
-    return _urn[1];
+    const { urn: _urn } = await vat.call('urns', { i: await join.call('ilk'), u: join.address });
+    return _urn['art'];
   }
 
   async function _blessed(guid: any) {
-    const _teleport = await join.call('teleports', { hash: getGUIDHash(guid) });
-    return _teleport[0];
+    const { res: _teleport } = await join.call('teleports', { hash: getGUIDHash(guid) });
+    return _teleport['blessed'];
   }
 
   async function _pending(guid: any) {
-    const _teleport = await join.call('teleports', { hash: getGUIDHash(guid) });
-    return _teleport[1];
+    const { res: _teleport } = await join.call('teleports', { hash: getGUIDHash(guid) });
+    return _teleport['pending'];
   }
 
   async function debt(domain: string) {
@@ -274,39 +270,42 @@ describe('teleport join', async function () {
   it('test file', async () => {
     const TEST_FILE_ADDRESS = '9379024284324403537785931406192';
 
-    expect((await join.call('vow')).res).to.equal(VOW_ADDRESS);
+    expect((await join.call('vow')).res).to.equal(BigInt(VOW_ADDRESS));
     expect(await _tryFile('vow', TEST_FILE_ADDRESS)).to.be.true;
-    expect((await join.call('vow')).res).to.equal(TEST_FILE_ADDRESS);
+    expect((await join.call('vow')).res).to.equal(BigInt(TEST_FILE_ADDRESS));
 
     expect(await join.call('fdust')).to.deep.equal(l2Eth(0));
     expect(await _tryFile('fdust', l2Eth(888).res)).to.be.true;
     expect(await join.call('fdust')).to.deep.equal(l2Eth(888));
 
-    expect(await join.call('fees', { d: l2String('aaa') })).to.equal(0);
+    expect((await join.call('fees', { d: l2String('aaa') })).res).to.equal(0n);
     expect(await _tryFile('fees', TEST_FILE_ADDRESS, l2String('aaa'))).to.be.true;
-    expect(await join.call('fees', { d: l2String('aaa') })).to.equal(TEST_FILE_ADDRESS);
+    expect((await join.call('fees', { d: l2String('aaa') })).res).to.equal(
+      BigInt(TEST_FILE_ADDRESS)
+    );
 
     const MAX_INT256: SplitUint = SplitUint.fromUint(2n ** 256n - 1n);
 
     expect(await join.call('line', { d: l2String('aaa') })).to.deep.equal(l2Eth(0));
-    expect(_tryFile('line', MAX_INT256.res, l2String('aaa'))).to.be.true;
+    expect(await _tryFile('line', MAX_INT256.res, l2String('aaa'))).to.be.true;
     expect(await join.call('line', { d: l2String('aaa') })).to.deep.equal(MAX_INT256);
 
-    expect(_tryFile('line', MAX_INT256.add(1n).res, l2String('aaa'))).to.be.false;
+    expect(await _tryFile('line', { low: 2n ** 128n, high: 2n ** 128n + 1n }, l2String('aaa'))).to
+      .be.false;
 
     await invoke(admin, join, 'deny', { usr: _admin });
     expect(await _tryFile('vow', TEST_FILE_ADDRESS)).to.be.false;
     expect(await _tryFile('fees', TEST_FILE_ADDRESS, l2String('aaa'))).to.be.false;
-    expect(_tryFile('line', l2Eth(10).res, l2String('aaa'))).to.be.false;
+    expect(await _tryFile('line', l2Eth(10).res, l2String('aaa'))).to.be.false;
   });
 
   it('test invalid what', async () => {
     const TEST_FILE_ADDRESS = '9379024284324403537785931406192';
 
-    expect(_tryFile('meh', TEST_FILE_ADDRESS)).to.be.false;
-    expect(_tryFile('meh', l2Eth(888).res)).to.be.false;
-    expect(_tryFile('meh', TEST_FILE_ADDRESS), VALID_DOMAINS).to.be.false;
-    expect(_tryFile('meh', l2Eth(888).res, VALID_DOMAINS)).to.be.false;
+    expect(await _tryFile('meh', TEST_FILE_ADDRESS)).to.be.false;
+    expect(await _tryFile('meh', l2Eth(888).res)).to.be.false;
+    expect(await _tryFile('meh', TEST_FILE_ADDRESS), VALID_DOMAINS).to.be.false;
+    expect(await _tryFile('meh', l2Eth(888).res, VALID_DOMAINS)).to.be.false;
   });
 
   it('test register', async () => {
@@ -323,7 +322,7 @@ describe('teleport join', async function () {
     };
 
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(l2Eth(0));
-    expect(await _blessed(guid)).to.be.false;
+    expect(await _blessed(guid)).to.be.equal(0n);
     expect(await _pending(guid)).to.deep.equal(l2Eth(0));
     expect(await _ink()).to.deep.equal(l2Eth(0));
     expect(await _art()).to.deep.equal(l2Eth(0));
@@ -331,7 +330,7 @@ describe('teleport join', async function () {
     await admin.invoke(join, 'registerMint', { teleportGUID: guid });
 
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(l2Eth(0));
-    expect(await _blessed(guid)).to.be.true;
+    expect(await _blessed(guid)).to.be.equal(1n);
     expect(await _pending(guid)).to.deep.equal(l2Eth(eth('250000')));
     expect(await _ink()).to.deep.equal(l2Eth(0));
     expect(await _art()).to.deep.equal(l2Eth(0));
@@ -351,7 +350,7 @@ describe('teleport join', async function () {
     };
 
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(l2Eth(0));
-    expect(await _blessed(guid)).to.be.false;
+    expect(await _blessed(guid)).to.be.equal(0n);
     expect(await _pending(guid)).to.deep.equal(l2Eth(0));
     expect(await _ink()).to.deep.equal(l2Eth(0));
     expect(await _art()).to.deep.equal(l2Eth(0));
@@ -361,7 +360,7 @@ describe('teleport join', async function () {
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
       l2Eth(eth('250000'))
     );
-    expect(await _blessed(guid)).to.be.true;
+    expect(await _blessed(guid)).to.be.equal(1n);
     expect(await _pending(guid)).to.deep.equal(l2Eth(0));
     expect(await _ink()).to.deep.equal(l2Eth(eth('250000')));
     expect(await _art()).to.deep.equal(l2Eth(eth('250000')));
@@ -384,7 +383,7 @@ describe('teleport join', async function () {
     };
 
     await invoke(admin, join, 'file_line', {
-      what: 'line',
+      what: l2String('line'),
       domain_: l2String('l2network'),
       data: l2Eth(eth('200000')).res,
     });
@@ -393,7 +392,7 @@ describe('teleport join', async function () {
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
       l2Eth(eth('200000'))
     );
-    expect(await _blessed(guid)).to.be.true;
+    expect(await _blessed(guid)).to.be.equal(1n);
     expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')));
     expect(await _ink()).to.deep.equal(l2Eth(eth('200000')));
     expect(await _art()).to.deep.equal(l2Eth(eth('200000')));
@@ -416,7 +415,7 @@ describe('teleport join', async function () {
     };
 
     await invoke(admin, join, 'file_line', {
-      what: 'line',
+      what: l2String('line'),
       domain_: l2String('l2network'),
       data: l2Eth(eth('0')).res,
     });
@@ -424,7 +423,7 @@ describe('teleport join', async function () {
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
       l2Eth(eth('0'))
     );
-    expect(await _blessed(guid)).to.be.true;
+    expect(await _blessed(guid)).to.be.equal(1n);
     expect(await _pending(guid)).to.deep.equal(l2Eth(eth('250000')));
     expect(await _ink()).to.deep.equal(l2Eth(eth('0')));
     expect(await _art()).to.deep.equal(l2Eth(eth('0')));
@@ -637,7 +636,7 @@ describe('teleport join', async function () {
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
       l2Eth(eth('199920'))
     );
-    expect(await _blessed(guid)).to.be.true;
+    expect(await _blessed(guid)).to.be.equal(1n);
     expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')));
     expect(await _ink()).to.deep.equal(l2Eth(eth('200000')));
     expect(await _art()).to.deep.equal(l2Eth(eth('200000')));
@@ -1132,7 +1131,7 @@ describe('teleport join', async function () {
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
       l2Eth(eth('199800'))
     );
-    expect(await _blessed(guid)).to.be.true;
+    expect(await _blessed(guid)).to.be.equal(1n);
     expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')));
     expect(await _ink()).to.deep.equal(l2Eth(eth('200000')));
     expect(await _art()).to.deep.equal(l2Eth(eth('200000')));
