@@ -306,6 +306,7 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 
     VatLike.hope(vat_, daiJoin_);
     let (dai) = DaiJoinLike.dai(daiJoin_);
+    _dai.write(dai);
     TokenLike.approve(dai, daiJoin_, Uint256(2 ** 128 - 1, 2 ** 128 - 1));
     _ilk.write(ilk_);
     _domain.write(domain_);

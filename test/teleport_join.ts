@@ -171,12 +171,12 @@ describe('teleport join', async function () {
     return _urn['art'];
   }
 
-  async function _blessed(guid: any) {
+  async function _blessed(guid: TeleportGUID) {
     const { res: _teleport } = await join.call('teleports', { hash: getGUIDHash(guid) });
     return _teleport['blessed'];
   }
 
-  async function _pending(guid: any) {
+  async function _pending(guid: TeleportGUID) {
     const { res: _teleport } = await join.call('teleports', { hash: getGUIDHash(guid) });
     return _teleport['pending'];
   }
@@ -243,7 +243,7 @@ describe('teleport join', async function () {
   }
 
   async function requestMint(
-    guid: any,
+    guid: TeleportGUID,
     maxFeePercentage: number | string | bigint,
     operatorFee: number | string | bigint
   ) {
@@ -259,7 +259,7 @@ describe('teleport join', async function () {
   }
 
   async function mintPending(
-    guid: any,
+    guid: TeleportGUID,
     maxFeePercentage: number | string | bigint,
     operatorFee: number | string | bigint
   ) {
@@ -792,7 +792,7 @@ describe('teleport join', async function () {
     await requestMint(guid, 0, 0);
 
     expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('200000')));
-    expect(_blessed(guid)).to.be.true;
+    expect(await _blessed(guid)).to.be.equal(1n);
     expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')).res);
 
     await invoke(admin, join, 'file_line', {
@@ -829,7 +829,7 @@ describe('teleport join', async function () {
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
       l2Eth(eth('200000'))
     );
-    expect(_blessed(guid)).to.be.true;
+    expect(await _blessed(guid)).to.be.equal(1n);
     expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')).res);
 
     await invoke(admin, join, 'file_line', {
@@ -866,7 +866,7 @@ describe('teleport join', async function () {
     await requestMint(guid, 0, 0);
 
     expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('200000')));
-    expect(_blessed(guid)).to.be.true;
+    expect(await _blessed(guid)).to.be.equal(1n);
     expect(await _pending(guid)).to.deep.equal(l2Eth(eth('50000')).res);
 
     await invoke(admin, join, 'file_line', {
@@ -876,9 +876,7 @@ describe('teleport join', async function () {
     });
     await mintPending(guid, 0, 0);
 
-    expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
-      l2Eth(eth('225000'))
-    );
+    expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('225000')));
     expect(await _pending(guid)).to.deep.equal(l2Eth(eth('25000')).res);
   });
 
@@ -921,7 +919,10 @@ describe('teleport join', async function () {
 
     await suck(0, _admin, l2Eth(100000n * RAD).res);
     await invoke(admin, daiJoin, 'exit', { usr: _admin, wad: l2Eth(eth('100000')).res });
-    await invoke(admin, dai, 'approve', { spender: join.address, amount: l2Eth(eth('100000')) });
+    await invoke(admin, dai, 'approve', {
+      spender: join.address,
+      amount: l2Eth(eth('100000')).res,
+    });
 
     await settle(l2String('l2network'), VALID_DOMAINS, l2Eth(eth('100000')).res);
 
@@ -932,7 +933,10 @@ describe('teleport join', async function () {
   it('test withdraw negative debt', async () => {
     await suck(0, _admin, l2Eth(100000n * RAD).res);
     await invoke(admin, daiJoin, 'exit', { usr: _admin, wad: l2Eth(eth('100000')).res });
-    await invoke(admin, dai, 'approve', { spender: join.address, amount: l2Eth(eth('100000')) });
+    await invoke(admin, dai, 'approve', {
+      spender: join.address,
+      amount: l2Eth(eth('100000')).res,
+    });
 
     await settle(l2String('l2network'), VALID_DOMAINS, l2Eth(eth('100000')).res);
 
@@ -965,7 +969,10 @@ describe('teleport join', async function () {
   it('test withdraw partial negative debt', async () => {
     await suck(0, _admin, l2Eth(100000n * RAD).res);
     await invoke(admin, daiJoin, 'exit', { usr: _admin, wad: l2Eth(eth('100000')).res });
-    await invoke(admin, dai, 'approve', { spender: join.address, amount: l2Eth(eth('100000')) });
+    await invoke(admin, dai, 'approve', {
+      spender: join.address,
+      amount: l2Eth(eth('100000')).res,
+    });
 
     await settle(l2String('l2network'), VALID_DOMAINS, l2Eth(eth('100000')).res);
 
@@ -1004,7 +1011,10 @@ describe('teleport join', async function () {
   it('test withdraw vat caged', async () => {
     await suck(0, _admin, l2Eth(100000n * RAD).res);
     await invoke(admin, daiJoin, 'exit', { usr: _admin, wad: l2Eth(eth('100000')).res });
-    await invoke(admin, dai, 'approve', { spender: join.address, amount: l2Eth(eth('100000')) });
+    await invoke(admin, dai, 'approve', {
+      spender: join.address,
+      amount: l2Eth(eth('100000')).res,
+    });
 
     await settle(l2String('l2network'), VALID_DOMAINS, l2Eth(eth('100000')).res);
 
@@ -1078,7 +1088,10 @@ describe('teleport join', async function () {
 
     await suck(0, _admin, l2Eth(100000n * RAD).res);
     await invoke(admin, daiJoin, 'exit', { usr: _admin, wad: l2Eth(eth('100000')).res });
-    await invoke(admin, dai, 'approve', { spender: join.address, amount: l2Eth(eth('100000')) });
+    await invoke(admin, dai, 'approve', {
+      spender: join.address,
+      amount: l2Eth(eth('100000')).res,
+    });
 
     await settle(l2String('l2network'), VALID_DOMAINS, l2Eth(eth('250000')).res);
 
@@ -1289,7 +1302,10 @@ describe('teleport join', async function () {
 
     await suck(0, _admin, l2Eth(100000n * RAD).res);
     await invoke(admin, daiJoin, 'exit', { usr: _admin, wad: l2Eth(eth('100000')).res });
-    await invoke(admin, dai, 'approve', { spender: join.address, amount: l2Eth(eth('100000')) });
+    await invoke(admin, dai, 'approve', {
+      spender: join.address,
+      amount: l2Eth(eth('100000')).res,
+    });
     await settle(l2String('l2network'), VALID_DOMAINS, l2Eth(eth('100000')).res);
 
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
@@ -1340,7 +1356,10 @@ describe('teleport join', async function () {
 
     await suck(0, _admin, l2Eth(10000n * RAD).res);
     await invoke(admin, daiJoin, 'exit', { usr: _admin, wad: l2Eth(eth('10000')).res });
-    await invoke(admin, dai, 'approve', { spender: join.address, amount: l2Eth(eth('100000')) });
+    await invoke(admin, dai, 'approve', {
+      spender: join.address,
+      amount: l2Eth(eth('100000')).res,
+    });
     await settle(l2String('l2network_3'), VALID_DOMAINS, l2Eth(eth('10000')).res);
 
     expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(eth('-50000')));
@@ -1402,7 +1421,10 @@ describe('teleport join', async function () {
 
     await suck(0, _admin, l2Eth(100000n * RAD).res);
     await invoke(admin, daiJoin, 'exit', { usr: _admin, wad: l2Eth(eth('100000')).res });
-    await invoke(admin, dai, 'approve', { spender: join.address, amount: l2Eth(eth('100000')) });
+    await invoke(admin, dai, 'approve', {
+      spender: join.address,
+      amount: l2Eth(eth('100000')).res,
+    });
 
     expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('100000')));
     expect(await join.call('batches', { d: l2String('ethereum') })).to.deep.equal(
@@ -1429,7 +1451,10 @@ describe('teleport join', async function () {
 
     await suck(0, _admin, l2Eth(100000n * RAD).res);
     await invoke(admin, daiJoin, 'exit', { usr: _admin, wad: l2Eth(eth('100000')).res });
-    await invoke(admin, dai, 'approve', { spender: join.address, amount: l2Eth(eth('100000')) });
+    await invoke(admin, dai, 'approve', {
+      spender: join.address,
+      amount: l2Eth(eth('100000')).res,
+    });
 
     await invoke(admin, join, 'initiateTeleport', {
       target_domain: l2String('ethereum'),
@@ -1452,7 +1477,10 @@ describe('teleport join', async function () {
 
     await suck(0, _admin, l2Eth(100000n * RAD).res);
     await invoke(admin, daiJoin, 'exit', { usr: _admin, wad: l2Eth(eth('100000')).res });
-    await invoke(admin, dai, 'approve', { spender: join.address, amount: l2Eth(eth('100000')) });
+    await invoke(admin, dai, 'approve', {
+      spender: join.address,
+      amount: l2Eth(eth('100000')).res,
+    });
 
     await invoke(admin, join, 'initiateTeleport', {
       target_domain: l2String('ethereum'),
