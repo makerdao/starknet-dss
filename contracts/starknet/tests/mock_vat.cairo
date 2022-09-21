@@ -82,6 +82,12 @@ func _gem(i: felt, u: felt) -> (gem: Uint256) {
 func _dai(u: felt) -> (dai: Uint256) {
 }
 
+@constructor
+func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    _live.write(1);
+    return ();
+}
+
 func require_live{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     // require(live == 1, "Vat/not-live");
     with_attr error_message("Vat/not-live") {

@@ -54,6 +54,7 @@ const config: HardhatUserConfig = {
     },
     starknetLocal: {
       url: 'http://localhost:9000',
+      // stdout: 'STDOUT',
     },
   },
   gasReporter: {

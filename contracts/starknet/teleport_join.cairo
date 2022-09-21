@@ -621,7 +621,6 @@ func _mint{
     let (pending_null) = eq_0(pending);
     let (over_ceiling) = _le(line_, debt_);
     let (nothing_to_withdraw) = either(over_ceiling, pending_null);
-
     if (nothing_to_withdraw == 1) {
         Mint.emit(hashGUID, teleportGUID, Uint256(0, 0), max_fee_percentage, operator_fee, caller);
         return (Uint256(0, 0), Uint256(0, 0));
