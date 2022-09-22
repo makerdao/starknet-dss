@@ -247,15 +247,21 @@ describe('teleport join', async function () {
     maxFeePercentage: number | string | bigint,
     operatorFee: number | string | bigint
   ) {
+    // const { post_fee_amount: daiSent, total_fee: totalFees } = await join.call('requestMint', {
+    //   teleportGUID: guid,
+    //   max_fee_percentage: l2Eth(maxFeePercentage).res,
+    //   operator_fee: l2Eth(operatorFee).res,
+    // });
     const tx = await invoke(admin, join, 'requestMint', {
       teleportGUID: guid,
       max_fee_percentage: l2Eth(maxFeePercentage).res,
       operator_fee: l2Eth(operatorFee).res,
     });
-    const receipt = await starknet.getTransactionReceipt(tx);
-    const decodedEvents = await join.decodeEvents(receipt.events);
-    console.log(decodedEvents[1].data.amount);
-    return [tx[0], tx[1]];
+    // console.log(daiSent);
+    // const receipt = await starknet.getTransactionReceipt(tx);
+    // const decodedEvents = await join.decodeEvents(receipt.events);
+    // console.log(decodedEvents[1].data.amount);
+    return [0, 0];
   }
 
   async function mintPending(
@@ -1118,7 +1124,9 @@ describe('teleport join', async function () {
     const [daiSent, totalFee] = await requestMint(guid, 0, eth('250').toBigInt());
 
     expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('250')));
-    expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('249750')));
+    expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
+      l2Eth(eth('249750'))
+    );
 
     expect(await _pending(guid)).to.deep.equal(l2Eth(0).res);
     expect(await _ink()).to.deep.equal(l2Eth(eth('250000')).res);
@@ -1208,7 +1216,7 @@ describe('teleport join', async function () {
     const fees = await simpleDeployL2(
       'teleport_constant_fee',
       {
-        fee_: l2Eth(eth('100')).res,
+        fee_: l2Eth(eth('1000')).res,
         ttl_: ttl,
       },
       hre
@@ -1222,7 +1230,7 @@ describe('teleport join', async function () {
     expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('249')));
     expect((await vat.call('dai', { u: VOW_ADDRESS })).dai).to.deep.equal(l2Eth(1000n * RAD).res);
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
-      l2Eth(eth('248_751'))
+      l2Eth(eth('248751'))
     );
     expect(await _pending(guid)).to.deep.equal(l2Eth(eth('0')).res);
     expect(await _ink()).to.deep.equal(l2Eth(eth('250000')).res);
@@ -1264,7 +1272,7 @@ describe('teleport join', async function () {
     await invoke(admin, join, 'file_line', {
       what: l2String('line'),
       domain_: l2String('l2network_2'),
-      data: l2Eth(eth('1_000_000')).res,
+      data: l2Eth(eth('1000000')).res,
     });
     await invoke(admin, join, 'file_fees', {
       what: l2String('fees'),
@@ -1283,7 +1291,7 @@ describe('teleport join', async function () {
     await invoke(admin, join, 'file_line', {
       what: l2String('line'),
       domain_: l2String('l2network_3'),
-      data: l2Eth(eth('1_000_000')).res,
+      data: l2Eth(eth('1000000')).res,
     });
     await invoke(admin, join, 'file_fees', {
       what: l2String('fees'),
@@ -1435,7 +1443,7 @@ describe('teleport join', async function () {
     await invoke(admin, join, 'initiateTeleport', {
       target_domain: l2String('ethereum'),
       receiver: TEST_RECEIVER_ADDRESS,
-      amount: l2Eth(eth('100000')).res,
+      amount: l2Eth(eth('100000')).res.low,
       operator: 0,
     });
 
@@ -1459,7 +1467,7 @@ describe('teleport join', async function () {
     await invoke(admin, join, 'initiateTeleport', {
       target_domain: l2String('ethereum'),
       receiver: TEST_RECEIVER_ADDRESS,
-      amount: l2Eth(eth('100000')).res,
+      amount: l2Eth(eth('100000')).res.low,
       operator: 0,
     });
 
@@ -1485,7 +1493,7 @@ describe('teleport join', async function () {
     await invoke(admin, join, 'initiateTeleport', {
       target_domain: l2String('ethereum'),
       receiver: TEST_RECEIVER_ADDRESS,
-      amount: l2Eth(eth('100000')).res,
+      amount: l2Eth(eth('100000')).res.low,
       operator: 0,
     });
 
