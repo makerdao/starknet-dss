@@ -171,12 +171,12 @@ func move{
         assert src_consents = 1;
     }
 
-    let (dai_src) = _dai.read(src);
-    let (dai_src) = sub(dai_src, rad);
+    let (dai_src_) = _dai.read(src);
+    let (dai_src) = sub(dai_src_, rad);
     _dai.write(src, dai_src);
 
-    let (dai_dst) = _dai.read(dst);
-    let (dai_dst) = add(dai_dst, rad);
+    let (dai_dst_) = _dai.read(dst);
+    let (dai_dst) = add(dai_dst_, rad);
     _dai.write(dst, dai_dst);
     return ();
 }

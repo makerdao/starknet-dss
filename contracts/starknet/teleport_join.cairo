@@ -30,6 +30,7 @@ from contracts.starknet.safe_math import (
     _felt_to_uint,
     _uint_to_felt,
     div,
+    sub_signed256,
 )
 from contracts.starknet.assertions import (
     eq_0,
@@ -957,7 +958,7 @@ func settle{
     }
 
     let (debt) = _debts.read(source_domain);
-    let (new_debt) = sub(debt, amount);
+    let (new_debt) = sub_signed256(debt, amount);
     _debts.write(source_domain, new_debt);
 
     Settle.emit(source_domain, amount);

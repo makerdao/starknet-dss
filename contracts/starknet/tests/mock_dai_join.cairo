@@ -85,7 +85,7 @@ func exit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     let (amount) = mul(Uint256(RAY, 0), wad);
     let (vat) = _vat.read();
     let (dai) = _dai.read();
-    let (self) = get_caller_address();
+    let (self) = get_contract_address();
     let (caller) = get_caller_address();
     VatLike.move(vat, caller, self, amount);
     DaiLike.mint(dai, usr, wad);

@@ -258,9 +258,9 @@ describe('teleport join', async function () {
       operator_fee: l2Eth(operatorFee).res,
     });
     // console.log(daiSent);
-    // const receipt = await starknet.getTransactionReceipt(tx);
-    // const decodedEvents = await join.decodeEvents(receipt.events);
-    // console.log(decodedEvents[1].data.amount);
+    const receipt = await starknet.getTransactionReceipt(tx);
+    // const decodedEvents = await dai.decodeEvents(receipt.events);
+    // console.log(receipt);
     return [0, 0];
   }
 
@@ -929,6 +929,8 @@ describe('teleport join', async function () {
       spender: join.address,
       amount: l2Eth(eth('100000')).res,
     });
+    console.log(await dai.call('balanceOf', { user: _admin }));
+    console.log(await vat.call('dai', { u: daiJoin.address }));
 
     await settle(l2String('l2network'), VALID_DOMAINS, l2Eth(eth('100000')).res);
 
@@ -1092,19 +1094,19 @@ describe('teleport join', async function () {
 
     await invoke(admin, vat, 'cage');
 
-    await suck(0, _admin, l2Eth(100000n * RAD).res);
-    await invoke(admin, daiJoin, 'exit', { usr: _admin, wad: l2Eth(eth('100000')).res });
+    await suck(0, _admin, l2Eth(250000n * RAD).res);
+    await invoke(admin, daiJoin, 'exit', { usr: _admin, wad: l2Eth(eth('250000')).res });
     await invoke(admin, dai, 'approve', {
       spender: join.address,
-      amount: l2Eth(eth('100000')).res,
+      amount: l2Eth(eth('250000')).res,
     });
 
     await settle(l2String('l2network'), VALID_DOMAINS, l2Eth(eth('250000')).res);
 
     expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(0));
-    expect(await _ink()).to.deep.equal(l2Eth(eth('100000')).res);
-    expect(await _art()).to.deep.equal(l2Eth(eth('100000')).res);
-    expect(await join.call('cure')).to.deep.equal(l2Eth(100000n * RAD));
+    expect(await _ink()).to.deep.equal(l2Eth(eth('250000')).res);
+    expect(await _art()).to.deep.equal(l2Eth(eth('250000')).res);
+    expect(await join.call('cure')).to.deep.equal(l2Eth(250000n * RAD));
   });
 
   it('test register and withdraw paying operator fee', async () => {
@@ -1435,9 +1437,7 @@ describe('teleport join', async function () {
     });
 
     expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('100000')));
-    expect(await join.call('batches', { d: l2String('ethereum') })).to.deep.equal(
-      l2Eth(eth('100000'))
-    );
+    expect(await join.call('batches', { d: l2String('ethereum') })).to.deep.equal(l2Eth(eth('0')));
     expect(await join.call('nonce')).to.be.equal(0);
 
     await invoke(admin, join, 'initiateTeleport', {
@@ -1501,7 +1501,10 @@ describe('teleport join', async function () {
       l2Eth(eth('100000'))
     );
 
-    await invoke(admin, join, 'file_fdust', { what: 'fdust', data: l2Eth(eth('200000')).res });
+    await invoke(admin, join, 'file_fdust', {
+      what: l2String('fdust'),
+      data: l2Eth(eth('200000')).res,
+    });
     try {
       await invoke(admin, join, 'flush', { target_domain: l2String('ethereum') });
     } catch (err: any) {
