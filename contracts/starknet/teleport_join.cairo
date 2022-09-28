@@ -31,6 +31,7 @@ from contracts.starknet.safe_math import (
     _uint_to_felt,
     div,
     sub_signed256,
+    add_signed256,
 )
 from contracts.starknet.assertions import (
     eq_0,
@@ -653,7 +654,7 @@ func _mint{
     //         // which is already a uint248. Also int256 >> uint248. Then both castings are safe.
     //         debt[teleportGUID.sourceDomain] +=  int256(amtToTake);
     //         teleports[hashGUID].pending     -= uint248(amtToTake);
-    let (add_debt: Uint256) = add(debt_, amt_to_take);
+    let (add_debt: Uint256) = add_signed256(amt_to_take, debt_);
     _debts.write(teleportGUID.source_domain, add_debt);
     let (pending_update: Uint256) = sub(_teleport.pending, amt_to_take);
 
@@ -765,7 +766,7 @@ func get_amount_to_generate{
     // debt < 0
     if (condition == 0) {
         // uint256(int256(amtToTake) + debt_) // amtToTake - |debt_|
-        let (amt: Uint256) = add(amt_to_take, debt);
+        let (amt: Uint256) = add_signed256(amt_to_take, debt);
         return (amount_to_generate=amt);
     } else {
         return (amount_to_generate=amt_to_take);
@@ -1011,6 +1012,7 @@ func initiateTeleport{
         nonce=nonce + 1,
         timestamp=block_timestamp,
     );
+    _nonce.write(nonce + 1);
 
     // batches[targetDomain] += amount;
     let (batch) = _batches.read(target_domain);

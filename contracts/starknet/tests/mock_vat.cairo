@@ -209,3 +209,12 @@ func suck{
 
     return ();
 }
+
+@external
+func remove_debt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    i: felt, u: felt, val: Uint256
+) {
+    let (_urn) = _urns.read(i, u);
+    _urns.write(i, u, Urn(_urn.ink, val));
+    return ();
+}

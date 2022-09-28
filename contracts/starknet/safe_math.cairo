@@ -194,3 +194,16 @@ func sub_signed256{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(lhs: Uint256, 
     // Narrow and return
     return (res=res);
 }
+
+func add_signed256{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(lhs: Uint256, rhs: Uint256) -> (
+    res: Uint256
+) {
+    let (lhs_extend) = bitwise_and(lhs.high, 0x80000000000000000000000000000000);
+    let (rhs_extend) = bitwise_and(rhs.high, 0x80000000000000000000000000000000);
+    let (res: Uint256, carry: felt) = uint256_add(lhs, rhs);
+    let carry_extend = lhs_extend + rhs_extend + carry * 0x80000000000000000000000000000000;
+    let (msb) = bitwise_and(res.high, 0x80000000000000000000000000000000);
+    let (carry_lsb) = bitwise_and(carry_extend, 0x80000000000000000000000000000000);
+    assert msb = carry_lsb;
+    return (res=res);
+}
