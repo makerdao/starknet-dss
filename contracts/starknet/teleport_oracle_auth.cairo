@@ -198,7 +198,7 @@ func add_signers{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 ) {
     alloc_locals;
     auth();
-    add_signers_internal(signers__len - 1, signers_ + 1);
+    add_signers_internal(signers__len, signers_);
     SignersAdded.emit(signers__len, signers_);
     return ();
 }
@@ -224,7 +224,7 @@ func remove_signers{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 ) {
     alloc_locals;
     auth();
-    remove_signers_internal(signers__len - 1, signers_ + 1);
+    remove_signers_internal(signers__len, signers_);
     SignersRemoved.emit(signers__len, signers_);
     return ();
 }
@@ -238,8 +238,8 @@ func remove_signers_internal{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ran
     if (signers__len == 0) {
         return ();
     }
-   _signers.write(signers_[0], 0);
-  remove_signers_internal(signers__len - 1, signers_ + 1);
+    _signers.write(signers_[0], 0);
+    remove_signers_internal(signers__len - 1, signers_ + 1);
     return ();
 }
 
@@ -318,6 +318,7 @@ func request_mint{
 //             unchecked { i++; }
 //         }
 //     }
+@view
 func validate{
     syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, ec_op_ptr: EcOpBuiltin*
 }(message: felt, signatures_len: felt, signatures: Signature*, threshold_: felt, previous: felt) {
@@ -340,7 +341,7 @@ func validate{
     let (valid_signer) = _signers.read(sig.pk);
 
     if (valid_signer == 1) {
-    // TODO: switch to ecrecover like function when available
+        // TODO: switch to ecrecover like function when available
         let (valid_signature) = check_ecdsa_signature(message, sig.pk, sig.r, sig.s);
         if (valid_signature == 1) {
             validate(message, signatures_len - 1, signatures + 1, threshold_ - 1, sig.pk);
