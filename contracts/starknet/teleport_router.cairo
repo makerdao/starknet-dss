@@ -12,6 +12,7 @@ from starkware.cairo.common.math_cmp import is_not_zero
 from starkware.cairo.common.math import assert_not_zero
 from contracts.starknet.assertions import assert_either, is_eq
 from contracts.starknet.teleport_GUID import TeleportGUID
+from contracts.starknet.enumerableset import EnumerableSet
 
 // interface TokenLike {
 //     function approve(address, uint256) external returns (bool);
@@ -49,8 +50,8 @@ func _wards(address: felt) -> (res: felt) {
 func _gateways(domain: felt) -> (res: felt) {
 }
 
-// TODO
 // EnumerableSet.Bytes32Set private allDomains;
+const SET_ID = 0;
 @storage_var
 func _allDomains() -> (res: felt) {
 }
@@ -100,14 +101,16 @@ func auth{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
 
 // constructor(address dai_) {
 @constructor
-func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(dai: felt) {
+func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    ward: felt, dai: felt
+) {
     // dai = TokenLike(dai_);
     _dai.write(dai);
 
     let (caller) = get_caller_address();
 
     // wards[msg.sender] = 1;
-    _wards.write(caller, 1);
+    _wards.write(ward, 1);
 
     // emit Rely(msg.sender);
     Rely.emit(caller);
@@ -132,14 +135,14 @@ func rely{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: 
 
 // function deny(address usr) external auth {
 @external
-func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user: felt) {
+func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: felt) {
     auth();
 
     // wards[usr] = 0;
-    _wards.write(user, 0);
+    _wards.write(usr, 0);
 
     // emit Deny(usr);
-    Deny.emit(user);
+    Deny.emit(usr);
 
     return ();
 }
@@ -150,6 +153,7 @@ func file{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     what: felt, domain: felt, data: felt
 ) {
     alloc_locals;
+    auth();
     with_attr error_message("TeleportRouter/file-unrecognized-param") {
         assert what = 'gateway';
     }
@@ -159,15 +163,27 @@ func file{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 
     // if(prevGateway == address(0)) {
     if (prev_gateway == 0) {
-        // if(data != address(0)) allDomains.add(domain);
-        let is_data_zero = is_not_zero(data);
-        if (is_data_zero == 0) {
-            // allDomains.add(domain); TODO
+        let is_data_not_zero = is_not_zero(data);
+        if (is_data_not_zero == 1) {
+            EnumerableSet.add(set_id=SET_ID, value=domain);
+            tempvar pedersen_ptr: HashBuiltin* = pedersen_ptr;
+            tempvar syscall_ptr: felt* = syscall_ptr;
+            tempvar range_check_ptr = range_check_ptr;
+        } else {
+            tempvar pedersen_ptr: HashBuiltin* = pedersen_ptr;
+            tempvar syscall_ptr: felt* = syscall_ptr;
+            tempvar range_check_ptr = range_check_ptr;
         }
     } else {
-        // if(data == address(0)) allDomains.remove(domain);
         if (data == 0) {
-            // allDomains.remove(domain); TODO
+            EnumerableSet.remove(set_id=SET_ID, value=domain);
+            tempvar pedersen_ptr: HashBuiltin* = pedersen_ptr;
+            tempvar syscall_ptr: felt* = syscall_ptr;
+            tempvar range_check_ptr = range_check_ptr;
+        } else {
+            tempvar pedersen_ptr: HashBuiltin* = pedersen_ptr;
+            tempvar syscall_ptr: felt* = syscall_ptr;
+            tempvar range_check_ptr = range_check_ptr;
         }
     }
 
@@ -203,22 +219,54 @@ func file_parent{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 // function numDomains() external view returns (uint256) {
 @view
 func numDomains{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
-    // return allDomains.length(); TODO
-    return (0,);
+    let (length) = EnumerableSet.length(set_id=SET_ID);
+    return (res=length);
 }
 
 // function domainAt(uint256 index) external view returns (bytes32) {
 @view
-func domainAt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(index: felt) {
-    // return allDomains.at(index); TODO
-    return ();
+func domainAt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(index: felt) -> (
+    res: felt
+) {
+    let (res) = EnumerableSet.at(set_id=SET_ID, index=index);
+    return (res=res);
 }
 
 // function hasDomain(bytes32 domain) external view returns (bool) {
 @view
-func hasDomain{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(domain: felt) {
-    // return allDomains.contains(domain); TODO
-    return ();
+func hasDomain{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(domain: felt) -> (
+    res: felt
+) {
+    let (contains) = EnumerableSet.contains(set_id=SET_ID, value=domain);
+    return (res=contains);
+}
+
+@view
+func dai{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _dai.read();
+    return (res=res);
+}
+
+@view
+func parent{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _parent.read();
+    return (res=res);
+}
+
+@view
+func wards{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user: felt) -> (
+    res: felt
+) {
+    let (res) = _wards.read(user);
+    return (res,);
+}
+
+@view
+func gateways{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(domain: felt) -> (
+    res: felt
+) {
+    let (res) = _gateways.read(domain);
+    return (res,);
 }
 
 // function registerMint(TeleportGUID calldata teleportGUID) external {
