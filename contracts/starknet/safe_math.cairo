@@ -170,7 +170,7 @@ func div{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     return (c,);
 }
 
-func sub_signed256{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(lhs: Uint256, rhs: Uint256) -> (
+func sub_signed256{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(lhs: Int256, rhs: Int256) -> (
     res: Uint256
 ) {
     // First sign extend both operands
@@ -195,7 +195,7 @@ func sub_signed256{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(lhs: Uint256, 
     return (res=res);
 }
 
-func add_signed256{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(lhs: Uint256, rhs: Uint256) -> (
+func add_signed256{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(lhs: Int256, rhs: Int256) -> (
     res: Uint256
 ) {
     let (lhs_extend) = bitwise_and(lhs.high, 0x80000000000000000000000000000000);

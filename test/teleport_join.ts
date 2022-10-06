@@ -12,7 +12,6 @@ import {
   toBytes32,
   l2String,
   invoke,
-  MAX_UINT,
   SplitUintType,
 } from './utils';
 
