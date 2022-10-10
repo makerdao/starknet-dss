@@ -67,7 +67,7 @@ const config: HardhatUserConfig = {
     // venv: 'active',
     venv: './.venv',
     network: 'starknetLocal',
-    recompile: true,
+    // recompile: true,
   },
   paths: {
     cairoPaths: ['./contracts/starknet/fossil/contracts', './contracts/starknet/vat.cairo'],
