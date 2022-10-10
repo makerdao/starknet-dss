@@ -198,7 +198,7 @@ func add_signers{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 ) {
     alloc_locals;
     auth();
-    add_signers_internal(signers__len - 1, signers_ + 1);
+    add_signers_internal(signers__len, signers_);
     SignersAdded.emit(signers__len, signers_);
     return ();
 }
@@ -224,7 +224,7 @@ func remove_signers{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 ) {
     alloc_locals;
     auth();
-    remove_signers_internal(signers__len - 1, signers_ + 1);
+    remove_signers_internal(signers__len, signers_);
     SignersRemoved.emit(signers__len, signers_);
     return ();
 }
@@ -318,6 +318,7 @@ func request_mint{
 //             unchecked { i++; }
 //         }
 //     }
+@view
 func validate{
     syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, ec_op_ptr: EcOpBuiltin*
 }(message: felt, signatures_len: felt, signatures: Signature*, threshold_: felt, previous: felt) {

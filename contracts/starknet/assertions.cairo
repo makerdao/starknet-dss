@@ -7,11 +7,9 @@ from starkware.cairo.common.uint256 import (
     uint256_eq,
     uint256_lt,
     uint256_signed_le,
-    uint256_signed_lt,
     uint256_le,
     uint256_check,
 )
-from contracts.starknet.safe_math import Int256
 
 func either(a: felt, b: felt) -> (res: felt) {
     if (a + b == 0) {
@@ -78,17 +76,6 @@ func le{range_check_ptr}(a: Uint256, b: Uint256) -> (res: felt) {
     }
 }
 
-func le_int{range_check_ptr}(a: Int256, b: Int256) -> (res: felt) {
-    alloc_locals;
-    let (local lt) = uint256_signed_le(a, b);
-    let (eq) = uint256_eq(a, b);
-    if (lt + eq == 0) {
-        return (0,);
-    } else {
-        return (1,);
-    }
-}
-
 func assert_le{range_check_ptr}(a: Uint256, b: Uint256) -> () {
     let (is_le) = le(a, b);
     assert is_le = 1;
@@ -115,10 +102,10 @@ func check{range_check_ptr}(a: Uint256) {
     return ();
 }
 
-func is_eq(a: felt, b: felt) -> (res: felt) {
-    if (a == b) {
-        return (1,);
-    } else {
+func is_lt{syscall_ptr: felt*, range_check_ptr}(lhs: felt, rhs: felt) -> (res: felt) {
+    if (rhs == 0) {
         return (0,);
     }
+    let res: felt = is_le(lhs, rhs - 1);
+    return (res,);
 }

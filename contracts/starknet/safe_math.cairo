@@ -1,6 +1,5 @@
 from starkware.cairo.common.bitwise import bitwise_and
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
-from starkware.cairo.common.math import assert_lt_felt, split_felt
 from starkware.cairo.common.uint256 import (
     Uint256,
     uint256_add,
@@ -122,40 +121,9 @@ func _mul{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(lhs: Uint256, rhs: Int2
     return (res,);
 }
 
-// function _min(uint256 x, uint256 y) internal pure returns (uint256 z) {
-//         z = x <= y ? x : y;
-//     }
-func min{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    x: Uint256, y: Uint256
-) -> (z: Uint256) {
-    let (x_le: felt) = uint256_le(x, y);
-    if (x_le == 1) {
-        return (z=x);
-    } else {
-        return (z=y);
-    }
-}
-
-func _uint_to_felt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    value: Uint256
-) -> (value: felt) {
-    assert_lt_felt(value.high, 2 ** 123);
-    return (value.high * (2 ** 128) + value.low,);
-}
-
-func _felt_to_uint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    value: felt
-) -> (value: Uint256) {
-    let (high, low) = split_felt(value);
-    tempvar res: Uint256;
-    res.high = high;
-    res.low = low;
-    return (res,);
-}
-
-func div{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+func div_rem{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     a: Uint256, b: Uint256
-) -> (c: Uint256) {
+) -> (c: Uint256, rem: Uint256) {
     alloc_locals;
     uint256_check(a);
     uint256_check(b);
@@ -166,5 +134,5 @@ func div{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     }
 
     let (c: Uint256, rem: Uint256) = uint256_unsigned_div_rem(a, b);
-    return (c,);
+    return (c, rem);
 }

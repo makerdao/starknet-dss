@@ -1,7 +1,6 @@
 import { BigNumber } from 'ethers';
 import { parseEther } from 'ethers/lib/utils';
-import { StarknetContract } from 'hardhat/types';
-import fetch from 'node-fetch';
+import { StarknetContract, Account } from 'hardhat/types';
 import { validateAndParseAddress } from 'starknet';
 
 type SplitUintType = { low: bigint; high: bigint };
@@ -92,4 +91,13 @@ export async function simpleDeployL2(
 ): Promise<StarknetContract> {
   const factory = await hre.starknet.getContractFactory(name);
   return factory.deploy(args);
+}
+
+export async function invoke(
+  user: Account,
+  contract: StarknetContract,
+  selector: string,
+  data?: any
+) {
+  return user.invoke(contract, selector, data);
 }

@@ -542,13 +542,6 @@ func ink{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(i: fel
 // function art(bytes32 ilk, address urn) external view returns (uint256 art_) {
 //     art_ = urns[ilk][urn].art;
 // }
-@view
-func art{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(i: felt, u: felt) -> (
-    res: Uint256
-) {
-    let (res: Urn) = _urns.read(i, u);
-    return (res.art,);
-}
 
 // // --- Allowance ---
 // function hope(address usr) external {

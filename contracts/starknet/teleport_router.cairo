@@ -9,8 +9,7 @@ from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.starknet.common.syscalls import get_contract_address, get_caller_address
 from starkware.cairo.common.uint256 import Uint256
 from starkware.cairo.common.math_cmp import is_not_zero
-from starkware.cairo.common.math import assert_not_zero
-from contracts.starknet.assertions import assert_either, is_eq
+from contracts.starknet.assertions import assert_either
 from contracts.starknet.teleport_GUID import TeleportGUID
 
 // interface TokenLike {
@@ -52,7 +51,7 @@ func _gateways(domain: felt) -> (res: felt) {
 // TODO
 // EnumerableSet.Bytes32Set private allDomains;
 @storage_var
-func _allDomains() -> (res: felt) {
+func _allDomains() -> () {
 }
 
 // address public parent;
@@ -77,12 +76,12 @@ func Deny(usr: felt) {
 
 // event File(bytes32 indexed what, bytes32 indexed domain, address data);
 @event
-func File_parent(what: felt, data: felt) {
+func File_ilk(what: felt, domain: felt, data: felt) {
 }
 
 // event File(bytes32 indexed what, address data);
 @event
-func File_gateway(what: felt, domain: felt, data: felt) {
+func File(what: felt, data: felt) {
 }
 
 // modifier auth {
@@ -121,6 +120,9 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 func rely{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: felt) {
     auth();
 
+    // require(live == 1, "Vat/not-live");
+    require_live();
+
     // wards[usr] = 1;
     _wards.write(usr, 1);
 
@@ -149,13 +151,8 @@ func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user:
 func file{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     what: felt, domain: felt, data: felt
 ) {
-    alloc_locals;
-    with_attr error_message("TeleportRouter/file-unrecognized-param") {
-        assert what = 'gateway';
-    }
-
     // address prevGateway = gateways[domain];
-    let (prev_gateway) = _gateways.read(domain);
+    let prev_gateway = _gateways.read(domain);
 
     // if(prevGateway == address(0)) {
     if (prev_gateway == 0) {
@@ -174,16 +171,21 @@ func file{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     // gateways[domain] = data;
     _gateways.write(domain, data);
 
+    // else revert("TeleportRouter/file-unrecognized-param");
+    with_attr error_message("TeleportRouter/file-unrecognized-param") {
+        assert what = 'gateway';
+    }
+
     // emit File(what, domain, data);
-    File_gateway.emit(what, domain, data);
+    File_ilk.emit(ilk, what, data);
 
     return ();
 }
 
 // function file(bytes32 what, address data) external auth {
 @external
-func file_parent{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    what: felt, data: felt
+func file{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    what: felt, data: Uint256
 ) {
     auth();
 
@@ -195,7 +197,7 @@ func file_parent{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     _parent.write(data);
 
     // emit File(what, data);
-    File_parent.emit(what, data);
+    File.emit(what, data);
 
     return ();
 }
@@ -204,21 +206,18 @@ func file_parent{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 @view
 func numDomains{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
     // return allDomains.length(); TODO
-    return (0,);
 }
 
 // function domainAt(uint256 index) external view returns (bytes32) {
 @view
 func domainAt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(index: felt) {
     // return allDomains.at(index); TODO
-    return ();
 }
 
 // function hasDomain(bytes32 domain) external view returns (bool) {
 @view
 func hasDomain{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(domain: felt) {
     // return allDomains.contains(domain); TODO
-    return ();
 }
 
 // function registerMint(TeleportGUID calldata teleportGUID) external {
@@ -226,19 +225,22 @@ func hasDomain{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 func registerMint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     teleportGUID: TeleportGUID
 ) {
-    alloc_locals;
     // require(msg.sender == parent || msg.sender == gateways[teleportGUID.sourceDomain], "TeleportRouter/sender-not-gateway");
-    let (parent) = _parent.read();
-
     with_attr error_message("TeleportRouter/sender-not-gateway") {
         let (caller) = get_caller_address();
-        let (parent_eq) = is_eq(caller, parent);
-        let (source_gateway) = _gateways.read(teleportGUID.source_domain);
-        let (gateway_eq) = is_eq(caller, source_gateway);
+        let parent_eq = is_not_zero(caller - parent);
+        let (source_gateway) = _gateways.read(teleportGUID.sourceDomain);
+        let gateway_eq = is_not_zero(caller - source_gateway);
         assert_either(parent_eq, gateway_eq);
     }
 
-    let (gateway) = get_gateway(teleportGUID.target_domain, parent);
+    // address gateway = gateways[teleportGUID.targetDomain];
+    let gateway = _gateways.read(teleportGUID.targetDomain);
+
+    // if (gateway == address(0)) gateway = parent;
+    if (gateway == 0) {
+        _gateway.write(parent);
+    }
 
     // require(gateway != address(0), "TeleportRouter/unsupported-target-domain");
     with_attr error_message("TeleportRouter/unsupported-target-domain") {
@@ -251,32 +253,19 @@ func registerMint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
     return ();
 }
 
-func get_gateway{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    targetDomain: felt, parent: felt
-) -> (gateway: felt) {
-    let (_gateway) = _gateways.read(targetDomain);
-    if (_gateway == 0) {
-        return (gateway=parent);
-    } else {
-        return (gateway=_gateway);
-    }
-}
-
 // function settle(bytes32 sourceDomain, bytes32 targetDomain, uint256 amount) external {
 @external
 func settle{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     source_domain: felt, target_domain: felt, amount: Uint256
 ) {
-    alloc_locals;
     let (caller) = get_caller_address();
     let (contract_address) = get_contract_address();
-    let (parent) = _parent.read();
 
     // require(msg.sender == parent || msg.sender == gateways[sourceDomain], "TeleportRouter/sender-not-gateway");
     with_attr error_message("TeleportRouter/sender-not-gateway") {
-        let (parent_eq) = is_eq(caller, parent);
+        let parent_eq = is_not_zero(caller - parent);
         let (source_gateway) = _gateways.read(source_domain);
-        let (gateway_eq) = is_eq(caller, source_gateway);
+        let gateway_eq = is_not_zero(caller - source_gateway);
         assert_either(parent_eq, gateway_eq);
     }
 
@@ -296,13 +285,11 @@ func settle{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     let (dai) = _dai.read();
 
     // dai.transferFrom(msg.sender, address(this), amount);
-    TokenLike.transferFrom(dai, caller, contract_address, amount);
+    DaiLike.transferFrom(dai, caller, contract_address, amount);
 
     // dai.approve(gateway, amount);
-    TokenLike.approve(dai, gateway, amount);
+    DaiLike.approve(dai, gateway, amount);
 
     // GatewayLike(gateway).settle(sourceDomain, targetDomain, amount);
     GatewayLike.settle(gateway, source_domain, target_domain, amount);
-
-    return ();
 }
