@@ -5,14 +5,19 @@
 
 %lang starknet
 
-from starkware.cairo.common.cairo_builtins import HashBuiltin
-from starkware.starknet.common.syscalls import get_contract_address, get_caller_address
+from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
+from starkware.starknet.common.syscalls import (
+    get_contract_address,
+    get_caller_address,
+    get_block_timestamp,
+)
 from starkware.cairo.common.uint256 import Uint256
 from starkware.cairo.common.math_cmp import is_not_zero
 from starkware.cairo.common.math import assert_not_zero
-from contracts.starknet.assertions import assert_either, is_eq
+from contracts.starknet.assertions import assert_either, is_eq, le
 from contracts.starknet.teleport_GUID import TeleportGUID
 from contracts.starknet.enumerableset import EnumerableSet
+from contracts.starknet.safe_math import add
 
 // interface TokenLike {
 //     function approve(address, uint256) external returns (bool);
@@ -50,15 +55,33 @@ func _wards(address: felt) -> (res: felt) {
 func _gateways(domain: felt) -> (res: felt) {
 }
 
+// Pending DAI to flush per target domain
+@storage_var
+func _batches(domain: felt) -> (res: Uint256) {
+}
+
 // EnumerableSet.Bytes32Set private allDomains;
 const SET_ID = 0;
 @storage_var
 func _allDomains() -> (res: felt) {
 }
 
+// The minimum amount of DAI to be flushed per target domain (prevent spam)
+@storage_var
+func _fdust() -> (res: Uint256) {
+}
+
+@storage_var
+func _nonce() -> (res: felt) {
+}
+
+@storage_var
+func _domain() -> (res: felt) {
+}
+
 // address public parent;
 @storage_var
-func _parent() -> (res: felt) {
+func _parentDomain() -> (res: felt) {
 }
 
 // TokenLike immutable public dai; // L1 DAI ERC20 token
@@ -76,14 +99,21 @@ func Rely(usr: felt) {
 func Deny(usr: felt) {
 }
 
-// event File(bytes32 indexed what, bytes32 indexed domain, address data);
 @event
-func File_parent(what: felt, data: felt) {
+func File_fdust(what: felt, data: Uint256) {
 }
 
 // event File(bytes32 indexed what, address data);
 @event
 func File_gateway(what: felt, domain: felt, data: felt) {
+}
+
+@event
+func InitiateTeleport(teleport: TeleportGUID) {
+}
+
+@event
+func Flush(target_domain: felt, dai: Uint256) {
 }
 
 // modifier auth {
@@ -102,12 +132,17 @@ func auth{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
 // constructor(address dai_) {
 @constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    ward: felt, dai: felt
+    ward: felt, dai: felt, domain: felt, parent_domain: felt
 ) {
     // dai = TokenLike(dai_);
     _dai.write(dai);
 
     let (caller) = get_caller_address();
+
+    // domain = domain_;
+    //     parentDomain = parentDomain_;
+    _domain.write(domain);
+    _parentDomain.write(parent_domain);
 
     // wards[msg.sender] = 1;
     _wards.write(ward, 1);
@@ -198,20 +233,20 @@ func file{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 
 // function file(bytes32 what, address data) external auth {
 @external
-func file_parent{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    what: felt, data: felt
+func file_fdust{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    what: felt, data: Uint256
 ) {
     auth();
 
     // if (what == "parent") parent = data;
     // else revert("TeleportRouter/file-unrecognized-param");
     with_attr error_message("TeleportRouter/file-unrecognized-param") {
-        assert what = 'parent';
+        assert what = 'fdust';
     }
-    _parent.write(data);
+    _fdust.write(data);
 
     // emit File(what, data);
-    File_parent.emit(what, data);
+    File_fdust.emit(what, data);
 
     return ();
 }
@@ -248,8 +283,28 @@ func dai{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
 }
 
 @view
-func parent{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
-    let (res) = _parent.read();
+func nonce{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _nonce.read();
+    return (res=res);
+}
+
+@view
+func fdust{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: Uint256) {
+    let (res) = _fdust.read();
+    return (res=res);
+}
+
+@view
+func parentDomain{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+    res: felt
+) {
+    let (res) = _parentDomain.read();
+    return (res=res);
+}
+
+@view
+func domain{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _domain.read();
     return (res=res);
 }
 
@@ -269,24 +324,41 @@ func gateways{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(d
     return (res,);
 }
 
+@view
+func batches{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(domain: felt) -> (
+    res: Uint256
+) {
+    let (res) = _batches.read(domain);
+    return (res,);
+}
+
 // function registerMint(TeleportGUID calldata teleportGUID) external {
 @external
 func registerMint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     teleportGUID: TeleportGUID
 ) {
     alloc_locals;
-    // require(msg.sender == parent || msg.sender == gateways[teleportGUID.sourceDomain], "TeleportRouter/sender-not-gateway");
-    let (parent) = _parent.read();
-
+    // require(msg.sender == gateways[parentDomain] || msg.sender == gateways[teleportGUID.sourceDomain], "TeleportRouter/sender-not-gateway");
+    let (parentDomain) = _parentDomain.read();
     with_attr error_message("TeleportRouter/sender-not-gateway") {
         let (caller) = get_caller_address();
-        let (parent_eq) = is_eq(caller, parent);
+        let (parent_gateway) = _gateways.read(parentDomain);
+        let (parent_eq) = is_eq(caller, parent_gateway);
         let (source_gateway) = _gateways.read(teleportGUID.source_domain);
         let (gateway_eq) = is_eq(caller, source_gateway);
         assert_either(parent_eq, gateway_eq);
     }
 
-    let (gateway) = get_gateway(teleportGUID.target_domain, parent);
+    _registerMint(teleportGUID);
+
+    return ();
+}
+
+func _registerMint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    teleportGUID: TeleportGUID
+) {
+    let (parentDomain) = _parentDomain.read();
+    let (gateway) = get_gateway(teleportGUID.target_domain, parentDomain);
 
     // require(gateway != address(0), "TeleportRouter/unsupported-target-domain");
     with_attr error_message("TeleportRouter/unsupported-target-domain") {
@@ -295,19 +367,7 @@ func registerMint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
 
     // GatewayLike(gateway).registerMint(teleportGUID);
     GatewayLike.registerMint(gateway, teleportGUID);
-
     return ();
-}
-
-func get_gateway{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    targetDomain: felt, parent: felt
-) -> (gateway: felt) {
-    let (_gateway) = _gateways.read(targetDomain);
-    if (_gateway == 0) {
-        return (gateway=parent);
-    } else {
-        return (gateway=_gateway);
-    }
 }
 
 // function settle(bytes32 sourceDomain, bytes32 targetDomain, uint256 amount) external {
@@ -318,23 +378,27 @@ func settle{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     alloc_locals;
     let (caller) = get_caller_address();
     let (contract_address) = get_contract_address();
-    let (parent) = _parent.read();
+    let (parent_domain) = _parentDomain.read();
 
-    // require(msg.sender == parent || msg.sender == gateways[sourceDomain], "TeleportRouter/sender-not-gateway");
+    // require(msg.sender == gateways[parentDomain] || msg.sender == gateways[sourceDomain], "TeleportRouter/sender-not-gateway");
     with_attr error_message("TeleportRouter/sender-not-gateway") {
-        let (parent_eq) = is_eq(caller, parent);
+        let (parent_gateway) = _gateways.read(parent_domain);
         let (source_gateway) = _gateways.read(source_domain);
+        let (parent_eq) = is_eq(caller, parent_gateway);
         let (gateway_eq) = is_eq(caller, source_gateway);
         assert_either(parent_eq, gateway_eq);
     }
 
-    // address gateway = gateways[targetDomain];
-    let (gateway) = _gateways.read(target_domain);
+    _settle(caller, source_domain, target_domain, amount);
 
-    // if (gateway == address(0)) gateway = parent;
-    if (gateway == 0) {
-        gateway = parent;
-    }
+    return ();
+}
+
+func _settle{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    from_: felt, source_domain: felt, target_domain: felt, amount: Uint256
+) {
+    let (parent_domain) = _parentDomain.read();
+    let (gateway) = get_gateway(target_domain, parent_domain);
 
     // require(gateway != address(0), "TeleportRouter/unsupported-target-domain")
     with_attr error_message("TeleportRouter/unsupported-target-domain") {
@@ -343,14 +407,97 @@ func settle{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 
     let (dai) = _dai.read();
 
-    // dai.transferFrom(msg.sender, address(this), amount);
-    TokenLike.transferFrom(dai, caller, contract_address, amount);
-
-    // dai.approve(gateway, amount);
-    TokenLike.approve(dai, gateway, amount);
+    // Forward the DAI to settle to the gateway contract
+    // dai.transferFrom(from, gateway, amount);
+    TokenLike.transferFrom(dai, from_, gateway, amount);
 
     // GatewayLike(gateway).settle(sourceDomain, targetDomain, amount);
     GatewayLike.settle(gateway, source_domain, target_domain, amount);
+    return ();
+}
+
+@external
+func initiateTeleport{
+    syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*
+}(target_domain: felt, receiver: felt, amount: felt, operator: felt) {
+    alloc_locals;
+    let (domain) = _domain.read();
+    let (nonce) = _nonce.read();
+    let (block_timestamp) = get_block_timestamp();
+    let teleport: TeleportGUID = TeleportGUID(
+        source_domain=domain,
+        target_domain=target_domain,
+        receiver=receiver,
+        operator=operator,
+        amount=Uint256(amount, 0),
+        nonce=nonce + 1,
+        timestamp=block_timestamp,
+    );
+    _nonce.write(nonce + 1);
+
+    let (batch) = _batches.read(target_domain);
+    let (new_batch) = add(batch, Uint256(amount, 0));
+    _batches.write(target_domain, new_batch);
+
+    let (caller) = get_caller_address();
+    let (this) = get_contract_address();
+    let (dai) = _dai.read();
+    let (success) = TokenLike.transferFrom(dai, caller, this, Uint256(amount, 0));
+
+    with_attr error_message("TeleportRouter/transfer-failed") {
+        assert success = 1;
+    }
+
+    // Initiate the censorship-resistant slow-path
+    // _registerMint(teleport);
+    _registerMint(teleport);
+
+    // Oracle listens to this event for the fast-path
+    // emit InitiateTeleport(teleport);
+    InitiateTeleport.emit(teleport);
 
     return ();
+}
+
+//
+// * @notice Flush batched DAI to the target domain
+// * @dev Will initiate a settle operation along the secure, slow routing path
+// * @param targetDomain The target domain to settle
+@external
+func flush{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(target_domain: felt) {
+    alloc_locals;
+
+    // uint256 daiToFlush = batches[targetDomain];
+    //     require(daiToFlush >= fdust, "TeleportRouter/flush-dust");
+    let (dai_to_flush) = _batches.read(target_domain);
+    let (fdust) = _fdust.read();
+    with_attr error_message("TeleportRouter/flush-dust") {
+        let (valid) = le(fdust, dai_to_flush);
+        assert valid = 1;
+    }
+
+    // batches[targetDomain] = 0;
+    _batches.write(target_domain, Uint256(0, 0));
+
+    // _settle(address(this), domain, targetDomain, daiToFlush);
+    let (this) = get_contract_address();
+    let (domain) = _domain.read();
+    _settle(this, domain, target_domain, dai_to_flush);
+
+    // emit Flush(targetDomain, daiToFlush);
+    Flush.emit(target_domain, dai_to_flush);
+
+    return ();
+}
+
+func get_gateway{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    targetDomain: felt, parentDomain: felt
+) -> (gateway: felt) {
+    let (_gateway) = _gateways.read(targetDomain);
+    let (_parentGateway) = _gateways.read(parentDomain);
+    if (_gateway == 0) {
+        return (gateway=_parentGateway);
+    } else {
+        return (gateway=_gateway);
+    }
 }
