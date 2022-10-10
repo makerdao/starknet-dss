@@ -53,7 +53,7 @@ const config: HardhatUserConfig = {
       chainId: 31337,
     },
     starknetLocal: {
-      url: 'http://localhost:9000',
+      url: 'http://localhost:8000',
       // stdout: 'STDOUT',
     },
   },
@@ -67,7 +67,7 @@ const config: HardhatUserConfig = {
   starknet: {
     venv: './.venv',
     network: 'starknetLocal',
-    recompile: true,
+    // recompile: true,
   },
   paths: {
     cairoPaths: ['./contracts/starknet/vat.cairo'],

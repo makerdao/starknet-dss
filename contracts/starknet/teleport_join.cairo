@@ -118,9 +118,6 @@ namespace DaiJoinLike {
 // }
 @contract_interface
 namespace TokenLike {
-    func transferFrom(sender: felt, recipient: felt, amount: Uint256) -> (res: felt) {
-    }
-
     func approve(spender: felt, amount: Uint256) -> (res: felt) {
     }
 }
@@ -136,20 +133,6 @@ namespace FeesLike {
     }
 }
 
-// interface GatewayLike {
-//     function registerMint(TeleportGUID calldata teleportGUID) external;
-//     function settle(bytes32 sourceDomain, bytes32 targetDomain, uint256 amount) external;
-// }
-@contract_interface
-namespace GatewayLike {
-    func registerMint(teleportGUID: TeleportGUID) {
-    }
-
-    func settle(source_domain: felt, target_domain: felt, amount: Uint256) {
-    }
-}
-
-const MAX_NONCE = 2 ** 80 - 1;
 // const MAX_UINT = Uint256(2 ** 128 - 1, 2 ** 128 - 1)
 
 // // Primary control for extending Teleport credit
@@ -186,11 +169,6 @@ func _vow() -> (res: felt) {
 // uint256 internal art; // We need to preserve the last art value before the position being skimmed (End)
 @storage_var
 func _art() -> (res: Uint256) {
-}
-
-// uint80  public nonce;
-@storage_var
-func _nonce() -> (res: felt) {
 }
 
 // uint256 public fdust; // The minimum amount of DAI to be flushed per target domain (prevent spam)
@@ -298,7 +276,7 @@ func Settle(source_domain: felt, amount: Uint256) {
 //     }
 @constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    ward: felt, vat_: felt, daiJoin_: felt, ilk_: felt, domain_: felt, router_: felt
+    ward: felt, vat_: felt, daiJoin_: felt, ilk_: felt, domain_: felt
 ) {
     // let (caller) = get_caller_address();
     _wards.write(ward, 1);
@@ -312,8 +290,6 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     TokenLike.approve(dai, daiJoin_, Uint256(2 ** 128 - 1, 2 ** 128 - 1));
     _ilk.write(ilk_);
     _domain.write(domain_);
-    _router.write(router_);
-    TokenLike.approve(dai, router_, Uint256(2 ** 128 - 1, 2 ** 128 - 1));
 
     return ();
 }
@@ -359,12 +335,6 @@ func ilk{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
 }
 
 @view
-func nonce{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
-    let (res) = _nonce.read();
-    return (res,);
-}
-
-@view
 func teleports{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(hash: felt) -> (
     res: TeleportStatus
 ) {
@@ -375,12 +345,6 @@ func teleports{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 @view
 func fees{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(d: felt) -> (res: felt) {
     let (res) = _fees.read(d);
-    return (res,);
-}
-
-@view
-func fdust{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: Uint256) {
-    let (res) = _fdust.read();
     return (res,);
 }
 
@@ -478,31 +442,6 @@ func file_vow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     return ();
 }
 
-// function file(bytes32 what, uint256 data) external auth {
-//         if (what == "fdust") {
-//             fdust = data;
-//         } else {
-//             revert("TeleportJoin/file-unrecognized-param");
-//         }
-//         emit File(what, data);
-//     }
-@external
-func file_fdust{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    what: felt, data: Uint256
-) {
-    auth();
-
-    with_attr error_message("TeleportJoin/file-unrecognized-param") {
-        assert what = 'fdust';
-    }
-
-    _fdust.write(data);
-
-    File_fdust.emit(what, data);
-
-    return ();
-}
-
 // function file(bytes32 what, bytes32 domain_, address data) external auth {
 //         if (what == "fees") {
 //             fees[domain_] = data;
@@ -570,6 +509,29 @@ func cure{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> 
     let (art) = _art.read();
     let (res) = mul(art, Uint256(RAY, 0));
     return (res,);
+}
+
+// /**
+//     * @dev Internal function that registers a teleport
+//     * @param teleportGUID Struct which contains the whole teleport data
+//     * @param hashGUID Hash of the prev struct
+//     **/
+func _register{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    teleportGUID: TeleportGUID, hashGUID: felt
+) {
+    // require(!teleports[hashGUID].blessed, "TeleportJoin/already-blessed");
+    // teleports[hashGUID].blessed = true;
+    // teleports[hashGUID].pending = teleportGUID.amount;
+    // emit Register(hashGUID, teleportGUID);
+    with_attr error_message("TeleportJoin/already-blessed") {
+        let (teleport) = _teleports.read(hashGUID);
+        assert teleport.blessed = 0;
+    }
+    let new_teleport = TeleportStatus(blessed=1, pending=teleportGUID.amount);
+    _teleports.write(hashGUID, new_teleport);
+
+    Register.emit(hashGUID, teleportGUID);
+    return ();
 }
 
 // /**
@@ -795,14 +757,7 @@ func registerMint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
     let (__fp__, _) = get_fp_and_pc();
 
     let (hashGUID) = get_GUID_hash(&teleportGUID);
-    with_attr error_message("TeleportJoin/already-blessed") {
-        let (teleport) = _teleports.read(hashGUID);
-        assert teleport.blessed = 0;
-    }
-    let new_teleport = TeleportStatus(blessed=1, pending=teleportGUID.amount);
-    _teleports.write(hashGUID, new_teleport);
-
-    Register.emit(hashGUID, teleportGUID);
+    _register(teleportGUID, hashGUID);
     return ();
 }
 
@@ -835,14 +790,7 @@ func requestMint{
     auth();
     let (__fp__, _) = get_fp_and_pc();
     let (hashGUID) = get_GUID_hash(&teleportGUID);
-    with_attr error_message("TeleportJoin/already-blessed") {
-        let (teleport) = _teleports.read(hashGUID);
-        assert teleport.blessed = 0;
-    }
-    let new_teleport = TeleportStatus(blessed=1, pending=teleportGUID.amount);
-    _teleports.write(hashGUID, new_teleport);
-
-    Register.emit(hashGUID, teleportGUID);
+    _register(teleportGUID, hashGUID);
 
     let (post_fee_amount: Uint256, total_fee: Uint256) = _mint(
         teleportGUID, hashGUID, max_fee_percentage, operator_fee
@@ -931,7 +879,6 @@ func settle{
 
     let (caller) = get_caller_address();
     let (self) = get_contract_address();
-    TokenLike.transferFrom(dai, caller, self, amount);
     DaiJoinLike.join(daiJoin, self, amount);
 
     let (vat) = _vat.read();
@@ -966,165 +913,3 @@ func settle{
 
     return ();
 }
-
-// /**
-//     * @notice Initiate Maker teleport
-//     * @dev Will fire a teleport event, burn the dai and initiate a censorship-resistant slow-path message
-//     * @param targetDomain The target domain to teleport to
-//     * @param receiver The receiver address of the DAI on the target domain
-//     * @param amount The amount of DAI to teleport
-//     **/
-//     function initiateTeleport(
-//         bytes32 targetDomain,
-//         address receiver,
-//         uint128 amount
-//     ) external {
-//         initiateTeleport(
-//             targetDomain,
-//             addressToBytes32(receiver),
-//             amount,
-//             0
-//         );
-//     }
-@external
-func initiateTeleport{
-    syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*
-}(target_domain: felt, receiver: felt, amount: felt, operator: felt) {
-    // TeleportGUID memory teleport = TeleportGUID({
-    //             sourceDomain: domain,
-    //             targetDomain: targetDomain,
-    //             receiver: receiver,
-    //             operator: operator,
-    //             amount: amount,
-    //             nonce: nonce++,
-    //             timestamp: uint48(block.timestamp)
-    //         });
-    let (domain) = _domain.read();
-    let (nonce) = _nonce.read();
-    let (block_timestamp) = get_block_timestamp();
-    let (uamount) = _felt_to_uint(amount);
-    let teleport: TeleportGUID = TeleportGUID(
-        source_domain=domain,
-        target_domain=target_domain,
-        receiver=receiver,
-        operator=operator,
-        amount=uamount,
-        nonce=nonce + 1,
-        timestamp=block_timestamp,
-    );
-    _nonce.write(nonce + 1);
-
-    // batches[targetDomain] += amount;
-    let (batch) = _batches.read(target_domain);
-    let (u_amount) = _felt_to_uint(amount);
-    let (new_batch: Uint256) = add(batch, u_amount);
-    _batches.write(target_domain, new_batch);
-    // require(dai.transferFrom(msg.sender, address(this), amount), "DomainHost/transfer-failed");
-    with_attr error_message("DomainHost/transfer-failed") {
-        let (dai) = _dai.read();
-        let (caller) = get_caller_address();
-        let (self) = get_contract_address();
-        let (success) = TokenLike.transferFrom(dai, caller, self, u_amount);
-    }
-    // // Initiate the censorship-resistant slow-path
-    //         router.registerMint(teleport);
-    let (router) = _router.read();
-    GatewayLike.registerMint(router, teleport);
-
-    // // Oracle listens to this event for the fast-path
-    //         emit InitiateTeleport(teleport);
-    InitiateTeleport.emit(teleport);
-    return ();
-}
-
-// /**
-//     * @notice Initiate Maker teleport
-//     * @dev Will fire a teleport event, burn the dai and initiate a censorship-resistant slow-path message
-//     * @param targetDomain The target domain to teleport to
-//     * @param receiver The receiver address of the DAI on the target domain
-//     * @param amount The amount of DAI to teleport
-//     * @param operator An optional address that can be used to mint the DAI at the destination domain (useful for automated relays)
-//     **/
-//     function initiateTeleport(
-//         bytes32 targetDomain,
-//         address receiver,
-//         uint128 amount,
-//         address operator
-//     ) external {
-//         initiateTeleport(
-//             targetDomain,
-//             addressToBytes32(receiver),
-//             amount,
-//             addressToBytes32(operator)
-//         );
-//     }
-
-// /**
-//     * @notice Initiate Maker teleport
-//     * @dev Will fire a teleport event, burn the dai and initiate a censorship-resistant slow-path message
-//     * @param targetDomain The target domain to teleport to
-//     * @param receiver The receiver address of the DAI on the target domain
-//     * @param amount The amount of DAI to teleport
-//     * @param operator An optional address that can be used to mint the DAI at the destination domain (useful for automated relays)
-//     **/
-//     function initiateTeleport(
-//         bytes32 targetDomain,
-//         bytes32 receiver,
-//         uint128 amount,
-//         bytes32 operator
-//     ) public {
-//         TeleportGUID memory teleport = TeleportGUID({
-//             sourceDomain: domain,
-//             targetDomain: targetDomain,
-//             receiver: receiver,
-//             operator: operator,
-//             amount: amount,
-//             nonce: nonce++,
-//             timestamp: uint48(block.timestamp)
-//         });
-
-// batches[targetDomain] += amount;
-//         require(dai.transferFrom(msg.sender, address(this), amount), "DomainHost/transfer-failed");
-
-// // Initiate the censorship-resistant slow-path
-//         router.registerMint(teleport);
-
-// // Oracle listens to this event for the fast-path
-//         emit InitiateTeleport(teleport);
-//     }
-
-// /**
-//     * @notice Flush batched DAI to the target domain
-//     * @dev Will initiate a settle operation along the secure, slow routing path
-//     * @param targetDomain The target domain to settle
-//     **/
-//     function flush(bytes32 targetDomain) external {
-//         uint256 daiToFlush = batches[targetDomain];
-//         require(daiToFlush > fdust, "DomainGuest/flush-dust");
-
-// batches[targetDomain] = 0;
-
-// router.settle(domain, targetDomain, daiToFlush);
-
-// emit Flush(targetDomain, daiToFlush);
-//     }
-@external
-func flush{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(target_domain: felt) {
-    alloc_locals;
-    let (dai_to_flush: Uint256) = _batches.read(target_domain);
-    with_attr error_message("DomainGuest/flush-dust") {
-        let (fdust: Uint256) = _fdust.read();
-        let (not_dust) = uint256_lt(fdust, dai_to_flush);
-    }
-
-    _batches.write(target_domain, Uint256(0, 0));
-
-    let (domain) = _domain.read();
-    let (router) = _router.read();
-    GatewayLike.settle(router, domain, target_domain, dai_to_flush);
-
-    Flush.emit(target_domain, dai_to_flush);
-
-    return ();
-}
-// }

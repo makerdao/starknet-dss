@@ -77,8 +77,6 @@ describe('teleport join', async function () {
       hre
     );
 
-    teleportRouter = await simpleDeployL2('mock_gateway', {}, hre);
-
     join = await simpleDeployL2(
       'teleport_join',
       {
@@ -87,7 +85,6 @@ describe('teleport join', async function () {
         daiJoin_: daiJoin.address,
         ilk_: ILK,
         domain_: VALID_DOMAINS,
-        router_: teleportRouter.address,
       },
       hre
     );
@@ -197,9 +194,6 @@ describe('teleport join', async function () {
         case 'vow':
           await invoke(admin, join, 'file_vow', { what: what_, data });
           break;
-        case 'fdust':
-          await invoke(admin, join, 'file_fdust', { what: what_, data });
-          break;
         case 'fees':
           await invoke(admin, join, 'file_fees', { what: what_, domain_: domain, data });
           break;
@@ -302,10 +296,6 @@ describe('teleport join', async function () {
     expect((await join.call('vow')).res).to.equal(BigInt(VOW_ADDRESS));
     expect(await _tryFile('vow', TEST_FILE_ADDRESS)).to.be.true;
     expect((await join.call('vow')).res).to.equal(BigInt(TEST_FILE_ADDRESS));
-
-    expect(await join.call('fdust')).to.deep.equal(l2Eth(0));
-    expect(await _tryFile('fdust', l2Eth(888).res)).to.be.true;
-    expect(await join.call('fdust')).to.deep.equal(l2Eth(888));
     // assertEq(join.fees('aaa'), address(0));
     // assertTrue(_tryFile('fees', 'aaa', address(888)));
     // assertEq(join.fees('aaa'), address(888));
@@ -1750,7 +1740,7 @@ describe('teleport join', async function () {
     await invoke(admin, daiJoin, 'exit', { usr: _admin, wad: l2Eth(eth('10000')).res });
     await invoke(admin, dai, 'transfer', {
       recipient: join.address,
-      amount: l2Eth(eth('100000')).res,
+      amount: l2Eth(eth('10000')).res,
     });
     await settle(l2String('l2network_3'), VALID_DOMAINS, l2Eth(eth('10000')).res);
 
