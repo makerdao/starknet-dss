@@ -1,12 +1,7 @@
 import { expect } from 'chai';
-import { BigNumber } from 'ethers';
 import hre, { starknet } from 'hardhat';
 
-import { asDec, eth, l2Eth, simpleDeployL2, SplitUint, toBytes32, l2String, logGas } from './utils';
-
-const WAD = 10n ** 18n;
-const RAY = 10n ** 27n;
-const RAD = 10n ** 45n;
+import { l2Eth, simpleDeployL2, SplitUint } from './utils';
 
 const initialBalanceThis = l2Eth(1000n);
 const initialBalanceCal = l2Eth(100n);
@@ -47,23 +42,23 @@ describe('dai', async function () {
     // Mint initial balances
     await admin.invoke(dai, 'mint', {
       account: _user1,
-      amount: { low: initialBalanceThis.toDec()[0], high: initialBalanceThis.toDec()[1] },
+      amount: initialBalanceThis.res,
     });
     await admin.invoke(dai, 'mint', {
       account: _user2,
-      amount: { low: initialBalanceCal.toDec()[0], high: initialBalanceCal.toDec()[1] },
+      amount: initialBalanceCal.res,
     });
 
-    await starknet.devnet.dump('dump.pkl');
+    await starknet.devnet.dump('unittest-dump.dmp');
     await sleep(5000);
   });
 
   beforeEach(async () => {
-    await starknet.devnet.load('dump.pkl');
+    await starknet.devnet.load('unittest-dump.dmp');
   });
 
   it('test setup precondition', async () => {
-    expect(await dai.call('balanceOf', { user: _user1 })).to.deep.equal(SplitUint.fromUint(1000n));
+    expect(await dai.call('balanceOf', { user: _user1 })).to.deep.equal(l2Eth(1000n));
   });
 
   it('test transfer cost', async () => {
@@ -78,7 +73,7 @@ describe('dai', async function () {
 
   it('test allowance starts at zero', async () => {
     expect(await dai.call('allowance', { owner: _user1, spender: _user2 })).to.deep.equal(
-      SplitUint.fromUint(0n)
+      l2Eth(0n)
     );
   });
 
@@ -91,7 +86,7 @@ describe('dai', async function () {
     const sentAmount = l2Eth(250n);
     await user1.invoke(dai, 'transfer', {
       recipient: _admin,
-      amount: { low: sentAmount.toDec()[0], high: sentAmount.toDec()[1] },
+      amount: sentAmount.res,
     });
     expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(sentAmount);
     expect(await dai.call('balanceOf', { user: _user1 })).to.deep.equal(l2Eth(750n)); // 1000 - 250
@@ -128,7 +123,7 @@ describe('dai', async function () {
   it('test approve sets allowance', async () => {
     await user1.invoke(dai, 'approve', { spender: _user2, amount: l2Eth(25n).res });
     expect(await dai.call('allowance', { owner: _user1, spender: _user2 })).to.deep.equal(
-      SplitUint.fromUint(25n)
+      l2Eth(25n)
     );
   });
 
