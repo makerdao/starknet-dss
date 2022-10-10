@@ -53,7 +53,7 @@ const config: HardhatUserConfig = {
       chainId: 31337,
     },
     starknetLocal: {
-      url: 'http://localhost:9000',
+      url: 'http://localhost:8000',
     },
   },
   gasReporter: {
@@ -64,9 +64,9 @@ const config: HardhatUserConfig = {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
   starknet: {
-    venv: 'active',
+    venv: './.venv',
     network: 'starknetLocal',
-    recompile: true,
+    // recompile: true,
   },
   paths: {
     cairoPaths: ['./contracts/starknet/fossil/contracts', './contracts/starknet/vat.cairo'],
