@@ -1063,12 +1063,12 @@ func fold{
 
     // dai[u]   = _add(dai[u], rad);
     let (dai) = _dai.read(u);
-    let (dai) = add(dai, rad);
+    let (dai) = _add(dai, rad);
     _dai.write(u, dai);
 
     // debt     = _add(debt,   rad);
     let (debt) = _debt.read();
-    let (debt) = add(debt, rad);
+    let (debt) = _add(debt, rad);
     _debt.write(debt);
 
     // emit Fold(i, u, rate_);
