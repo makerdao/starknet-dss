@@ -67,6 +67,7 @@ func _allDomains() -> (res: felt) {
 }
 
 // The minimum amount of DAI to be flushed per target domain (prevent spam)
+// uint256 public fdust;
 @storage_var
 func _fdust() -> (res: Uint256) {
 }
@@ -134,7 +135,7 @@ func auth{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     return ();
 }
 
-// constructor(address dai_) {
+// constructor(address dai_, bytes32 domain_, bytes32 parentDomain_) {
 @constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     ward: felt, dai: felt, domain: felt, parent_domain: felt
