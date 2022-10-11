@@ -155,27 +155,27 @@ describe('teleport router', async function () {
   });
 
   it('test file new domains', async () => {
-    //     bytes32 domain1 = "newdom1";
-    //     address gateway1 = address(111);
-    //     assertEq(router.gateways(domain1), address(0));
-    //     assertEq(router.numDomains(), 0);
+    // bytes32 domain1 = "newdom1";
+    // address gateway1 = address(111);
+    // assertEq(router.gateways(domain1), address(0));
+    // assertEq(router.numDomains(), 0);
 
-    //     assertTrue(_tryFile("gateway", domain1, gateway1));
+    // assertTrue(_tryFile("gateway", domain1, gateway1));
 
-    //     assertEq(router.gateways(domain1), gateway1);
-    //     assertEq(router.numDomains(), 1);
-    //     assertEq(router.domainAt(0), domain1);
+    // assertEq(router.gateways(domain1), gateway1);
+    // assertEq(router.numDomains(), 1);
+    // assertEq(router.domainAt(0), domain1);
 
-    //     bytes32 domain2 = "newdom2";
-    //     address gateway2 = address(222);
-    //     assertEq(router.gateways(domain2), address(0));
+    // bytes32 domain2 = "newdom2";
+    // address gateway2 = address(222);
+    // assertEq(router.gateways(domain2), address(0));
 
-    //     assertTrue(_tryFile("gateway", domain2, gateway2));
+    // assertTrue(_tryFile("gateway", domain2, gateway2));
 
-    //     assertEq(router.gateways(domain2), gateway2);
-    //     assertEq(router.numDomains(), 2);
-    //     assertEq(router.domainAt(0), domain1);
-    //     assertEq(router.domainAt(1), domain2);
+    // assertEq(router.gateways(domain2), gateway2);
+    // assertEq(router.numDomains(), 2);
+    // assertEq(router.domainAt(0), domain1);
+    // assertEq(router.domainAt(1), domain2);
     const domain1 = l2String('newdom1');
     const gateway1 = 111n;
     expect((await router.call('gateways', { domain: domain1 })).res).to.be.equal(0n);
@@ -334,10 +334,10 @@ describe('teleport router', async function () {
 
   it('test file two domains same gateway remove 1', async () => {
     // bytes32 domain1 = "dom1";
-    //     bytes32 domain2 = "dom2";
-    //     address gateway1 = address(111);
-    //     assertTrue(_tryFile("gateway", domain1, gateway1));
-    //     assertTrue(_tryFile("gateway", domain2, gateway1));
+    // bytes32 domain2 = "dom2";
+    // address gateway1 = address(111);
+    // assertTrue(_tryFile("gateway", domain1, gateway1));
+    // assertTrue(_tryFile("gateway", domain2, gateway1));
     const domain1 = l2String('dom1');
     const domain2 = l2String('dom2');
     const gateway1 = 111n;
@@ -359,10 +359,10 @@ describe('teleport router', async function () {
 
   it('test file two domains same gateway remove 2', async () => {
     //  bytes32 domain1 = "dom1";
-    //     bytes32 domain2 = "dom2";
-    //     address gateway1 = address(111);
-    //     assertTrue(_tryFile("gateway", domain1, gateway1));
-    //     assertTrue(_tryFile("gateway", domain2, gateway1));
+    // bytes32 domain2 = "dom2";
+    // address gateway1 = address(111);
+    // assertTrue(_tryFile("gateway", domain1, gateway1));
+    // assertTrue(_tryFile("gateway", domain2, gateway1));
     const domain1 = l2String('dom1');
     const domain2 = l2String('dom2');
     const gateway1 = 111n;
@@ -384,11 +384,11 @@ describe('teleport router', async function () {
 
   it('test file two domains same gateway split', async () => {
     // bytes32 domain1 = "dom1";
-    //     bytes32 domain2 = "dom2";
-    //     address gateway1 = address(111);
-    //     address gateway2 = address(222);
-    //     assertTrue(_tryFile("gateway", domain1, gateway1));
-    //     assertTrue(_tryFile("gateway", domain2, gateway1));
+    // bytes32 domain2 = "dom2";
+    // address gateway1 = address(111);
+    // address gateway2 = address(222);
+    // assertTrue(_tryFile("gateway", domain1, gateway1));
+    // assertTrue(_tryFile("gateway", domain2, gateway1));
     const domain1 = l2String('dom1');
     const domain2 = l2String('dom2');
     const gateway1 = 111n;
@@ -413,11 +413,11 @@ describe('teleport router', async function () {
 
   it('test file two domains same gateway split remove', async () => {
     // bytes32 domain1 = "dom1";
-    //     bytes32 domain2 = "dom2";
-    //     address gateway1 = address(111);
-    //     address gateway2 = address(222);
-    //     assertTrue(_tryFile("gateway", domain1, gateway1));
-    //     assertTrue(_tryFile("gateway", domain2, gateway1));
+    // bytes32 domain2 = "dom2";
+    // address gateway1 = address(111);
+    // address gateway2 = address(222);
+    // assertTrue(_tryFile("gateway", domain1, gateway1));
+    // assertTrue(_tryFile("gateway", domain2, gateway1));
     const domain1 = l2String('dom1');
     const domain2 = l2String('dom2');
     const gateway1 = 111n;
@@ -475,9 +475,6 @@ describe('teleport router', async function () {
     //         nonce: 5,
     //         timestamp: uint48(block.timestamp)
     //     });
-    //     router.file("gateway", "l2network", address(555));
-
-    //     router.registerMint(guid);
     const guid = {
       source_domain: l2String('l2network'),
       target_domain: l1Domain,
@@ -488,9 +485,11 @@ describe('teleport router', async function () {
       timestamp: new Date().getTime() * 1000,
     };
 
+    // router.file("gateway", "l2network", address(555));
     await _tryFile('gateway', 555n, l2String('l2network'));
 
     try {
+      // router.registerMint(guid);
       await admin.invoke(router, 'registerMint', { teleportGUID: guid });
     } catch (err: any) {
       expect(err.message).to.contain('TeleportRouter/sender-not-gateway');
@@ -507,8 +506,6 @@ describe('teleport router', async function () {
     //         nonce: 5,
     //         timestamp: uint48(block.timestamp)
     //     });
-    //     router.file("gateway", "l2network", address(this));
-    //     router.file("gateway", domain, teleportJoin);
     const guid = {
       source_domain: l2String('l2network'),
       target_domain: l1Domain,
@@ -519,7 +516,9 @@ describe('teleport router', async function () {
       timestamp: new Date().getTime() * 1000,
     };
 
+    // router.file("gateway", "l2network", address(this));
     await _tryFile('gateway', _admin, l2String('l2network'));
+    // router.file("gateway", domain, teleportJoin);
     await _tryFile('gateway', teleportJoin, l1Domain);
     // router.registerMint(guid);
     await admin.invoke(router, 'registerMint', { teleportGUID: guid });
@@ -535,8 +534,6 @@ describe('teleport router', async function () {
     //         nonce: 5,
     //         timestamp: uint48(block.timestamp)
     //     });
-    //     router.file("gateway", "l2network", address(this));
-    //     router.file("gateway", "another-l2network", address(new GatewayMock()));
     const guid = {
       source_domain: l2String('l2network'),
       target_domain: l2String('another-l2network'),
@@ -547,7 +544,9 @@ describe('teleport router', async function () {
       timestamp: new Date().getTime() * 1000,
     };
 
+    // router.file("gateway", "l2network", address(this));
     await _tryFile('gateway', _admin, l2String('l2network'));
+    // router.file("gateway", "another-l2network", address(new GatewayMock()));
     const _gateway = await simpleDeployL2('mock_gateway', {}, hre);
     await _tryFile('gateway', _gateway.address, l2String('another-l2network'));
     // router.registerMint(guid);
@@ -564,7 +563,6 @@ describe('teleport router', async function () {
     //         nonce: 5,
     //         timestamp: uint48(block.timestamp)
     //     });
-    //     router.file("gateway", "l2network", address(this));
     const guid = {
       source_domain: l2String('l2network'),
       target_domain: l2String('invalid-network'),
@@ -575,6 +573,7 @@ describe('teleport router', async function () {
       timestamp: new Date().getTime() * 1000,
     };
 
+    // router.file("gateway", "l2network", address(this));
     await _tryFile('gateway', _admin, l2String('l2network'));
 
     try {
@@ -595,8 +594,6 @@ describe('teleport router', async function () {
     //         nonce: 5,
     //         timestamp: uint48(block.timestamp)
     //     });
-    //     router.file("gateway", parentDomain, address(this));
-    //     router.file("gateway", "another-l2network", address(new GatewayMock()));
     const guid = {
       source_domain: l2String('l2network'),
       target_domain: l2String('another-l2network'),
@@ -607,8 +604,10 @@ describe('teleport router', async function () {
       timestamp: new Date().getTime() * 1000,
     };
 
+    // router.file("gateway", parentDomain, address(this));
     await _tryFile('gateway', _admin, PARENT_DOMAIN);
     const _gateway = await simpleDeployL2('mock_gateway', {}, hre);
+    // router.file("gateway", "another-l2network", address(new GatewayMock()));
     await _tryFile('gateway', _gateway.address, l2String('another-l2network'));
     // router.registerMint(guid);
     await admin.invoke(router, 'registerMint', { teleportGUID: guid });
@@ -616,10 +615,10 @@ describe('teleport router', async function () {
 
   it('test fail settle from not gateway', async () => {
     // router.file("gateway", "l2network", address(555));
-    //     DaiMock(dai).mint(address(this), 100 ether);
-    //     DaiMock(dai).approve(address(router), 100 ether);
     await _tryFile('gateway', 555n, l2String('l2network'));
+    // DaiMock(dai).mint(address(this), 100 ether);
     await invoke(admin, dai, 'mint', { account: _admin, amount: l2Eth(eth('100')).res });
+    // DaiMock(dai).approve(address(router), 100 ether);
     await invoke(admin, dai, 'approve', { spender: router.address, amount: l2Eth(eth('100')).res });
 
     try {
@@ -632,12 +631,12 @@ describe('teleport router', async function () {
 
   it('test settle targeting actual domain', async () => {
     // router.file("gateway", "l2network", address(this));
-    //     router.file("gateway", domain, teleportJoin);
-    //     DaiMock(dai).mint(address(this), 100 ether);
-    //     DaiMock(dai).approve(address(router), 100 ether);
     await _tryFile('gateway', _admin, l2String('l2network'));
+    // router.file("gateway", domain, teleportJoin);
     await _tryFile('gateway', teleportJoin, l1Domain);
+    // DaiMock(dai).mint(address(this), 100 ether);
     await invoke(admin, dai, 'mint', { account: _admin, amount: l2Eth(eth('100')).res });
+    // DaiMock(dai).approve(address(router), 100 ether);
     await invoke(admin, dai, 'approve', { spender: router.address, amount: l2Eth(eth('100')).res });
     // router.settle("l2network", domain, 100 ether);
     await settle(l2String('l2network'), l1Domain, l2Eth(eth('100')).res);
@@ -645,13 +644,13 @@ describe('teleport router', async function () {
 
   it('test settle targeting sub domain', async () => {
     // router.file("gateway", "l2network", address(this));
-    //     router.file("gateway", "another-l2network", address(new GatewayMock()));
-    //     DaiMock(dai).mint(address(this), 100 ether);
-    //     DaiMock(dai).approve(address(router), 100 ether);
     await _tryFile('gateway', _admin, l2String('l2network'));
     const _gateway = await simpleDeployL2('mock_gateway', {}, hre);
+    // router.file("gateway", "another-l2network", address(new GatewayMock()));
     await _tryFile('gateway', _gateway.address, l2String('another-l2network'));
+    // DaiMock(dai).mint(address(this), 100 ether);
     await invoke(admin, dai, 'mint', { account: _admin, amount: l2Eth(eth('100')).res });
+    // DaiMock(dai).approve(address(router), 100 ether);
     await invoke(admin, dai, 'approve', { spender: router.address, amount: l2Eth(eth('100')).res });
     // router.settle("l2network", "another-l2network", 100 ether);
     await settle(l2String('l2network'), l2String('another-l2network'), l2Eth(eth('100')).res);
@@ -659,13 +658,13 @@ describe('teleport router', async function () {
 
   it('test settle from parent gateway', async () => {
     // router.file("gateway", parentDomain, address(this));
-    //     router.file("gateway", "another-l2network", address(new GatewayMock()));
-    //     DaiMock(dai).mint(address(this), 100 ether);
-    //     DaiMock(dai).approve(address(router), 100 ether);
     await _tryFile('gateway', _admin, PARENT_DOMAIN);
     const _gateway = await simpleDeployL2('mock_gateway', {}, hre);
+    // router.file("gateway", "another-l2network", address(new GatewayMock()));
     await _tryFile('gateway', _gateway.address, l2String('another-l2network'));
+    // DaiMock(dai).mint(address(this), 100 ether);
     await invoke(admin, dai, 'mint', { account: _admin, amount: l2Eth(eth('100')).res });
+    // DaiMock(dai).approve(address(router), 100 ether);
     await invoke(admin, dai, 'approve', { spender: router.address, amount: l2Eth(eth('100')).res });
     // router.settle("l2network", "another-l2network", 100 ether);
     await settle(l2String('l2network'), l2String('another-l2network'), l2Eth(eth('100')).res);
@@ -685,111 +684,111 @@ describe('teleport router', async function () {
 
   it('test initiate teleport', async () => {
     // address parentGateway = address(new GatewayMock());
-    //     router.file("gateway", parentDomain, parentGateway);
-    //     DaiMock(dai).mint(address(this), 100_000 ether);
-    //     DaiMock(dai).approve(address(router), 100_000 ether);
     const parentGateway = await simpleDeployL2('mock_gateway', {}, hre);
+    // router.file("gateway", parentDomain, parentGateway);
     await _tryFile('gateway', parentGateway.address, PARENT_DOMAIN);
+    // DaiMock(dai).mint(address(this), 100_000 ether);
     await invoke(admin, dai, 'mint', { account: _admin, amount: l2Eth(eth('100000')).res });
+    // DaiMock(dai).approve(address(router), 100_000 ether);
     await invoke(admin, dai, 'approve', {
       spender: router.address,
       amount: l2Eth(eth('100000')).res,
     });
     // assertEq(DaiMock(dai).balanceOf(address(this)), 100_000 ether);
-    //     assertEq(DaiMock(dai).balanceOf(address(router)), 0);
-    //     assertEq(router.batches(parentDomain), 0);
-    //     assertEq(router.nonce(), 0);
     expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('100000')));
+    // assertEq(DaiMock(dai).balanceOf(address(router)), 0);
     expect(await dai.call('balanceOf', { user: router.address })).to.deep.equal(l2Eth(0n));
+    // assertEq(router.batches(parentDomain), 0);
     expect(await router.call('batches', { domain: PARENT_DOMAIN })).to.deep.equal(l2Eth(0n));
+    // assertEq(router.nonce(), 0);
     expect((await router.call('nonce')).res).to.be.equal(0n);
 
     // router.initiateTeleport(parentDomain, address(123), 100_000 ether);
     await initiateTeleport(PARENT_DOMAIN, 123n, eth('100000').toString());
 
     // assertEq(DaiMock(dai).balanceOf(address(this)), 0);
-    //     assertEq(DaiMock(dai).balanceOf(address(router)), 100_000 ether);
-    //     assertEq(router.batches(parentDomain), 100_000 ether);
-    //     assertEq(router.nonce(), 1);
     expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(0n));
+    // assertEq(DaiMock(dai).balanceOf(address(router)), 100_000 ether);
     expect(await dai.call('balanceOf', { user: router.address })).to.deep.equal(
       l2Eth(eth('100000'))
     );
+    // assertEq(router.batches(parentDomain), 100_000 ether);
     expect(await router.call('batches', { domain: PARENT_DOMAIN })).to.deep.equal(
       l2Eth(eth('100000'))
     );
+    // assertEq(router.nonce(), 1);
     expect((await router.call('nonce')).res).to.be.equal(1n);
   });
 
   it('test flush', async () => {
     // address parentGateway = address(new GatewayMock());
-    //     router.file("gateway", parentDomain, parentGateway);
-    //     DaiMock(dai).mint(address(this), 100_000 ether);
-    //     DaiMock(dai).approve(address(router), 100_000 ether);
-    //     router.initiateTeleport(parentDomain, address(123), 100_000 ether);
     const parentGateway = await simpleDeployL2('mock_gateway', {}, hre);
+    // router.file("gateway", parentDomain, parentGateway);
     await _tryFile('gateway', parentGateway.address, PARENT_DOMAIN);
+    // DaiMock(dai).mint(address(this), 100_000 ether);
     await invoke(admin, dai, 'mint', { account: _admin, amount: l2Eth(eth('100000')).res });
+    // DaiMock(dai).approve(address(router), 100_000 ether);
     await invoke(admin, dai, 'approve', {
       spender: router.address,
       amount: l2Eth(eth('100000')).res,
     });
+    // router.initiateTeleport(parentDomain, address(123), 100_000 ether);
     await initiateTeleport(PARENT_DOMAIN, 123n, eth('100000').toString());
 
     // assertEq(router.batches(parentDomain), 100_000 ether);
-    //     assertEq(DaiMock(dai).balanceOf(address(router)), 100_000 ether);
-    //     assertEq(DaiMock(dai).balanceOf(parentGateway), 0);
     expect(await router.call('batches', { domain: PARENT_DOMAIN })).to.deep.equal(
       l2Eth(eth('100000'))
     );
+    // assertEq(DaiMock(dai).balanceOf(address(router)), 100_000 ether);
     expect(await dai.call('balanceOf', { user: parentGateway.address })).to.deep.equal(l2Eth(0n));
+    // assertEq(DaiMock(dai).balanceOf(parentGateway), 0);
     expect(await dai.call('balanceOf', { user: router.address })).to.deep.equal(
       l2Eth(eth('100000'))
     );
 
-    //     router.flush(parentDomain);
+    // router.flush(parentDomain);
     await invoke(admin, router, 'flush', { target_domain: PARENT_DOMAIN });
 
-    //     assertEq(router.batches(parentDomain), 0);
-    //     assertEq(DaiMock(dai).balanceOf(address(router)), 0);
-    //     assertEq(DaiMock(dai).balanceOf(parentGateway), 100_000 ether);
+    // assertEq(router.batches(parentDomain), 0);
     expect(await router.call('batches', { domain: PARENT_DOMAIN })).to.deep.equal(l2Eth(0n));
+    // assertEq(DaiMock(dai).balanceOf(address(router)), 0);
     expect(await dai.call('balanceOf', { user: parentGateway.address })).to.deep.equal(
       l2Eth(eth('100000'))
     );
+    // assertEq(DaiMock(dai).balanceOf(parentGateway), 100_000 ether);
     expect(await dai.call('balanceOf', { user: router.address })).to.deep.equal(l2Eth(0n));
   });
 
   it('test fail flush dust', async () => {
     // address parentGateway = address(new GatewayMock());
-    //     router.file("gateway", parentDomain, parentGateway);
-    //     DaiMock(dai).mint(address(this), 100_000 ether);
-    //     DaiMock(dai).approve(address(router), 100_000 ether);
-    //     router.initiateTeleport(parentDomain, address(123), 100_000 ether);
     const parentGateway = await simpleDeployL2('mock_gateway', {}, hre);
+    // router.file("gateway", parentDomain, parentGateway);
     await _tryFile('gateway', parentGateway.address, PARENT_DOMAIN);
+    // DaiMock(dai).mint(address(this), 100_000 ether);
     await invoke(admin, dai, 'mint', { account: _admin, amount: l2Eth(eth('100000')).res });
+    // DaiMock(dai).approve(address(router), 100_000 ether);
     await invoke(admin, dai, 'approve', {
       spender: router.address,
       amount: l2Eth(eth('100000')).res,
     });
+    // router.initiateTeleport(parentDomain, address(123), 100_000 ether);
     await initiateTeleport(PARENT_DOMAIN, 123n, eth('100000').toString());
 
-    //     assertEq(router.batches(parentDomain), 100_000 ether);
-    //     assertEq(DaiMock(dai).balanceOf(address(router)), 100_000 ether);
-    //     assertEq(DaiMock(dai).balanceOf(parentGateway), 0);
+    // assertEq(router.batches(parentDomain), 100_000 ether);
     expect(await router.call('batches', { domain: PARENT_DOMAIN })).to.deep.equal(
       l2Eth(eth('100000'))
     );
+    // assertEq(DaiMock(dai).balanceOf(address(router)), 100_000 ether);
     expect(await dai.call('balanceOf', { user: parentGateway.address })).to.deep.equal(l2Eth(0n));
+    // assertEq(DaiMock(dai).balanceOf(parentGateway), 0);
     expect(await dai.call('balanceOf', { user: router.address })).to.deep.equal(
       l2Eth(eth('100000'))
     );
 
-    //     router.file("fdust", 200_000 ether);
+    // router.file("fdust", 200_000 ether);
     await _tryFile('fdust', l2Eth(eth('200000')).res);
-    //     router.flush(parentDomain);
     try {
+      // router.flush(parentDomain);
       await invoke(admin, router, 'flush', { target_domain: PARENT_DOMAIN });
     } catch (err: any) {
       expect(err.message).to.contain('TeleportRouter/flush-dust');
