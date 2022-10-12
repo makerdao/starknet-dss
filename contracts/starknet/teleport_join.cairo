@@ -133,7 +133,7 @@ namespace FeesLike {
     }
 }
 
-// const MAX_UINT = Uint256(2 ** 128 - 1, 2 ** 128 - 1)
+const MAX_FELT_UINT = 2 ** 128 - 1;
 
 // // Primary control for extending Teleport credit
 // contract TeleportJoin {
@@ -287,7 +287,7 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     VatLike.hope(vat_, daiJoin_);
     let (dai) = DaiJoinLike.dai(daiJoin_);
     _dai.write(dai);
-    TokenLike.approve(dai, daiJoin_, Uint256(2 ** 128 - 1, 2 ** 128 - 1));
+    TokenLike.approve(dai, daiJoin_, Uint256(MAX_FELT_UINT, MAX_FELT_UINT));
     _ilk.write(ilk_);
     _domain.write(domain_);
 
@@ -516,6 +516,7 @@ func cure{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> 
 //     * @param teleportGUID Struct which contains the whole teleport data
 //     * @param hashGUID Hash of the prev struct
 //     **/
+// function _register(TeleportGUID calldata teleportGUID, bytes32 hashGUID) internal {
 func _register{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     teleportGUID: TeleportGUID, hashGUID: felt
 ) {
