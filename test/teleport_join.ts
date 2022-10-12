@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+// import { BigNumber } from 'ethers';
 import hre, { starknet } from 'hardhat';
 import { Account, StarknetContract } from 'hardhat/types';
 import { pedersen } from 'starknet/dist/utils/hash';
@@ -52,11 +53,11 @@ describe('teleport join', async function () {
     // emit Rely(address(this));
 
     admin = await starknet.deployAccount('OpenZeppelin');
-    _admin = admin.address;
+    _admin = admin.starknetContract.address;
     user1 = await starknet.deployAccount('OpenZeppelin');
-    _user1 = user1.address;
+    _user1 = user1.starknetContract.address;
     user2 = await starknet.deployAccount('OpenZeppelin');
-    _user2 = user2.address;
+    _user2 = user2.starknetContract.address;
 
     vat = await simpleDeployL2('mock_vat', {}, hre);
 
@@ -114,9 +115,6 @@ describe('teleport join', async function () {
     });
 
     await invoke(admin, vat, 'hope', { usr: daiJoin.address });
-
-    // NEEDED AS WE DONT USE VAT MOCK HERE
-    // await admin.invoke(vat, 'rely', { user: join.address });
 
     await starknet.devnet.dump('unittest-dump.dmp');
     await sleep(5000);
@@ -256,6 +254,7 @@ describe('teleport join', async function () {
     return [postFeeAmount, totalFee];
   }
 
+  // function testConstructor() public {
   it('test constructor', async () => {
     // assertEq(address(join.vat()), address(vat));
     // assertEq(address(join.daiJoin()), address(daiJoin));
@@ -269,6 +268,7 @@ describe('teleport join', async function () {
     expect((await join.call('wards', { user: _admin })).res).to.be.equal(1n);
   });
 
+  // function testRelyDeny() public {
   it('test rely deny', async () => {
     // assertEq(join.wards(address(456)), 0);
     // assertTrue(_tryRely(address(456)));
@@ -288,6 +288,7 @@ describe('teleport join', async function () {
     expect(await _tryDeny(admin, TEST_ADDRESS)).to.be.false;
   });
 
+  // function testFile() public {
   it('test file', async () => {
     const TEST_FILE_ADDRESS = '9379024284324403537785931406192';
     // assertEq(join.vow(), vow);
@@ -330,6 +331,7 @@ describe('teleport join', async function () {
     expect(await _tryFile('line', l2Eth(10).res, l2String('aaa'))).to.be.false;
   });
 
+  // function testInvalidWhat() public {
   it('test invalid what', async () => {
     const TEST_FILE_ADDRESS = '9379024284324403537785931406192';
     // assertTrue(!_tryFile('meh', address(888)));
@@ -340,6 +342,7 @@ describe('teleport join', async function () {
     expect(await _tryFile('meh', l2Eth(888).res, VALID_DOMAINS)).to.be.false;
   });
 
+  // function testRegister() public {
   it('test register', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
     // TeleportGUID memory guid = TeleportGUID({
@@ -372,7 +375,7 @@ describe('teleport join', async function () {
     expect(await _ink()).to.deep.equal(l2Eth(0).res);
     expect(await _art()).to.deep.equal(l2Eth(0).res);
     // join.registerMint(guid);
-    await admin.invoke(join, 'registerMint', { teleportGUID: guid });
+    await invoke(admin, join, 'registerMint', { teleportGUID: guid });
     //     assertEq(dai.balanceOf(address(123)), 0);
     //     assertTrue(_blessed(guid));
     //     assertEq(_pending(guid), 250_000 ether);
@@ -385,6 +388,7 @@ describe('teleport join', async function () {
     expect(await _art()).to.deep.equal(l2Eth(0).res);
   });
 
+  // function testRegisterAndWithdrawAll() public {
   it('test register and withdraw all', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
 
@@ -441,6 +445,7 @@ describe('teleport join', async function () {
     // expect(totalFee).to.deep.equal(l2Eth(0));
   });
 
+  // function testRegisterAndWithdrawPartial() public {
   it('test register and withdraw partial', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
     // TeleportGUID memory guid = TeleportGUID({
@@ -492,6 +497,7 @@ describe('teleport join', async function () {
     // expect(totalFee).to.deep.equal(l2Eth(0));
   });
 
+  // function testRegisterAndWithdrawNothing() public {
   it('test register and withdraw nothing', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
     // TeleportGUID memory guid = TeleportGUID({
@@ -541,6 +547,7 @@ describe('teleport join', async function () {
     // expect(totalFee).to.deep.equal(l2Eth(0));
   });
 
+  // function testFailRegisterAlreadyRegistered() public {
   it('test fail register already registered', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
     //  TeleportGUID memory guid = TeleportGUID({
@@ -573,6 +580,7 @@ describe('teleport join', async function () {
     }
   });
 
+  // function testFailRegisterWrongDomain() public {
   it('test fail register wrong domain', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
     // TeleportGUID memory guid = TeleportGUID({
@@ -602,6 +610,7 @@ describe('teleport join', async function () {
     }
   });
 
+  // function testRegisterAndWithdrawPayingFee() public {
   it('test register and withdraw paying fee', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
     // TeleportGUID memory guid = TeleportGUID({
@@ -664,6 +673,7 @@ describe('teleport join', async function () {
     // expect(totalFee).to.deep.equal(l2Eth(eth('100')));
   });
 
+  // function testFailRegisterAndWithdrawPayingFee() public {
   it('test fail register and withdraw paying fee', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
     //  TeleportGUID memory guid = TeleportGUID({
@@ -709,6 +719,7 @@ describe('teleport join', async function () {
     }
   });
 
+  // function testRegisterAndWithdrawFeeTTLExpires() public {
   it('test register and withdraw fee TTL expires', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
 
@@ -765,6 +776,7 @@ describe('teleport join', async function () {
     expect(await join.call('cure')).to.deep.equal(l2Eth(250000n * RAD));
   });
 
+  // function testRegisterAndWithdrawPartialPayingFee() public {
   it('test register and withdraw partial paying fee', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
 
@@ -842,6 +854,7 @@ describe('teleport join', async function () {
     expect(await join.call('cure')).to.deep.equal(l2Eth(250000n * RAD));
   });
 
+  // function testFailRegisterAndWithdrawPartialPayingFee() public {
   it('test fail register and withdraw partial paying fee', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
 
@@ -885,6 +898,7 @@ describe('teleport join', async function () {
     }
   });
 
+  // function testFailRegisterAndWithdrawPartialPayingFee2() public {
   it('test fail register and withdraw partial paying fee 2', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
 
@@ -936,6 +950,7 @@ describe('teleport join', async function () {
     }
   });
 
+  // function testMintPendingByOperator() public {
   it('test mint pending by operator', async () => {
     const guid = {
       source_domain: l2String('l2network'),
@@ -975,6 +990,7 @@ describe('teleport join', async function () {
     expect(await _pending(guid)).to.deep.equal(l2Eth(eth('25000')).res);
   });
 
+  // function testMintPendingByOperatorNotReceiver() public {
   it('test mint pending by operator not receiver', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
 
@@ -1019,6 +1035,7 @@ describe('teleport join', async function () {
     expect(await _pending(guid)).to.deep.equal(l2Eth(eth('25000')).res);
   });
 
+  // function testMintPendingByReceiver() public {
   it('test mint pending by receiver', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
 
@@ -1062,6 +1079,7 @@ describe('teleport join', async function () {
     expect(await _pending(guid)).to.deep.equal(l2Eth(eth('25000')).res);
   });
 
+  // function testFailMintPendingWrongOperator() public {
   it('test fail mint pending wrong operator', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
     const TEST_OPERATOR_ADDRESS = '9379024284324553537185931466192';
@@ -1107,6 +1125,7 @@ describe('teleport join', async function () {
     }
   });
 
+  // function testSettle() public {
   it('test settle', async () => {
     // assertEq(join.debt('l2network'), 0);
     expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(0));
@@ -1124,11 +1143,17 @@ describe('teleport join', async function () {
     await settle(l2String('l2network'), VALID_DOMAINS, l2Eth(eth('100000')).res);
 
     // assertEq(join.debt("l2network"), -100_000 ether);
-    //     assertEq(join.cure(), 0);
-    // expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(eth('-100000')));
+    // assertEq(join.cure(), 0);
+    // const P = BigNumber.from('800000000000011000000000000000000000000000000000000000000000001');
+    // const N = eth('-100000');
+    // const NN = N.add(P);
+    // const _debt = SplitUint.fromUint(NN);
+    // console.log(_debt);
+    // expect(await debt(l2String('l2network'))).to.deep.equal(_debt);
     expect(await join.call('cure')).to.deep.equal(l2Eth(0));
   });
 
+  // function testWithdrawNegativeDebt() public {
   it('test withdraw negative debt', async () => {
     // vat.suck(address(0), address(this), 100_000 * RAD);
     //     daiJoin.exit(address(this), 100_000 ether);
@@ -1183,6 +1208,7 @@ describe('teleport join', async function () {
     expect(await join.call('cure')).to.deep.equal(l2Eth(150000n * RAD));
   });
 
+  // function testWithdrawPartialNegativeDebt() public {
   it('test withdraw partial negative debt', async () => {
     //  vat.suck(address(0), address(this), 100_000 * RAD);
     // daiJoin.exit(address(this), 100_000 ether);
@@ -1245,6 +1271,7 @@ describe('teleport join', async function () {
     expect(await join.call('cure')).to.deep.equal(l2Eth(100000n * RAD));
   });
 
+  // function testWithdrawVatCaged() public {
   it('test withdraw vat caged', async () => {
     // vat.suck(address(0), address(this), 100_000 * RAD);
     //     daiJoin.exit(address(this), 100_000 ether);
@@ -1319,6 +1346,7 @@ describe('teleport join', async function () {
     expect(await join.call('cure')).to.deep.equal(l2Eth(0));
   });
 
+  // function testSettleVatCaged() public {
   it('test settle vat caged', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
     const TEST_OPERATOR_ADDRESS = '9379024284324553537185931466192';
@@ -1373,6 +1401,7 @@ describe('teleport join', async function () {
     expect(await join.call('cure')).to.deep.equal(l2Eth(250000n * RAD));
   });
 
+  // function testRegisterAndWithdrawPayingOperatorFee() public {
   it('test register and withdraw paying operator fee', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
     // TeleportGUID memory guid = TeleportGUID({
@@ -1416,6 +1445,7 @@ describe('teleport join', async function () {
     // expect(totalFee).to.deep.equal(l2Eth(eth('250')).res);
   });
 
+  // function testFailOperatorFeeTooHigh() public {
   it('test fail operator fee too high', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
     // TeleportGUID memory guid = TeleportGUID({
@@ -1443,6 +1473,7 @@ describe('teleport join', async function () {
     } catch (err: any) {}
   });
 
+  // function testRegisterAndWithdrawPartialPayingOperatorFee() public {
   it('test register and withdraw partial paying operator fee', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
     //  TeleportGUID memory guid = TeleportGUID({
@@ -1507,6 +1538,7 @@ describe('teleport join', async function () {
     expect(await _art()).to.deep.equal(l2Eth(eth('250000')).res);
   });
 
+  // function testRegisterAndWithdrawPayingTwoFees() public {
   it('test register and withdraw paying two fees', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
     // TeleportGUID memory guid = TeleportGUID({
@@ -1562,6 +1594,7 @@ describe('teleport join', async function () {
     expect(await _art()).to.deep.equal(l2Eth(eth('250000')).res);
   });
 
+  // function testFailRegisterAndWithdrawOperatorFeeTooHigh() public {
   it('test fail register and withdraw operator fee too high', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
 
@@ -1595,6 +1628,7 @@ describe('teleport join', async function () {
     } catch (err: any) {}
   });
 
+  // function testTotalDebtSeveralDomains() public {
   it('test total debt several domains', async () => {
     // join.file("line", "l2network_2", 1_000_000 ether);
     await invoke(admin, join, 'file_line', {
@@ -1754,6 +1788,7 @@ describe('teleport join', async function () {
     expect(await join.call('cure')).to.deep.equal(l2Eth(190000n * RAD));
   });
 
+  // function testCureAfterPositionBeingManipulated() public {
   it('test cure after position being manipulated', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
     // TeleportGUID memory guid = TeleportGUID({
