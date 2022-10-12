@@ -65,7 +65,8 @@ const config: HardhatUserConfig = {
   },
   starknet: {
     // venv: 'active',
-    venv: './.venv',
+    // venv: './.venv',
+    dockerizedVersion: '0.10.0',
     network: 'starknetLocal',
     // recompile: true,
   },
