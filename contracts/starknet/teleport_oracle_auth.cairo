@@ -10,6 +10,7 @@ from starkware.cairo.common.signature import check_ecdsa_signature
 from starkware.cairo.common.registers import get_fp_and_pc
 
 from contracts.starknet.teleport_GUID import TeleportGUID, get_GUID_hash
+from contracts.starknet.assertions import check
 // import "./TeleportGUID.sol";
 
 // interface TeleportJoinLike {
@@ -260,7 +261,8 @@ func request_mint{
 ) -> (post_fee_amount: Uint256, operator_fee: Uint256) {
     alloc_locals;
 
-    // TODO: check(max_fee_percentage), check(operator_fee)
+    check(max_fee_percentage);
+    check(operator_fee);
 
     // require(bytes32ToAddress(teleportGUID.receiver) == msg.sender ||
     //   bytes32ToAddress(teleportGUID.operator) == msg.sender, "TeleportOracleAuth/not-receiver-nor-operator");

@@ -1,37 +1,16 @@
 import { Account } from '@shardlabs/starknet-hardhat-plugin/dist/src/account';
 import { StarknetContract } from '@shardlabs/starknet-hardhat-plugin/dist/src/types';
 import { expect } from 'chai';
-import hre, { network, starknet } from 'hardhat';
-import { HttpNetworkConfig } from 'hardhat/types';
-import { KeyPair, Signer, validateAndParseAddress } from 'starknet';
+import hre, { starknet } from 'hardhat';
+import { KeyPair, validateAndParseAddress } from 'starknet';
 import { getKeyPair, getStarkKey, sign } from 'starknet/dist/utils/ellipticCurve';
 import { pedersen } from 'starknet/dist/utils/hash';
 import { BigNumberish, toBN, toFelt } from 'starknet/utils/number';
 
-import {
-  asDec,
-  eth,
-  l2Eth,
-  simpleDeployL2,
-  SplitUint,
-  toBytes32,
-  l2String,
-  invoke,
-  SplitUintType,
-} from './utils';
+import { l2Eth, simpleDeployL2, l2String, invoke, SplitUintType } from './utils';
 
 // Cairo encoding of "valid_domains"
-const VALID_DOMAINS = l2String('ethereum');
 const TEST_ADDRESS = '9379074284324409537785911406195';
-
-const WAD = 10n ** 18n;
-const RAY = 10n ** 27n;
-const RAD = 10n ** 45n;
-
-const zero_uint = { low: 0n, high: 0n };
-
-const fee = eth('0.01');
-const ttl = 60 * 60 * 24 * 8; // 8 days
 
 type TeleportGUID = {
   source_domain: string;
@@ -180,56 +159,105 @@ describe('teleport oracle auth', async function () {
     return [0, 0];
   }
 
+  // function testConstructor() public {
   it('test constructor', async () => {
+    // assertEq(address(auth.teleportJoin()), teleportJoin);
     expect((await auth.call('teleport_join')).res).to.be.equal(BigInt(teleportJoin));
+    // assertEq(auth.wards(address(this)), 1);
     expect((await auth.call('wards', { usr: _admin })).res).to.be.equal(1n);
   });
 
+  // function testRelyDeny() public {
   it('test rely deny', async () => {
+    // assertEq(auth.wards(address(456)), 0);
     expect((await auth.call('wards', { usr: TEST_ADDRESS })).res).to.be.equal(0n);
+    // assertTrue(_tryRely(address(456)));
     expect(await _tryRely(admin, TEST_ADDRESS)).to.be.true;
+    // assertEq(auth.wards(address(456)), 1);
     expect((await auth.call('wards', { usr: TEST_ADDRESS })).res).to.be.equal(1n);
+    // assertTrue(_tryDeny(address(456)));
     expect(await _tryDeny(admin, TEST_ADDRESS)).to.be.true;
+    // assertEq(auth.wards(address(456)), 0);
     expect((await auth.call('wards', { usr: TEST_ADDRESS })).res).to.be.equal(0n);
 
+    // auth.deny(address(this));
     await invoke(admin, auth, 'deny', { usr: _admin });
+
+    // assertTrue(!_tryRely(address(456)));
+    // assertTrue(!_tryDeny(address(456)));
     expect(await _tryRely(admin, TEST_ADDRESS)).to.be.false;
     expect(await _tryDeny(admin, TEST_ADDRESS)).to.be.false;
   });
 
+  // function testFileFailsWhenNotAuthed() public {
   it('test file fails when not authed', async () => {
+    // assertTrue(_tryFile('threshold', 888));
     expect(await _tryFile('threshold', 888)).to.be.true;
+    // auth.deny(address(this));
     await invoke(admin, auth, 'deny', { usr: _admin });
+    // assertTrue(!_tryFile('threshold', 888));
     expect(await _tryFile('threshold', 888)).to.be.false;
   });
 
+  // function testFileNewThreshold() public {
+  it('test file new treshold', async () => {
+    // assertEq(auth.threshold(), 0);
+    expect((await auth.call('threshold')).res).to.be.equal(0n);
+    // assertTrue(_tryFile('threshold', 3));
+    expect(await _tryFile('threshold', 3n)).to.be.true;
+    // assertEq(auth.threshold(), 3);
+    expect((await auth.call('threshold')).res).to.be.equal(3n);
+  });
+
+  // function testFailFileInvalidWhat() public {
   it('test fail file invalid what', async () => {
+    // auth.file("meh", 888);
     expect(await _tryFile('meh', 888)).to.be.false;
   });
 
+  // function testAddRemoveSigners() public {
   it('test add remove signers', async () => {
+    // address[] memory signers = new address[](3);
+    // for(uint i; i < signers.length; i++) {
+    //     signers[i] = address(uint160(i));
+    //     assertEq(auth.signers(address(uint160(i))), 0);
+    // }
     let signers = [];
     for (let index = 0; index < 3; index++) {
       let _address = toFelt(validateAndParseAddress(index));
       signers[index] = _address;
       expect((await auth.call('signers', { address: _address })).res).to.be.equal(0n);
     }
+
+    // auth.addSigners(signers);
     await invoke(admin, auth, 'add_signers', { signers_: signers });
 
+    // for(uint i; i < signers.length; i++) {
+    //     assertEq(auth.signers(address(uint160(i))), 1);
+    // }
     for (let index = 0; index < 3; index++) {
       let _address = toFelt(validateAndParseAddress(index));
       expect((await auth.call('signers', { address: _address })).res).to.be.equal(1n);
     }
 
+    // auth.removeSigners(signers);
     await invoke(admin, auth, 'remove_signers', { signers_: signers });
 
+    // for(uint i; i < signers.length; i++) {
+    //     assertEq(auth.signers(address(uint160(i))), 0);
+    // }
     for (let index = 0; index < 3; index++) {
       let _address = toFelt(validateAndParseAddress(index));
       expect((await auth.call('signers', { address: _address })).res).to.be.equal(0n);
     }
   });
 
+  // function test_isValid() public {
   it('test validate', async () => {
+    // bytes32 signHash = keccak256("msg");
+    // (bytes memory signatures, address[] memory signers) = getSignatures(signHash);
+    // auth.addSigners(signers);
+    // assertTrue(auth.isValid(signHash, signatures, signers.length));
     const signHash = pedersen([l2String('msg'), 0]);
     const { signatures, signers } = await getSignatures(signHash);
     await invoke(admin, auth, 'add_signers', { signers_: signers });
@@ -243,17 +271,27 @@ describe('teleport oracle auth', async function () {
 
   // Since ecrecover silently returns 0 on failure, it's a good idea to make sure
   // the logic can't be fooled by a zero signer address + invalid signature.
+  // function testFail_isValid_failed_ecrecover() public {
   it('test fail validate failed ecrecover', async () => {
+    // bytes32 signHash = keccak256("msg");
     const signHash = pedersen([l2String('msg'), 0]);
+    // (bytes memory signatures, address[] memory signers) = getSignatures(signHash);
     const { signatures, signers } = await getSignatures(signHash);
 
-    // corrupt 1st signature
+    // corrupt first signature
+    // unchecked {  // don't care about overflow, just want to change the first byte
+    //     signatures[0] = bytes1(uint8(signatures[0]) + uint8(1));
+    // }
     const _r = toBN(signatures[0].r).add(toBN(1));
     signatures[0].r = _r.toString();
-    // 1st signer to zero
+
+    // first signer to zero
+    // signers[0] = address(0);
     signers[0] = '0';
 
+    // auth.addSigners(signers);
     await invoke(admin, auth, 'add_signers', { signers_: signers });
+    // assertTrue(auth.isValid(signHash, signatures, signers.length));
     await auth.call('validate', {
       message: signHash,
       signatures,
@@ -262,11 +300,15 @@ describe('teleport oracle auth', async function () {
     });
   });
 
+  // function testFail_isValid_notEnoughSig() public {
   it('test fail validate not enough sig', async () => {
+    // bytes32 signHash = keccak256("msg");
     const signHash = pedersen([l2String('msg'), 0]);
+    //  (bytes memory signatures, address[] memory signers) = getSignatures(signHash);
     const { signatures, signers } = await getSignatures(signHash);
-
+    // auth.addSigners(signers);
     await invoke(admin, auth, 'add_signers', { signers_: signers });
+    // assertTrue(auth.isValid(signHash, signatures, signers.length + 1));
     await auth.call('validate', {
       message: signHash,
       signatures,
@@ -275,16 +317,20 @@ describe('teleport oracle auth', async function () {
     });
   });
 
+  // function testFail_isValid_badSig() public {
   it('test fail validate bad sig', async () => {
+    //  bytes32 signHash = keccak256("msg");
     const signHash = pedersen([l2String('msg'), 0]);
+    // (bytes memory signatures, address[] memory signers) = getSignatures(signHash);
     const { signatures, signers } = await getSignatures(signHash);
-
+    // auth.addSigners(signers);
     await invoke(admin, auth, 'add_signers', { signers_: signers });
 
-    // corrupt 1st signature
+    // signatures[0] = bytes1(uint8((uint256(uint8(signatures[0])) + 1) % 256));
     const _r = toBN(signatures[0].r).add(toBN(1));
     signatures[0].r = _r.toString();
 
+    // assertTrue(auth.isValid(signHash, signatures, signers.length));
     await auth.call('validate', {
       message: signHash,
       signatures,
@@ -293,9 +339,14 @@ describe('teleport oracle auth', async function () {
     });
   });
 
+  // function test_mintByOperator() public {
   it('test mint by operator', async () => {
-    const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
-
+    // TeleportGUID memory guid;
+    // guid.operator = addressToBytes32(address(this));
+    // guid.sourceDomain = bytes32("l2network");
+    // guid.targetDomain = bytes32("ethereum");
+    // guid.receiver = addressToBytes32(address(this));
+    // guid.amount = 100;
     const guid = {
       source_domain: l2String('l2network'),
       target_domain: l2String('ethereum'),
@@ -305,20 +356,27 @@ describe('teleport oracle auth', async function () {
       nonce: 5,
       timestamp: new Date().getTime() * 1000,
     };
-
+    // bytes32 signHash = auth.getSignHash(guid);
     const signHash = getGUIDHash(guid);
+    // (bytes memory signatures, address[] memory signers) = getSignatures(signHash);
     const { signatures, signers } = await getSignatures(signHash);
-
+    // auth.addSigners(signers);
     await invoke(admin, auth, 'add_signers', { signers_: signers });
-
+    // uint maxFee = 0;
     const maxFee = 0;
-
+    // auth.requestMint(guid, signatures, maxFee, 0);
     await requestMint(guid, signatures, maxFee, 0);
   });
 
+  // function test_mintByOperatorNotReceiver() public {
   it('test mint by operator not receiver', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
-
+    // TeleportGUID memory guid;
+    // guid.operator = addressToBytes32(address(this));
+    // guid.sourceDomain = bytes32('l2network');
+    // guid.targetDomain = bytes32('ethereum');
+    // guid.receiver = addressToBytes32(address(0x123));
+    // guid.amount = 100;
     const guid = {
       source_domain: l2String('l2network'),
       target_domain: l2String('ethereum'),
@@ -329,17 +387,26 @@ describe('teleport oracle auth', async function () {
       timestamp: new Date().getTime() * 1000,
     };
 
+    // bytes32 signHash = auth.getSignHash(guid);
     const signHash = getGUIDHash(guid);
+    // (bytes memory signatures, address[] memory signers) = getSignatures(signHash);
     const { signatures, signers } = await getSignatures(signHash);
-
+    // auth.addSigners(signers);
     await invoke(admin, auth, 'add_signers', { signers_: signers });
-
+    // uint maxFee = 0;
     const maxFee = 0;
-
+    // auth.requestMint(guid, signatures, maxFee, 0);
     await requestMint(guid, signatures, maxFee, 0);
   });
 
+  // function test_mintByReceiver() public {
   it('test mint by receiver', async () => {
+    // TeleportGUID memory guid;
+    // guid.operator = addressToBytes32(address(0x000));
+    // guid.sourceDomain = bytes32("l2network");
+    // guid.targetDomain = bytes32("ethereum");
+    // guid.receiver = addressToBytes32(address(this));
+    // guid.amount = 100;
     const guid = {
       source_domain: l2String('l2network'),
       target_domain: l2String('ethereum'),
@@ -349,17 +416,19 @@ describe('teleport oracle auth', async function () {
       nonce: 5,
       timestamp: new Date().getTime() * 1000,
     };
-
+    // bytes32 signHash = auth.getSignHash(guid);
     const signHash = getGUIDHash(guid);
+    // (bytes memory signatures, address[] memory signers) = getSignatures(signHash);
     const { signatures, signers } = await getSignatures(signHash);
-
+    // auth.addSigners(signers);
     await invoke(admin, auth, 'add_signers', { signers_: signers });
-
+    // uint maxFee = 0;
     const maxFee = 0;
-
+    // auth.requestMint(guid, signatures, maxFee, 0);
     await requestMint(guid, signatures, maxFee, 0);
   });
 
+  // function testFail_mint_notOperatorNorReceiver() public {
   it('test fail mint not operator nor receiver', async () => {
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
     const TEST_OPERATOR_ADDRESS = '9379024284324441537125931966192';
@@ -373,15 +442,24 @@ describe('teleport oracle auth', async function () {
       nonce: 5,
       timestamp: new Date().getTime() * 1000,
     };
+    // TeleportGUID memory guid;
+    // guid.operator = addressToBytes32(address(0x123));
+    // guid.sourceDomain = bytes32('l2network');
+    // guid.targetDomain = bytes32('ethereum');
+    // guid.receiver = addressToBytes32(address(0x987));
+    // guid.amount = 100;
 
+    // bytes32 signHash = auth.getSignHash(guid);
     const signHash = getGUIDHash(guid);
+    // (bytes memory signatures, address[] memory signers) = getSignatures(signHash);
     const { signatures, signers } = await getSignatures(signHash);
-
+    // auth.addSigners(signers);
     await invoke(admin, auth, 'add_signers', { signers_: signers });
-
+    // uint maxFee = 0;
     const maxFee = 0;
 
     try {
+      // auth.requestMint(guid, signatures, maxFee, 0);
       await requestMint(guid, signatures, maxFee, 0);
     } catch (err: any) {
       expect(err.message).to.contain('TeleportOracleAuth/not-receiver-nor-operator');
