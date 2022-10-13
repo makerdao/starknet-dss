@@ -121,6 +121,7 @@ describe('teleport router', async function () {
     });
   }
 
+  // function testConstructor() public {
   it('test constructor', async () => {
     // assertEq(address(router.dai()), dai);
     // assertEq(router.domain(), domain);
@@ -132,6 +133,7 @@ describe('teleport router', async function () {
     expect((await router.call('wards', { user: _admin })).res).to.be.equal(1n);
   });
 
+  // function testRelyDeny() public {
   it('test rely deny', async () => {
     // assertEq(router.wards(address(456)), 0);
     // assertTrue(_tryRely(address(456)));
@@ -154,6 +156,7 @@ describe('teleport router', async function () {
     expect(await _tryDeny(admin, TEST_ADDRESS)).to.be.false;
   });
 
+  // function testFileNewDomains() public {
   it('test file new domains', async () => {
     // bytes32 domain1 = "newdom1";
     // address gateway1 = address(111);
@@ -199,6 +202,7 @@ describe('teleport router', async function () {
     expect((await router.call('domainAt', { index: 2n })).res).to.be.equal(BigInt(domain2));
   });
 
+  // function testFileNewGatewayForExistingDomain() public {
   it('test file new gateway for existing domain', async () => {
     // bytes32 domain1 = "dom";
     // address gateway1 = address(111);
@@ -226,6 +230,7 @@ describe('teleport router', async function () {
     expect((await router.call('domainAt', { index: 1n })).res).to.be.equal(BigInt(domain));
   });
 
+  // function testFileRemoveLastDomain() public {
   it('test file remove last domain', async () => {
     // bytes32 domain1 = "dom";
     // address gateway = address(111);
@@ -253,6 +258,7 @@ describe('teleport router', async function () {
     expect((await router.call('numDomains')).res).to.be.equal(0n);
   });
 
+  // function testFileRemoveNotLastDomain() public {
   it('test file remove not last domain', async () => {
     // bytes32 domain1 = "dom1";
     // bytes32 domain2 = "dom2";
@@ -309,6 +315,7 @@ describe('teleport router', async function () {
     expect((await router.call('domainAt', { index: 2n })).res).to.be.equal(BigInt(domain1));
   });
 
+  // function testFileTwoDomainsSameGateway() public {
   it('test file two domains same gateway', async () => {
     // bytes32 domain1 = "dom1";
     // bytes32 domain2 = "dom2";
@@ -332,6 +339,7 @@ describe('teleport router', async function () {
     expect((await router.call('domainAt', { index: 2n })).res).to.be.equal(BigInt(domain2));
   });
 
+  // function testFileTwoDomainsSameGatewayRemove1() public {
   it('test file two domains same gateway remove 1', async () => {
     // bytes32 domain1 = "dom1";
     // bytes32 domain2 = "dom2";
@@ -357,6 +365,7 @@ describe('teleport router', async function () {
     expect((await router.call('domainAt', { index: 1n })).res).to.be.equal(BigInt(domain1));
   });
 
+  // function testFileTwoDomainsSameGatewayRemove2() public {
   it('test file two domains same gateway remove 2', async () => {
     //  bytes32 domain1 = "dom1";
     // bytes32 domain2 = "dom2";
@@ -382,6 +391,7 @@ describe('teleport router', async function () {
     expect((await router.call('numDomains')).res).to.be.equal(0n);
   });
 
+  // function testFileTwoDomainsSameGatewaySplit() public {
   it('test file two domains same gateway split', async () => {
     // bytes32 domain1 = "dom1";
     // bytes32 domain2 = "dom2";
@@ -411,6 +421,7 @@ describe('teleport router', async function () {
     expect((await router.call('domainAt', { index: 2n })).res).to.be.equal(BigInt(domain2));
   });
 
+  // function testFileTwoDomainsSameGatewaySplitRemove() public {
   it('test file two domains same gateway split remove', async () => {
     // bytes32 domain1 = "dom1";
     // bytes32 domain2 = "dom2";
@@ -440,6 +451,7 @@ describe('teleport router', async function () {
     expect((await router.call('domainAt', { index: 1n })).res).to.be.equal(BigInt(domain2));
   });
 
+  // function testFile() public {
   it('test file', async () => {
     // assertEq(router.fdust(), 0);
     // assertTrue(_tryFile('fdust', 888));
@@ -449,6 +461,7 @@ describe('teleport router', async function () {
     expect(await router.call('fdust')).to.deep.equal(l2Eth(888n));
   });
 
+  // function testFileInvalidWhat() public {
   it('test file invalid what', async () => {
     // assertTrue(!_tryFile('meh', 'aaa', address(888)));
     // assertTrue(!_tryFile('meh', address(888)));
@@ -456,6 +469,7 @@ describe('teleport router', async function () {
     expect(await _tryFile('meh', TEST_ADDRESS)).to.be.false;
   });
 
+  // function testFileFailsWhenNotAuthed() public {
   it('test file fails when not authed', async () => {
     // router.deny(address(this));
     // assertTrue(!_tryFile('gateway', 'dom', address(888)));
@@ -465,6 +479,7 @@ describe('teleport router', async function () {
     expect(await _tryFile('fdust', 1n)).to.be.false;
   });
 
+  // function testFailRegisterMintFromNotGateway() public {
   it('test fail register mint from not gateway', async () => {
     // TeleportGUID memory guid = TeleportGUID({
     //         sourceDomain: "l2network",
@@ -496,6 +511,7 @@ describe('teleport router', async function () {
     }
   });
 
+  // function testRegisterMintTargetingActualDomain() public {
   it('test register mint targeting actual domain', async () => {
     // TeleportGUID memory guid = TeleportGUID({
     //         sourceDomain: "l2network",
@@ -524,6 +540,7 @@ describe('teleport router', async function () {
     await admin.invoke(router, 'registerMint', { teleportGUID: guid });
   });
 
+  // function testRegisterMintTargetingSubDomain() public {
   it('test register mint targeting sub domain', async () => {
     // TeleportGUID memory guid = TeleportGUID({
     //         sourceDomain: "l2network",
@@ -553,6 +570,7 @@ describe('teleport router', async function () {
     await admin.invoke(router, 'registerMint', { teleportGUID: guid });
   });
 
+  // function testFailRegisterMintTargetingInvalidDomain() public {
   it('test fail register mint targeting invalid domain', async () => {
     // TeleportGUID memory guid = TeleportGUID({
     //         sourceDomain: "l2network",
@@ -584,6 +602,7 @@ describe('teleport router', async function () {
     }
   });
 
+  // function testRegisterMintFromParentGateway() public {
   it('test register mint from parent gateway', async () => {
     // TeleportGUID memory guid = TeleportGUID({
     //         sourceDomain: "l2network",
@@ -613,6 +632,7 @@ describe('teleport router', async function () {
     await admin.invoke(router, 'registerMint', { teleportGUID: guid });
   });
 
+  // function testFailSettleFromNotGateway() public {
   it('test fail settle from not gateway', async () => {
     // router.file("gateway", "l2network", address(555));
     await _tryFile('gateway', 555n, l2String('l2network'));
@@ -629,6 +649,7 @@ describe('teleport router', async function () {
     }
   });
 
+  //  function testSettleTargetingActualDomain() public {
   it('test settle targeting actual domain', async () => {
     // router.file("gateway", "l2network", address(this));
     await _tryFile('gateway', _admin, l2String('l2network'));
@@ -642,6 +663,7 @@ describe('teleport router', async function () {
     await settle(l2String('l2network'), l1Domain, l2Eth(eth('100')).res);
   });
 
+  // function testSettleTargetingSubDomain() public {
   it('test settle targeting sub domain', async () => {
     // router.file("gateway", "l2network", address(this));
     await _tryFile('gateway', _admin, l2String('l2network'));
@@ -656,6 +678,7 @@ describe('teleport router', async function () {
     await settle(l2String('l2network'), l2String('another-l2network'), l2Eth(eth('100')).res);
   });
 
+  // function testSettleFromParentGateway() public {
   it('test settle from parent gateway', async () => {
     // router.file("gateway", parentDomain, address(this));
     await _tryFile('gateway', _admin, PARENT_DOMAIN);
@@ -670,6 +693,7 @@ describe('teleport router', async function () {
     await settle(l2String('l2network'), l2String('another-l2network'), l2Eth(eth('100')).res);
   });
 
+  // function testSettleFromParentGateway() public {
   it('test fail settle targeting invalid domain', async () => {
     // router.file('gateway', 'l2network', address(this));
     await _tryFile('gateway', _admin, l2String('l2network'));
@@ -682,6 +706,7 @@ describe('teleport router', async function () {
     }
   });
 
+  // function testInitiateTeleport() public {
   it('test initiate teleport', async () => {
     // address parentGateway = address(new GatewayMock());
     const parentGateway = await simpleDeployL2('mock_gateway', {}, hre);
@@ -720,6 +745,7 @@ describe('teleport router', async function () {
     expect((await router.call('nonce')).res).to.be.equal(1n);
   });
 
+  // function testFlush() public {
   it('test flush', async () => {
     // address parentGateway = address(new GatewayMock());
     const parentGateway = await simpleDeployL2('mock_gateway', {}, hre);
@@ -759,6 +785,7 @@ describe('teleport router', async function () {
     expect(await dai.call('balanceOf', { user: router.address })).to.deep.equal(l2Eth(0n));
   });
 
+  // function testFailFlushDust() public {
   it('test fail flush dust', async () => {
     // address parentGateway = address(new GatewayMock());
     const parentGateway = await simpleDeployL2('mock_gateway', {}, hre);
