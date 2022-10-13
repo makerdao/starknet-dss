@@ -12,7 +12,7 @@
     "test:l2:ci": "concurrently './scripts/chain-l2.sh' './scripts/test-l2.sh'",
     "deploy:goerli": "yarn hardhat run ./scripts/deployTestSpace.ts",
     "chain:l1": "hardhat node",
-    "chain:l2": "starknet-devnet -p 8000 --lite-mode",
+    "chain:l2": "poetry run starknet-devnet -p 9000 --lite-mode",
     "chain": "concurrently 'yarn chain:l1' 'yarn chain:l2'",
     "format:l1": "prettier --write 'contracts/**/*.sol'",
     "check-format:l1": "prettier -c 'contracts/**/*.sol'",
@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.7.2",
-    "@shardlabs/starknet-hardhat-plugin": "^0.6.2",
+    "@shardlabs/starknet-hardhat-plugin": "^0.6.6",
     "concurrently": "^7.3.0",
     "ethereumjs-util": "^7.1.5",
     "install": "^0.13.0",
