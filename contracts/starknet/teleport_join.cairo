@@ -2,13 +2,14 @@
 // pragma solidity 0.8.14;
 
 // import "./TeleportGUID.sol";
+from contracts.starknet.teleport_GUID import TeleportGUID, get_GUID_hash
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
-from starkware.cairo.common.registers import get_fp_and_pc
 from starkware.starknet.common.syscalls import (
     get_caller_address,
     get_contract_address,
     get_block_timestamp,
 )
+from starkware.cairo.common.registers import get_fp_and_pc
 from starkware.cairo.common.uint256 import (
     Uint256,
     uint256_check,
@@ -28,9 +29,20 @@ from contracts.starknet.safe_math import (
     min,
     _felt_to_uint,
     _uint_to_felt,
+    div,
+    sub_signed256,
+    add_signed256,
 )
-from contracts.starknet.assertions import eq_0, either, le_int, _ge_0, assert_either, is_eq, check
-from contracts.starknet.teleport_GUID import TeleportGUID, get_GUID_hash
+from contracts.starknet.assertions import (
+    eq_0,
+    either,
+    _le,
+    _ge_0,
+    assert_either,
+    is_eq,
+    check,
+    assert_le,
+)
 
 struct Urn {
     ink: Uint256,  // Locked Collateral  [wad]
@@ -106,9 +118,6 @@ namespace DaiJoinLike {
 // }
 @contract_interface
 namespace TokenLike {
-    func transferFrom(sender: felt, recipient: felt, amount: Uint256) -> (res: felt) {
-    }
-
     func approve(spender: felt, amount: Uint256) -> (res: felt) {
     }
 }
@@ -124,21 +133,7 @@ namespace FeesLike {
     }
 }
 
-// interface GatewayLike {
-//     function registerMint(TeleportGUID calldata teleportGUID) external;
-//     function settle(bytes32 sourceDomain, bytes32 targetDomain, uint256 amount) external;
-// }
-@contract_interface
-namespace GatewayLike {
-    func registerMint(teleportGUID: TeleportGUID) {
-    }
-
-    func settle(source_domain: felt, target_domain: felt, amount: Uint256) {
-    }
-}
-
-const MAX_NONCE = 2 ** 80 - 1;
-// const MAX_UINT = Uint256(2 ** 128 - 1, 2 ** 128 - 1)
+const MAX_FELT_UINT = 2 ** 128 - 1;
 
 // // Primary control for extending Teleport credit
 // contract TeleportJoin {
@@ -148,42 +143,37 @@ func _wards(user: felt) -> (res: felt) {
 }
 // mapping (bytes32 =>        address) public fees;      // Fees contract per source domain
 @storage_var
-func _fees(d: felt) -> (fee: felt) {
+func _fees(d: felt) -> (res: felt) {
 }
 // mapping (bytes32 =>        uint256) public line;      // Debt ceiling per source domain
 @storage_var
-func _lines(d: felt) -> (line: Uint256) {
+func _lines(d: felt) -> (res: Uint256) {
 }
 // mapping (bytes32 =>         int256) public debt;      // Outstanding debt per source domain (can be < 0 when settlement occurs before mint)
 @storage_var
-func _debts(d: felt) -> (debt: Int256) {
+func _debts(d: felt) -> (res: Int256) {
 }
 // mapping (bytes32 => TeleportStatus) public teleports; // Approved teleports and pending unpaid
 @storage_var
-func _teleports(hash: felt) -> (teleport: TeleportStatus) {
+func _teleports(hash: felt) -> (res: TeleportStatus) {
 }
 // mapping (bytes32 => uint256)        public batches;   // Pending DAI to flush per target domain
 @storage_var
-func _batches(d: felt) -> (batch: Uint256) {
+func _batches(d: felt) -> (res: Uint256) {
 }
 // address public vow;
 @storage_var
-func _vow() -> (vow: felt) {
+func _vow() -> (res: felt) {
 }
 
 // uint256 internal art; // We need to preserve the last art value before the position being skimmed (End)
 @storage_var
-func _art() -> (art: Uint256) {
-}
-
-// uint80  public nonce;
-@storage_var
-func _nonce() -> (nonce: felt) {
+func _art() -> (res: Uint256) {
 }
 
 // uint256 public fdust; // The minimum amount of DAI to be flushed per target domain (prevent spam)
 @storage_var
-func _fdust() -> (fdust: Uint256) {
+func _fdust() -> (res: Uint256) {
 }
 
 // VatLike     immutable public vat;
@@ -200,15 +190,15 @@ func _dai() -> (res: felt) {
 }
 // bytes32     immutable public ilk;
 @storage_var
-func _ilk() -> (ilk: felt) {
+func _ilk() -> (res: felt) {
 }
 // bytes32     immutable public domain;
 @storage_var
-func _domain() -> (domain: felt) {
+func _domain() -> (res: felt) {
 }
 // GatewayLike immutable public router;
 @storage_var
-func _router() -> (router: felt) {
+func _router() -> (res: felt) {
 }
 
 // uint256 constant public WAD = 10 ** 18;
@@ -226,12 +216,21 @@ func Deny(user: felt) {
 }
 // event File(bytes32 indexed what, address data);
 @event
-func File(what: felt, data: Uint256) {
+func File_vow(what: felt, data: felt) {
 }
 // event File(bytes32 indexed what, uint256 data);
-//     event File(bytes32 indexed what, bytes32 indexed domain, address data);
-//     event File(bytes32 indexed what, bytes32 indexed domain, uint256 data);
-//     event Register(bytes32 indexed hashGUID, TeleportGUID teleportGUID);
+@event
+func File_fdust(what: felt, data: Uint256) {
+}
+// event File(bytes32 indexed what, bytes32 indexed domain, address data);
+@event
+func File_fees(what: felt, domain: felt, data: felt) {
+}
+// event File(bytes32 indexed what, bytes32 indexed domain, uint256 data);
+@event
+func File_line(what: felt, domain: felt, data: Uint256) {
+}
+// event Register(bytes32 indexed hashGUID, TeleportGUID teleportGUID);
 @event
 func Register(hashGUID: felt, teleportGUID: TeleportGUID) {
 }
@@ -277,23 +276,98 @@ func Settle(source_domain: felt, amount: Uint256) {
 //     }
 @constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    vat_: felt, daiJoin_: felt, ilk_: felt, domain_: felt, router_: felt
+    ward: felt, vat_: felt, daiJoin_: felt, ilk_: felt, domain_: felt
 ) {
-    let (caller) = get_caller_address();
-    _wards.write(caller, 1);
-    Rely.emit(caller);
+    // let (caller) = get_caller_address();
+    _wards.write(ward, 1);
+    Rely.emit(ward);
     _vat.write(vat_);
     _daiJoin.write(daiJoin_);
 
     VatLike.hope(vat_, daiJoin_);
     let (dai) = DaiJoinLike.dai(daiJoin_);
-    TokenLike.approve(dai, daiJoin_, Uint256(2 ** 128 - 1, 2 ** 128 - 1));
+    _dai.write(dai);
+    TokenLike.approve(dai, daiJoin_, Uint256(MAX_FELT_UINT, MAX_FELT_UINT));
     _ilk.write(ilk_);
     _domain.write(domain_);
-    _router.write(router_);
-    TokenLike.approve(dai, router_, Uint256(2 ** 128 - 1, 2 ** 128 - 1));
 
     return ();
+}
+
+@view
+func vat{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _vat.read();
+    return (res,);
+}
+
+@view
+func debt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(d: felt) -> (
+    res: Uint256
+) {
+    let (res) = _debts.read(d);
+    return (res,);
+}
+
+@view
+func line{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(d: felt) -> (
+    res: Uint256
+) {
+    let (res) = _lines.read(d);
+    return (res,);
+}
+
+@view
+func vow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _vow.read();
+    return (res,);
+}
+
+@view
+func daiJoin{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _daiJoin.read();
+    return (res,);
+}
+
+@view
+func ilk{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _ilk.read();
+    return (res,);
+}
+
+@view
+func teleports{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(hash: felt) -> (
+    res: TeleportStatus
+) {
+    let (res) = _teleports.read(hash);
+    return (res,);
+}
+
+@view
+func fees{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(d: felt) -> (res: felt) {
+    let (res) = _fees.read(d);
+    return (res,);
+}
+
+@view
+func domain{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _domain.read();
+    return (res,);
+}
+
+@view
+func wards{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user: felt) -> (
+    res: felt
+) {
+    let (res) = _wards.read(user);
+    return (res,);
+}
+
+@view
+func batches{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(d: felt) -> (
+    res: Uint256
+) {
+    let (res) = _batches.read(d);
+    return (res,);
 }
 
 // modifier auth {
@@ -331,14 +405,14 @@ func rely{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: 
 //         emit Deny(usr);
 //     }
 @external
-func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user: felt) {
+func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: felt) {
     auth();
 
     // wards[usr] = 0;
-    _wards.write(user, 0);
+    _wards.write(usr, 0);
 
     // emit Deny(usr);
-    Deny.emit(user);
+    Deny.emit(usr);
 
     return ();
 }
@@ -351,15 +425,22 @@ func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user:
 //         }
 //         emit File(what, data);
 //     }
+@external
+func file_vow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    what: felt, data: felt
+) {
+    auth();
 
-// function file(bytes32 what, uint256 data) external auth {
-//         if (what == "fdust") {
-//             fdust = data;
-//         } else {
-//             revert("TeleportJoin/file-unrecognized-param");
-//         }
-//         emit File(what, data);
-//     }
+    with_attr error_message("TeleportJoin/file-unrecognized-param") {
+        assert what = 'vow';
+    }
+
+    _vow.write(data);
+
+    File_vow.emit(what, data);
+
+    return ();
+}
 
 // function file(bytes32 what, bytes32 domain_, address data) external auth {
 //         if (what == "fees") {
@@ -370,6 +451,23 @@ func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user:
 //         emit File(what, domain_, data);
 //     }
 
+@external
+func file_fees{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    what: felt, domain_: felt, data: felt
+) {
+    auth();
+
+    with_attr error_message("TeleportJoin/file-unrecognized-param") {
+        assert what = 'fees';
+    }
+
+    _fees.write(domain_, data);
+
+    File_fees.emit(what, domain_, data);
+
+    return ();
+}
+
 // function file(bytes32 what, bytes32 domain_, uint256 data) external auth {
 //         if (what == "line") {
 //             require(data <= 2 ** 255 - 1, "TeleportJoin/not-allowed-bigger-int256");
@@ -379,6 +477,26 @@ func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user:
 //         }
 //         emit File(what, domain_, data);
 //     }
+@external
+func file_line{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    what: felt, domain_: felt, data: Uint256
+) {
+    auth();
+
+    with_attr error_message("TeleportJoin/file-unrecognized-param") {
+        assert what = 'line';
+    }
+
+    with_attr error_message("TeleportJoin/not-allowed-bigger-int256") {
+        uint256_check(data);
+    }
+
+    _lines.write(domain_, data);
+
+    File_line.emit(what, domain_, data);
+
+    return ();
+}
 
 // /**
 //     * @dev External view function to get the total debt used by this contract [RAD]
@@ -386,6 +504,36 @@ func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user:
 //     function cure() external view returns (uint256 cure_) {
 //         cure_ = art * RAY;
 //     }
+@view
+func cure{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: Uint256) {
+    let (art) = _art.read();
+    let (res) = mul(art, Uint256(RAY, 0));
+    return (res,);
+}
+
+// /**
+//     * @dev Internal function that registers a teleport
+//     * @param teleportGUID Struct which contains the whole teleport data
+//     * @param hashGUID Hash of the prev struct
+//     **/
+// function _register(TeleportGUID calldata teleportGUID, bytes32 hashGUID) internal {
+func _register{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    teleportGUID: TeleportGUID, hashGUID: felt
+) {
+    // require(!teleports[hashGUID].blessed, "TeleportJoin/already-blessed");
+    // teleports[hashGUID].blessed = true;
+    // teleports[hashGUID].pending = teleportGUID.amount;
+    // emit Register(hashGUID, teleportGUID);
+    with_attr error_message("TeleportJoin/already-blessed") {
+        let (teleport) = _teleports.read(hashGUID);
+        assert teleport.blessed = 0;
+    }
+    let new_teleport = TeleportStatus(blessed=1, pending=teleportGUID.amount);
+    _teleports.write(hashGUID, new_teleport);
+
+    Register.emit(hashGUID, teleportGUID);
+    return ();
+}
 
 // /**
 //     * @dev Internal function that executes the mint after a teleport is registered
@@ -437,9 +585,8 @@ func _mint{
     let (_teleport: TeleportStatus) = _teleports.read(hashGUID);
     let pending: Uint256 = _teleport.pending;
     let (pending_null) = eq_0(pending);
-    let (over_ceiling) = le_int(line_, debt_);
+    let (over_ceiling) = _le(line_, debt_);
     let (nothing_to_withdraw) = either(over_ceiling, pending_null);
-
     if (nothing_to_withdraw == 1) {
         Mint.emit(hashGUID, teleportGUID, Uint256(0, 0), max_fee_percentage, operator_fee, caller);
         return (Uint256(0, 0), Uint256(0, 0));
@@ -460,12 +607,17 @@ func _mint{
         domain_fees, teleportGUID, line_, debt_, pending, amt_to_take
     );
     let (fee: Uint256) = mul(Uint256(vat_live, 0), teleport_fee);
+    let (amt_to_take_div) = div(amt_to_take, Uint256(WAD, 0));
+    let (max_fee: Uint256) = mul(max_fee_percentage, amt_to_take_div);
+    with_attr error_message("TeleportJoin/max-fee-exceed") {
+        assert_le(fee, max_fee);
+    }
 
     // // No need of overflow check here as amtToTake is bounded by teleports[hashGUID].pending
     //         // which is already a uint248. Also int256 >> uint248. Then both castings are safe.
     //         debt[teleportGUID.sourceDomain] +=  int256(amtToTake);
     //         teleports[hashGUID].pending     -= uint248(amtToTake);
-    let (add_debt: Uint256) = add(debt_, amt_to_take);
+    let (add_debt: Uint256) = add_signed256(amt_to_take, debt_);
     _debts.write(teleportGUID.source_domain, add_debt);
     let (pending_update: Uint256) = sub(_teleport.pending, amt_to_take);
 
@@ -487,8 +639,9 @@ func _mint{
 
     let (debt_pos) = _ge_0(debt_);
     let (minus_debt) = uint256_neg(debt_);
-    let (mint_needed) = le_int(minus_debt, amt_to_take);
+    let (mint_needed) = uint256_lt(minus_debt, amt_to_take);
     let (should_mint) = either(debt_pos, mint_needed);
+    // TODO : lazy evaluate condition
     if (should_mint == 1) {
         let (amt_to_generate: Int256) = get_amount_to_generate(amt_to_take, debt_, debt_pos);
         let (local ilk) = _ilk.read();
@@ -576,7 +729,7 @@ func get_amount_to_generate{
     // debt < 0
     if (condition == 0) {
         // uint256(int256(amtToTake) + debt_) // amtToTake - |debt_|
-        let (amt: Uint256) = add(amt_to_take, debt);
+        let (amt: Uint256) = add_signed256(amt_to_take, debt);
         return (amount_to_generate=amt);
     } else {
         return (amount_to_generate=amt_to_take);
@@ -603,15 +756,9 @@ func registerMint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
     alloc_locals;
     auth();
     let (__fp__, _) = get_fp_and_pc();
-    let (hashGUID) = get_GUID_hash(&teleportGUID);
-    with_attr error_message("TeleportJoin/already-blessed") {
-        let (teleport) = _teleports.read(hashGUID);
-        assert teleport.blessed = 0;
-    }
-    let new_teleport = TeleportStatus(blessed=1, pending=teleportGUID.amount);
-    _teleports.write(hashGUID, new_teleport);
 
-    Register.emit(hashGUID, teleportGUID);
+    let (hashGUID) = get_GUID_hash(&teleportGUID);
+    _register(teleportGUID, hashGUID);
     return ();
 }
 
@@ -644,14 +791,7 @@ func requestMint{
     auth();
     let (__fp__, _) = get_fp_and_pc();
     let (hashGUID) = get_GUID_hash(&teleportGUID);
-    with_attr error_message("TeleportJoin/already-blessed") {
-        let (teleport) = _teleports.read(hashGUID);
-        assert teleport.blessed = 0;
-    }
-    let new_teleport = TeleportStatus(blessed=1, pending=teleportGUID.amount);
-    _teleports.write(hashGUID, new_teleport);
-
-    Register.emit(hashGUID, teleportGUID);
+    _register(teleportGUID, hashGUID);
 
     let (post_fee_amount: Uint256, total_fee: Uint256) = _mint(
         teleportGUID, hashGUID, max_fee_percentage, operator_fee
@@ -690,6 +830,7 @@ func mintPending{
         let (is_operator) = is_eq(teleportGUID.operator, caller);
         assert_either(is_receiver, is_operator);
     }
+
     let (__fp__, _) = get_fp_and_pc();
     let (hashGUID) = get_GUID_hash(&teleportGUID);
     let (post_fee_amount: Uint256, total_fee: Uint256) = _mint(
@@ -739,7 +880,6 @@ func settle{
 
     let (caller) = get_caller_address();
     let (self) = get_contract_address();
-    TokenLike.transferFrom(dai, caller, self, amount);
     DaiJoinLike.join(daiJoin, self, amount);
 
     let (vat) = _vat.read();
@@ -767,171 +907,10 @@ func settle{
     }
 
     let (debt) = _debts.read(source_domain);
-    let (new_debt) = sub(debt, amount);
+    let (new_debt) = sub_signed256(debt, amount);
     _debts.write(source_domain, new_debt);
 
     Settle.emit(source_domain, amount);
 
     return ();
 }
-
-// /**
-//     * @notice Initiate Maker teleport
-//     * @dev Will fire a teleport event, burn the dai and initiate a censorship-resistant slow-path message
-//     * @param targetDomain The target domain to teleport to
-//     * @param receiver The receiver address of the DAI on the target domain
-//     * @param amount The amount of DAI to teleport
-//     **/
-//     function initiateTeleport(
-//         bytes32 targetDomain,
-//         address receiver,
-//         uint128 amount
-//     ) external {
-//         initiateTeleport(
-//             targetDomain,
-//             addressToBytes32(receiver),
-//             amount,
-//             0
-//         );
-//     }
-@external
-func initiateTeleport{
-    syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*
-}(target_domain: felt, receiver: felt, amount: felt, operator: felt) {
-    // TeleportGUID memory teleport = TeleportGUID({
-    //             sourceDomain: domain,
-    //             targetDomain: targetDomain,
-    //             receiver: receiver,
-    //             operator: operator,
-    //             amount: amount,
-    //             nonce: nonce++,
-    //             timestamp: uint48(block.timestamp)
-    //         });
-    let (domain) = _domain.read();
-    let (nonce) = _nonce.read();
-    let (block_timestamp) = get_block_timestamp();
-    let (uamount) = _felt_to_uint(amount);
-    let teleport: TeleportGUID = TeleportGUID(
-        source_domain=domain,
-        target_domain=target_domain,
-        receiver=receiver,
-        operator=operator,
-        amount=uamount,
-        nonce=nonce + 1,
-        timestamp=block_timestamp,
-    );
-
-    // batches[targetDomain] += amount;
-    let (batch) = _batches.read(target_domain);
-    let (u_amount) = _felt_to_uint(amount);
-    let (new_batch: Uint256) = add(batch, u_amount);
-    _batches.write(target_domain, new_batch);
-    // require(dai.transferFrom(msg.sender, address(this), amount), "DomainHost/transfer-failed");
-    with_attr error_message("DomainHost/transfer-failed") {
-        let (dai) = _dai.read();
-        let (caller) = get_caller_address();
-        let (self) = get_contract_address();
-        let (success) = TokenLike.transferFrom(dai, caller, self, u_amount);
-    }
-    // // Initiate the censorship-resistant slow-path
-    //         router.registerMint(teleport);
-    let (router) = _router.read();
-    GatewayLike.registerMint(router, teleport);
-
-    // // Oracle listens to this event for the fast-path
-    //         emit InitiateTeleport(teleport);
-    InitiateTeleport.emit(teleport);
-    return ();
-}
-
-// /**
-//     * @notice Initiate Maker teleport
-//     * @dev Will fire a teleport event, burn the dai and initiate a censorship-resistant slow-path message
-//     * @param targetDomain The target domain to teleport to
-//     * @param receiver The receiver address of the DAI on the target domain
-//     * @param amount The amount of DAI to teleport
-//     * @param operator An optional address that can be used to mint the DAI at the destination domain (useful for automated relays)
-//     **/
-//     function initiateTeleport(
-//         bytes32 targetDomain,
-//         address receiver,
-//         uint128 amount,
-//         address operator
-//     ) external {
-//         initiateTeleport(
-//             targetDomain,
-//             addressToBytes32(receiver),
-//             amount,
-//             addressToBytes32(operator)
-//         );
-//     }
-
-// /**
-//     * @notice Initiate Maker teleport
-//     * @dev Will fire a teleport event, burn the dai and initiate a censorship-resistant slow-path message
-//     * @param targetDomain The target domain to teleport to
-//     * @param receiver The receiver address of the DAI on the target domain
-//     * @param amount The amount of DAI to teleport
-//     * @param operator An optional address that can be used to mint the DAI at the destination domain (useful for automated relays)
-//     **/
-//     function initiateTeleport(
-//         bytes32 targetDomain,
-//         bytes32 receiver,
-//         uint128 amount,
-//         bytes32 operator
-//     ) public {
-//         TeleportGUID memory teleport = TeleportGUID({
-//             sourceDomain: domain,
-//             targetDomain: targetDomain,
-//             receiver: receiver,
-//             operator: operator,
-//             amount: amount,
-//             nonce: nonce++,
-//             timestamp: uint48(block.timestamp)
-//         });
-
-// batches[targetDomain] += amount;
-//         require(dai.transferFrom(msg.sender, address(this), amount), "DomainHost/transfer-failed");
-
-// // Initiate the censorship-resistant slow-path
-//         router.registerMint(teleport);
-
-// // Oracle listens to this event for the fast-path
-//         emit InitiateTeleport(teleport);
-//     }
-
-// /**
-//     * @notice Flush batched DAI to the target domain
-//     * @dev Will initiate a settle operation along the secure, slow routing path
-//     * @param targetDomain The target domain to settle
-//     **/
-//     function flush(bytes32 targetDomain) external {
-//         uint256 daiToFlush = batches[targetDomain];
-//         require(daiToFlush > fdust, "DomainGuest/flush-dust");
-
-// batches[targetDomain] = 0;
-
-// router.settle(domain, targetDomain, daiToFlush);
-
-// emit Flush(targetDomain, daiToFlush);
-//     }
-@external
-func flush{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(target_domain: felt) {
-    alloc_locals;
-    let (dai_to_flush: Uint256) = _batches.read(target_domain);
-    with_attr error_message("DomainGuest/flush-dust") {
-        let (fdust: Uint256) = _fdust.read();
-        let (not_dust) = uint256_lt(fdust, dai_to_flush);
-    }
-
-    _batches.write(target_domain, Uint256(0, 0));
-
-    let (domain) = _domain.read();
-    let (router) = _router.read();
-    GatewayLike.settle(router, domain, target_domain, dai_to_flush);
-
-    Flush.emit(target_domain, dai_to_flush);
-
-    return ();
-}
-// }
