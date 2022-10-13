@@ -152,9 +152,8 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     // wards[msg.sender] = 1;
     _wards.write(ward, 1);
 
-    let (caller) = get_caller_address();
     // emit Rely(msg.sender);
-    Rely.emit(caller);
+    Rely.emit(ward);
 
     return ();
 }
