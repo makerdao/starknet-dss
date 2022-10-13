@@ -13,6 +13,7 @@ from starkware.cairo.common.uint256 import (
     uint256_cond_neg,
     uint256_neg,
     uint256_unsigned_div_rem,
+    uint256_not,
 )
 
 const MASK128 = 2 ** 128 - 1;
@@ -167,4 +168,42 @@ func div{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 
     let (c: Uint256, rem: Uint256) = uint256_unsigned_div_rem(a, b);
     return (c,);
+}
+
+func sub_signed256{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(lhs: Int256, rhs: Int256) -> (
+    res: Uint256
+) {
+    // First sign extend both operands
+    let (left_msb: felt) = bitwise_and(lhs.high, 0x80000000000000000000000000000000);
+    let (right_msb: felt) = bitwise_and(rhs.high, 0x80000000000000000000000000000000);
+    let left_overflow: felt = left_msb / 0x80000000000000000000000000000000;
+    let right_overflow: felt = right_msb / 0x80000000000000000000000000000000;
+
+    // Now safely negate the rhs and add (l - r = l + (-r))
+    let (right_flipped: Uint256) = uint256_not(rhs);
+    let (right_neg, overflow) = uint256_add(right_flipped, Uint256(1, 0));
+    let right_overflow_neg = overflow + 1 - right_overflow;
+    let (res, res_base_overflow) = uint256_add(lhs, right_neg);
+    let res_overflow = res_base_overflow + left_overflow + right_overflow_neg;
+
+    // Check if the result fits in the correct width
+    let (res_msb: felt) = bitwise_and(res.high, 0x80000000000000000000000000000000);
+    let (res_overflow_lsb: felt) = bitwise_and(res_overflow, 1);
+    assert res_overflow_lsb * 0x80000000000000000000000000000000 = res_msb;
+
+    // Narrow and return
+    return (res=res);
+}
+
+func add_signed256{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(lhs: Int256, rhs: Int256) -> (
+    res: Uint256
+) {
+    let (lhs_extend) = bitwise_and(lhs.high, 0x80000000000000000000000000000000);
+    let (rhs_extend) = bitwise_and(rhs.high, 0x80000000000000000000000000000000);
+    let (res: Uint256, carry: felt) = uint256_add(lhs, rhs);
+    let carry_extend = lhs_extend + rhs_extend + carry * 0x80000000000000000000000000000000;
+    let (msb) = bitwise_and(res.high, 0x80000000000000000000000000000000);
+    let (carry_lsb) = bitwise_and(carry_extend, 0x80000000000000000000000000000000);
+    assert msb = carry_lsb;
+    return (res=res);
 }
