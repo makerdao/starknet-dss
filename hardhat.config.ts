@@ -70,9 +70,6 @@ const config: HardhatUserConfig = {
     network: 'starknetLocal',
     // recompile: true,
   },
-  paths: {
-    cairoPaths: ['./contracts/starknet/vat.cairo'],
-  },
 };
 
 export default config;

@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import { BigNumber } from 'ethers';
 import { parseEther } from 'ethers/lib/utils';
 import { Account, StarknetContract } from 'hardhat/types';
+import isWsl from 'is-wsl';
 
 export type SplitUintType<T> = { low: T; high: T };
 type numberish = string | number | bigint | BigNumber;
@@ -16,6 +17,32 @@ export const MAX_UINT = { low: 2n ** 128n - 1n, high: 2n ** 128n - 1n };
 
 export function l2String(str: string): string {
   return `0x${Buffer.from(str, 'utf8').toString('hex')}`;
+}
+
+const DOCKER_HOST = 'host.docker.internal';
+const MACOS_PLATFORM = 'darwin';
+/**
+ * Adapts `url` by replacing localhost and 127.0.0.1 with `host.internal.docker`
+ * @param url string representing the url to be adapted
+ * @returns adapted url
+ */
+export function adaptUrl(url: string): string {
+  if (process.platform === MACOS_PLATFORM || isWsl) {
+    for (const protocol of ['http://', 'https://', '']) {
+      for (const host of ['localhost', '127.0.0.1']) {
+        if (url === `${protocol}${host}`) {
+          return `${protocol}${DOCKER_HOST}`;
+        }
+
+        const prefix = `${protocol}${host}:`;
+        if (url.startsWith(prefix)) {
+          return url.replace(prefix, `${protocol}${DOCKER_HOST}:`);
+        }
+      }
+    }
+  }
+
+  return url;
 }
 
 export class SplitUint {
