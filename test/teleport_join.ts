@@ -1,10 +1,20 @@
 import { expect } from 'chai';
+import { writeFileSync } from 'fs';
 // import { BigNumber } from 'ethers';
 import hre, { starknet } from 'hardhat';
 import { Account, StarknetContract } from 'hardhat/types';
 import { pedersen } from 'starknet/dist/utils/hash';
 
-import { eth, l2Eth, simpleDeployL2, SplitUint, l2String, invoke, SplitUintType } from './utils';
+import {
+  eth,
+  l2Eth,
+  simpleDeployL2,
+  SplitUint,
+  l2String,
+  invoke,
+  SplitUintType,
+  adaptUrl,
+} from './utils';
 
 // Cairo encoding of "valid_domains"
 const VALID_DOMAINS = l2String('ethereum');
@@ -229,16 +239,31 @@ describe('teleport join', async function () {
     //   max_fee_percentage: l2Eth(maxFeePercentage).res,
     //   operator_fee: l2Eth(operatorFee).res,
     // });
-    const tx = await invoke(admin, join, 'requestMint', {
+    const txHash = await invoke(admin, join, 'requestMint', {
       teleportGUID: guid,
       max_fee_percentage: l2Eth(maxFeePercentage).res,
       operator_fee: l2Eth(operatorFee).res,
     });
-    // console.log(daiSent);
-    const receipt = await starknet.getTransactionReceipt(tx);
-    // const decodedEvents = await dai.decodeEvents(receipt.events);
-    // console.log(receipt);
-    return [0, 0];
+    const hre: any = (starknet.devnet as any).hre;
+    const options = {
+      feederGatewayUrl: adaptUrl(hre.config.starknet.networkUrl),
+      gatewayUrl: adaptUrl(hre.config.starknet.networkUrl),
+      hash: txHash,
+    };
+
+    const preparedOptions = hre.starknetWrapper.prepareTxQueryOptions(
+      'get_transaction_trace',
+      options
+    );
+    const trace = await hre.starknetWrapper.execute('starknet', preparedOptions);
+    // const selector = '0x1cf90c76feb7c5a66af63456f5cb56384c258c9ab40ebc62ac1f58f3b3a2fbd';
+    const stdout = JSON.parse(trace['stdout']);
+    const result = stdout['function_invocation']['internal_calls'][0]['result'].map((v: string) =>
+      BigInt(v)
+    );
+    const postFeeAmount = { low: result[0], high: result[1] };
+    const totalFee = { low: result[2], high: result[3] };
+    return [totalFee, postFeeAmount];
   }
 
   async function mintPending(
@@ -440,9 +465,8 @@ describe('teleport join', async function () {
     expect(await _ink()).to.deep.equal(l2Eth(eth('250000')).res);
     expect(await _art()).to.deep.equal(l2Eth(eth('250000')).res);
     expect(await join.call('cure')).to.deep.equal(l2Eth(250000n * RAD));
-    // TODO : get return values from invoke
-    // expect(daiSent).to.deep.equal(l2Eth(250000n * WAD));
-    // expect(totalFee).to.deep.equal(l2Eth(0));
+    expect(daiSent).to.deep.equal(l2Eth(250000n * WAD).res);
+    expect(totalFee).to.deep.equal(l2Eth(0).res);
   });
 
   // function testRegisterAndWithdrawPartial() public {
@@ -493,8 +517,8 @@ describe('teleport join', async function () {
     expect(await _ink()).to.deep.equal(l2Eth(eth('200000')).res);
     expect(await _art()).to.deep.equal(l2Eth(eth('200000')).res);
     expect(await join.call('cure')).to.deep.equal(l2Eth(200000n * RAD));
-    // expect(daiSent).to.deep.equal(l2Eth(200000n * WAD));
-    // expect(totalFee).to.deep.equal(l2Eth(0));
+    expect(daiSent).to.deep.equal(l2Eth(200000n * WAD).res);
+    expect(totalFee).to.deep.equal(l2Eth(0).res);
   });
 
   // function testRegisterAndWithdrawNothing() public {
@@ -543,8 +567,8 @@ describe('teleport join', async function () {
     expect(await _ink()).to.deep.equal(l2Eth(eth('0')).res);
     expect(await _art()).to.deep.equal(l2Eth(eth('0')).res);
     expect(await join.call('cure')).to.deep.equal(l2Eth(0n * RAD));
-    // expect(daiSent).to.deep.equal(l2Eth(0n * WAD));
-    // expect(totalFee).to.deep.equal(l2Eth(0));
+    expect(daiSent).to.deep.equal(l2Eth(0n * WAD).res);
+    expect(totalFee).to.deep.equal(l2Eth(0).res);
   });
 
   // function testFailRegisterAlreadyRegistered() public {
@@ -659,8 +683,8 @@ describe('teleport join', async function () {
     //     assertEq(_ink(), 250_000 ether);
     //     assertEq(_art(), 250_000 ether);
     //     assertEq(join.cure(), 250_000 * RAD);
-    //     assertEq(daiSent, 249_900 * WAD);
-    //     assertEq(totalFee, 100 ether);
+    // assertEq(daiSent, 249_900 * WAD);
+    // assertEq(totalFee, 100 ether);
     expect((await vat.call('dai', { u: VOW_ADDRESS })).dai).to.deep.equal(l2Eth(100n * RAD).res);
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
       l2Eth(eth('249900'))
@@ -669,8 +693,8 @@ describe('teleport join', async function () {
     expect(await _ink()).to.deep.equal(l2Eth(eth('250000')).res);
     expect(await _art()).to.deep.equal(l2Eth(eth('250000')).res);
     expect(await join.call('cure')).to.deep.equal(l2Eth(250000n * RAD));
-    // expect(daiSent).to.deep.equal(l2Eth(249900n * WAD));
-    // expect(totalFee).to.deep.equal(l2Eth(eth('100')));
+    expect(daiSent).to.deep.equal(l2Eth(249900n * WAD).res);
+    expect(totalFee).to.deep.equal(l2Eth(eth('100')).res);
   });
 
   // function testFailRegisterAndWithdrawPayingFee() public {
@@ -1441,8 +1465,8 @@ describe('teleport join', async function () {
     expect(await _pending(guid)).to.deep.equal(l2Eth(0).res);
     expect(await _ink()).to.deep.equal(l2Eth(eth('250000')).res);
     expect(await _art()).to.deep.equal(l2Eth(eth('250000')).res);
-    // expect(daiSent).to.deep.equal(l2Eth(249750n * WAD).res);
-    // expect(totalFee).to.deep.equal(l2Eth(eth('250')).res);
+    expect(daiSent).to.deep.equal(l2Eth(249750n * WAD).res);
+    expect(totalFee).to.deep.equal(l2Eth(eth('250')).res);
   });
 
   // function testFailOperatorFeeTooHigh() public {
