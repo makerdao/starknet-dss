@@ -16,7 +16,6 @@ pytest-order = "^1.0.1"
 cairo-nile = "0.9.1"
 starknet-devnet = "0.3.3"
 
-
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
 black = {version = "^21.9b0", allow-prereleases = true}
