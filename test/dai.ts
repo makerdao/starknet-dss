@@ -305,8 +305,8 @@ describe('dai', async function () {
   // function testBurnGuyAuth() public {
   it('test burn guy auth', async () => {
     // token.transfer(user2, 10);
-    await admin.invoke(dai, 'transferFrom', {
-      sender: _admin,
+    await user1.invoke(dai, 'transferFrom', {
+      sender: _user1,
       recipient: _user2,
       amount: l2Eth(10n).res,
     });
