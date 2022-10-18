@@ -1,4 +1,4 @@
 #!/bin/bash
 
-yarn chain
+yarn chain:l2
 exit 0

@@ -1,7 +1,7 @@
 %lang starknet
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
-from starkware.cairo.common.uint256 import Uint256, uint256_check
+from starkware.cairo.common.uint256 import Uint256, uint256_check, uint256_le
 from starkware.starknet.common.syscalls import get_caller_address
 from contracts.starknet.safe_math import Int256, add, _add, sub, _sub, mul, _mul, add_signed
 from contracts.starknet.assertions import (
@@ -14,7 +14,6 @@ from contracts.starknet.assertions import (
     assert_0,
     ge,
     _ge_0,
-    le,
     assert_le,
     _le_0,
     eq_0,
@@ -582,7 +581,7 @@ func nope{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user:
 @external
 func slip{
     syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*
-}(ilk: felt, user: felt, wad: Int256) {
+}(ilk: felt, usr: felt, wad: Int256) {
     alloc_locals;
 
     auth();
@@ -590,12 +589,12 @@ func slip{
     check(wad);
 
     // gem[ilk][user] = _add(gem[ilk][usr], wad);
-    let (gem) = _gem.read(ilk, user);
+    let (gem) = _gem.read(ilk, usr);
     let (gem) = _add(gem, wad);
-    _gem.write(ilk, user, gem);
+    _gem.write(ilk, usr, gem);
 
     // emit Slip(ilk, usr, wad);
-    Slip.emit(ilk, user, wad);
+    Slip.emit(ilk, usr, wad);
 
     return ();
 }
@@ -720,8 +719,8 @@ func frob{
     with_attr error_message("Vat/ceiling-exceeded") {
         let (debt_decreased) = _le_0(dart);
         let (ilk_debt) = mul(Art, ilk.rate);
-        let (line_ok) = le(ilk_debt, ilk.line);
-        let (Line_ok) = le(debt, ilk.line);
+        let (line_ok) = uint256_le(ilk_debt, ilk.line);
+        let (Line_ok) = uint256_le(debt, ilk.line);
         let (lines_ok) = both(line_ok, Line_ok);
         assert_either(debt_decreased, lines_ok);
     }
@@ -733,7 +732,7 @@ func frob{
         let (dink_ge_0) = _ge_0(dink);
         let (less_risky) = both(dart_le_0, dink_ge_0);
         let (brim) = mul(ink, ilk.spot);
-        let (safe) = le(tab, brim);
+        let (safe) = uint256_le(tab, brim);
         assert_either(less_risky, safe);
     }
 
@@ -1063,12 +1062,12 @@ func fold{
 
     // dai[u]   = _add(dai[u], rad);
     let (dai) = _dai.read(u);
-    let (dai) = add(dai, rad);
+    let (dai) = _add(dai, rad);
     _dai.write(u, dai);
 
     // debt     = _add(debt,   rad);
     let (debt) = _debt.read();
-    let (debt) = add(debt, rad);
+    let (debt) = _add(debt, rad);
     _debt.write(debt);
 
     // emit Fold(i, u, rate_);

@@ -61,23 +61,12 @@ func ge{range_check_ptr}(a: Uint256, b: Uint256) -> (res: felt) {
 }
 
 // signed!
-func _ge_0{range_check_ptr}(a: Uint256) -> (res: felt) {
+func _ge_0{range_check_ptr}(a: Int256) -> (res: felt) {
     let (res) = uint256_signed_le(Uint256(low=0, high=0), a);
     return (res,);
 }
 
-func le{range_check_ptr}(a: Uint256, b: Uint256) -> (res: felt) {
-    alloc_locals;
-    let (local lt) = uint256_lt(a, b);
-    let (eq) = uint256_eq(a, b);
-    if (lt + eq == 0) {
-        return (0,);
-    } else {
-        return (1,);
-    }
-}
-
-func le_int{range_check_ptr}(a: Int256, b: Int256) -> (res: felt) {
+func _le{range_check_ptr}(a: Int256, b: Int256) -> (res: felt) {
     alloc_locals;
     let (local lt) = uint256_signed_le(a, b);
     let (eq) = uint256_eq(a, b);
@@ -89,13 +78,13 @@ func le_int{range_check_ptr}(a: Int256, b: Int256) -> (res: felt) {
 }
 
 func assert_le{range_check_ptr}(a: Uint256, b: Uint256) -> () {
-    let (is_le) = le(a, b);
+    let (is_le) = uint256_le(a, b);
     assert is_le = 1;
     return ();
 }
 
 // signed!
-func _le_0{range_check_ptr}(a: Uint256) -> (res: felt) {
+func _le_0{range_check_ptr}(a: Int256) -> (res: felt) {
     let (res) = uint256_signed_le(a, Uint256(low=0, high=0));
     return (res,);
 }

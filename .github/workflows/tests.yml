@@ -29,16 +29,17 @@ jobs:
       - name: Set up python
         uses: actions/setup-python@v2
         with:
-          python-version: 3.8
+          python-version: 3.9.0
 
       - name: Display Python version
         run: python -c "import sys; print(sys.version)"
 
       - name: Install deps
         run: |
-          python3.8 -m pip install --upgrade pip
+          python3.9 -m pip install --upgrade pip
           pip install poetry
           if [ -f pyproject.toml ]; then poetry install; fi
+          source $(poetry env info --path)/bin/activate
 
       - name: Compile Contracts
         run: yarn compile
