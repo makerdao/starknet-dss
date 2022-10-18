@@ -18,6 +18,7 @@ func settle{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     return ();
 }
 
+@external
 func request_mint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     teleportGUID: TeleportGUID, max_fee_percentage: Uint256, operator_fee: Uint256
 ) -> (post_fee_amount: Uint256, operator_fee: Uint256) {

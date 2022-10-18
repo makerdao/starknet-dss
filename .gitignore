@@ -6,4 +6,4 @@ build
 node_modules
 cache/
 starknet-artifacts/
-unittest-dump.dmp
+*.dmp
