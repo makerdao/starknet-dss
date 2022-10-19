@@ -173,20 +173,20 @@ func wards{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user
 //         count_ = srcs.length;
 //     }
 @view
-func tCount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (count_: felt) {
+func tCount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
     let (count_) = _srcs_length.read();
     return (count_,);
 }
 
 @view
-func lCount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (count_: felt) {
+func lCount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
     let (count_) = _lCount.read();
     return (count_,);
 }
 
 @view
 func srcs{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(index: felt) -> (
-    src: felt
+    res: felt
 ) {
     let (src) = _srcs.read(index);
     return (src,);
@@ -201,19 +201,19 @@ func pos{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(src: f
 }
 
 @view
-func live{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (live: felt) {
+func live{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
     let (live) = _live.read();
     return (live,);
 }
 
 @view
-func say{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (say: Uint256) {
+func say{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: Uint256) {
     let (say) = _say.read();
     return (say,);
 }
 
 @view
-func wait{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (wait: felt) {
+func wait{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
     let (wait) = _wait.read();
     return (wait,);
 }
@@ -227,7 +227,7 @@ func wait{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> 
 //         return say;
 //     }
 @view
-func tell{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (say: Uint256) {
+func tell{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: Uint256) {
     alloc_locals;
     with_attr error_message("Cure/missing-load-and-time-not-passed") {
         let (live) = _live.read();
