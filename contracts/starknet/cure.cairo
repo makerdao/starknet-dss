@@ -194,7 +194,7 @@ func srcs{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(index
 
 @view
 func pos{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(src: felt) -> (
-    pos: felt
+    res: felt
 ) {
     let (pos) = _pos.read(src);
     return (pos,);

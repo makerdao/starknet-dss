@@ -139,7 +139,7 @@ describe('cure', async function () {
     const funcs: any[][] = [
       ['rely', { user: 0 }],
       ['deny', { user: 0 }],
-      ['file', { what: '', data: 0 }],
+      ['file', { what: 0, data: l2Eth(0n).res }],
       ['lift', { src: 0 }],
       ['drop', { src: 0 }],
       ['cage', {}],
@@ -182,10 +182,7 @@ describe('cure', async function () {
     const { address: addr2 } = await simpleDeployL2(
       'mock_source',
       {
-        cure_: {
-          low: l2Eth(0n).toDec()[0],
-          high: l2Eth(0n).toDec()[1],
-        },
+        cure_: l2Eth(0n).res,
       },
       hre
     );
@@ -406,14 +403,14 @@ describe('cure', async function () {
   // function testCage() public {
   it('test cage', async () => {
     // assertEq(cure.live(), 1);
-    expect((await cure.call('live')).live).to.equal(1n);
+    expect((await cure.call('live')).res).to.equal(1n);
     // vm.expectEmit(true, true, true, true);
     // emit Cage();
     // cure.cage();
     await invoke(admin, cure, 'cage');
     // assertEq(cure.live(), 0);
 
-    expect((await cure.call('live')).live).to.equal(0n);
+    expect((await cure.call('live')).res).to.equal(0n);
   });
 
   // function testCure() public {
