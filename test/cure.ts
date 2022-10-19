@@ -2,7 +2,7 @@ import { Account, StarknetContract } from 'hardhat/types';
 import { expect } from 'chai';
 import hre, { starknet } from 'hardhat';
 
-import { l2Eth, simpleDeployL2, SplitUint, l2String, l2Address, invoke } from './utils';
+import { l2Eth, simpleDeployL2, l2String, l2Address, invoke } from './utils';
 
 const TEST_ADDRESS = '9379074284324409537785911406195';
 

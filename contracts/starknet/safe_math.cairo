@@ -175,3 +175,20 @@ func add_signed256{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(lhs: Int256, r
     assert msb = carry_lsb;
     return (res=res);
 }
+
+// // --- Math ---
+//     uint256 constant WAD = 10 ** 18;
+//     uint256 constant RAY = 10 ** 27;
+//     function min(uint256 x, uint256 y) internal pure returns (uint256 z) {
+//         return x <= y ? x : y;
+//     }
+func min{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    x: Uint256, y: Uint256
+) -> (z: Uint256) {
+    let (x_le: felt) = uint256_le(x, y);
+    if (x_le == 1) {
+        return (z=x);
+    } else {
+        return (z=y);
+    }
+}

@@ -3,6 +3,7 @@ import { BigNumber } from 'ethers';
 import { parseEther } from 'ethers/lib/utils';
 import { Account, StarknetContract } from 'hardhat/types';
 import isWsl from 'is-wsl';
+import { validateAndParseAddress } from 'starknet';
 
 export type SplitUintType<T> = { low: T; high: T };
 type numberish = string | number | bigint | BigNumber;
@@ -43,6 +44,10 @@ export function adaptUrl(url: string): string {
   }
 
   return url;
+}
+
+export function l2Address(address: string | number | bigint | BigNumber) {
+  return validateAndParseAddress(`0x${asHex(address)}`);
 }
 
 export class SplitUint {
