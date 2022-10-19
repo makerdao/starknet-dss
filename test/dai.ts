@@ -297,8 +297,11 @@ describe('dai', async function () {
   });
   // function testBurnAuth() public {
   it('test burn auth', async () => {
+    // token.transfer(user1, 10);
     const burnAmount = l2Eth(10n);
+    // token.rely(user1);
     await admin.invoke(dai, 'rely', { user: _user1 });
+    // TokenUser(user1).doBurn(10);
     await user1.invoke(dai, 'burn', { account: _user1, amount: burnAmount.res });
   });
 
