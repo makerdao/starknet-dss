@@ -1,19 +1,54 @@
+import { expect } from 'chai';
 import { BigNumber } from 'ethers';
 import { parseEther } from 'ethers/lib/utils';
-import { StarknetContract, Account } from 'hardhat/types';
-import { validateAndParseAddress } from 'starknet';
+import { Account, StarknetContract } from 'hardhat/types';
+import isWsl from 'is-wsl';
 
-type SplitUintType = { low: bigint; high: bigint };
+export type SplitUintType<T> = { low: T; high: T };
 type numberish = string | number | bigint | BigNumber;
+
+const TEST_ADDRESS = '9379074284324409537785911406195';
+
+const WAD = 10n ** 18n;
+const RAY = 10n ** 27n;
+const RAD = 10n ** 45n;
+
+export const MAX_UINT = { low: 2n ** 128n - 1n, high: 2n ** 128n - 1n };
 
 export function l2String(str: string): string {
   return `0x${Buffer.from(str, 'utf8').toString('hex')}`;
 }
 
-export class SplitUint {
-  res: SplitUintType;
+const DOCKER_HOST = 'host.docker.internal';
+const MACOS_PLATFORM = 'darwin';
+/**
+ * Adapts `url` by replacing localhost and 127.0.0.1 with `host.internal.docker`
+ * @param url string representing the url to be adapted
+ * @returns adapted url
+ */
+export function adaptUrl(url: string): string {
+  if (process.platform === MACOS_PLATFORM || isWsl) {
+    for (const protocol of ['http://', 'https://', '']) {
+      for (const host of ['localhost', '127.0.0.1']) {
+        if (url === `${protocol}${host}`) {
+          return `${protocol}${DOCKER_HOST}`;
+        }
 
-  constructor(res: SplitUintType) {
+        const prefix = `${protocol}${host}:`;
+        if (url.startsWith(prefix)) {
+          return url.replace(prefix, `${protocol}${DOCKER_HOST}:`);
+        }
+      }
+    }
+  }
+
+  return url;
+}
+
+export class SplitUint {
+  res: SplitUintType<bigint>;
+
+  constructor(res: SplitUintType<bigint>) {
     this.res = res;
   }
 
@@ -56,7 +91,7 @@ export class SplitUint {
   }
 }
 
-export function asHex(a: string | number | bigint | BigNumber): string {
+function asHex(a: string | number | bigint | BigNumber): string {
   return BigNumber.isBigNumber(a) ? a.toHexString().slice(2) : BigInt(a).toString(16);
 }
 
@@ -80,10 +115,6 @@ export function asDec(a: string | number | bigint): string {
   return BigInt(a).toString();
 }
 
-export function l2Address(address: string | number | bigint | BigNumber) {
-  return validateAndParseAddress(`0x${asHex(address)}`);
-}
-
 export async function simpleDeployL2(
   name: string,
   args: object,
@@ -100,4 +131,55 @@ export async function invoke(
   data?: any
 ) {
   return user.invoke(contract, selector, data);
+}
+
+export async function checkAuth(base: any, contractName: string, admin: Account) {
+  const { res: ward } = await base.call('wards', { user: admin.starknetContract.address });
+
+  // await GodMode.setWard(base.address, this, 1);
+
+  expect((await base.call('wards', { user: TEST_ADDRESS })).res).to.equal(0n);
+
+  await invoke(admin, base, 'rely', { user: TEST_ADDRESS });
+
+  expect((await base.call('wards', { user: TEST_ADDRESS })).res).to.equal(1n);
+
+  await invoke(admin, base, 'deny', { user: TEST_ADDRESS });
+
+  expect((await base.call('wards', { user: TEST_ADDRESS })).res).to.equal(0n);
+
+  await invoke(admin, base, 'deny', { user: admin.starknetContract.address });
+
+  try {
+    await invoke(admin, base, 'rely', { user: TEST_ADDRESS });
+  } catch (err: any) {
+    expect(err.message).to.contain(`${contractName}/not-authorized`);
+  }
+  try {
+    await invoke(admin, base, 'deny', { user: TEST_ADDRESS });
+  } catch (err: any) {
+    expect(err.message).to.contain(`${contractName}/not-authorized`);
+  }
+
+  // await GodMode.setWard(base.address, this, ward);
+}
+
+export function wad(a: bigint): SplitUintType<bigint> {
+  const _a = l2Eth(a * WAD);
+  return { low: BigInt(_a.toDec()[0]), high: BigInt(_a.toDec()[1]) };
+}
+
+export function ray(a: bigint): SplitUintType<bigint> {
+  const _a = l2Eth(a * RAY);
+  return { low: BigInt(_a.toDec()[0]), high: BigInt(_a.toDec()[1]) };
+}
+
+export function rad(a: bigint): SplitUintType<bigint> {
+  const _a = l2Eth(a * RAD);
+  return { low: BigInt(_a.toDec()[0]), high: BigInt(_a.toDec()[1]) };
+}
+
+export function uint(a: bigint): SplitUintType<bigint> {
+  const _a = l2Eth(a);
+  return { low: BigInt(_a.toDec()[0]), high: BigInt(_a.toDec()[1]) };
 }

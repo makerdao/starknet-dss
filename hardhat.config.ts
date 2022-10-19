@@ -53,7 +53,8 @@ const config: HardhatUserConfig = {
       chainId: 31337,
     },
     starknetLocal: {
-      url: 'http://localhost:8500',
+      url: 'http://localhost:8000',
+      // stdout: 'STDOUT',
     },
   },
   gasReporter: {
@@ -65,9 +66,10 @@ const config: HardhatUserConfig = {
   },
   starknet: {
     // venv: 'active',
+    // venv: './.venv',
     dockerizedVersion: '0.10.0',
     network: 'starknetLocal',
-    recompile: true,
+    // recompile: true,
   },
 };
 
