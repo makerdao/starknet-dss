@@ -461,6 +461,18 @@ func wards{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user
     return (res,);
 }
 
+@view
+func live{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _live.read();
+    return (res,);
+}
+
+@view
+func vat{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _vat.read();
+    return (res,);
+}
+
 // // --- Math ---
 //     uint256 constant WAD = 10 ** 18;
 //     uint256 constant RAY = 10 ** 27;

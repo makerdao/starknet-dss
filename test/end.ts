@@ -1,16 +1,12 @@
-import { BN, min } from 'bn.js';
 import { expect } from 'chai';
-import hre, { network, starknet } from 'hardhat';
-import { HttpNetworkConfig, StarknetContract } from 'hardhat/types';
-import { BigNumberish } from 'starknet/utils/number';
+import hre, { starknet } from 'hardhat';
+import { StarknetContract } from 'hardhat/types';
 
 import {
-  asDec,
   eth,
   l2Eth,
   simpleDeployL2,
   SplitUint,
-  toBytes32,
   l2String,
   l2Address,
   SplitUintType,
@@ -20,9 +16,6 @@ import {
   wad,
   rad,
 } from './utils';
-
-// Cairo encoding of "valid_domains"
-const VALID_DOMAINS = '9379074284324409537785911406195';
 
 const ILK = l2String('SOME-ILK-A');
 
@@ -205,10 +198,6 @@ describe('end', async function () {
     // await GodMode.setWard(base.address, this, ward);
   }
 
-  it('test rely deny', async () => {
-    await checkAuth(end, 'End');
-  });
-
   //   function dai(address urn) internal view returns (uint) {
   //       return vat.dai(urn) / RAY;
   //   }
@@ -269,7 +258,8 @@ describe('end', async function () {
   //       string memory sig = "file(bytes32, uint)";
   //       (ok,) = address(pot).call(abi.encodeWithSignature(sig, what, data));
   //   }
-  async function try_pot_file(what: string, data: string): Promise<boolean> {
+  async function try_pot_file(what: string, data: string | bigint): Promise<boolean> {
+    const _data = l2Eth(data);
     return Promise.resolve(true);
   }
 
@@ -334,80 +324,134 @@ describe('end', async function () {
   }
 
   //   function testConstructor() public {
-  //       assertEq(end.live(), 1);
-  //       assertEq(end.wards(address(this)), 1);
-  //       assertEq(address(end.vat()), address(vat));
-  //   }
+  it('test constructor', async () => {
+    // assertEq(end.live(), 1);
+    expect((await end.call('live')).res).to.equal(1n);
+    // assertEq(end.wards(address(this)), 1);
+    expect((await end.call('wards', { user: _admin })).res).to.equal(1n);
+    // assertEq(address(end.vat()), address(vat));
+    expect(l2Address((await end.call('vat')).res)).to.equal(vat.address);
+  });
 
   //   function testAuth() public {
-  //       checkAuth(address(end), "End");
-  //   }
+  it('test auth', async () => {
+    // checkAuth(address(end), "End");
+    await checkAuth(end, 'End');
+  });
 
   //   function testFile() public {
+  it('test file', async () => {});
   //       checkFileUint(address(end), "End", ["wait"]);
   //       checkFileAddress(address(end), "End", ["vow", "pot", "spot", "cure", "claim"]);
   //   }
 
   //   function testAuthModifier() public {
-  //       end.deny(address(this));
-
-  //       bytes[] memory funcs = new bytes[](1);
-  //       funcs[0] = abi.encodeWithSignature("cage()", 0, 0, 0, 0);
-
-  //       for (uint256 i = 0; i < funcs.length; i++) {
-  //           assertRevert(address(end), funcs[i], "End/not-authorized");
-  //       }
-  //   }
+  it('test auth modifier', async () => {
+    // end.deny(address(this));
+    await invoke(admin, end, 'deny', { user: _admin });
+    // bytes[] memory funcs = new bytes[](1);
+    // funcs[0] = abi.encodeWithSignature("cage()", 0, 0, 0, 0);
+    const funcs: any[][] = [['cage', {}]];
+    // for (uint256 i = 0; i < funcs.length; i++) {
+    for (let i = 0; i < funcs.length; i++) {
+      try {
+        //     assertRevert(address(end), funcs[i], "End/not-authorized");
+        await invoke(admin, end, funcs[i][0], funcs[i][1]);
+      } catch (err: any) {
+        expect(err.message).to.contain('End/not-authorized');
+      }
+    }
+  });
 
   //   function testLive() public {
-  //       {
-  //           bytes[] memory funcs = new bytes[](3);
-  //           funcs[0] = abi.encodeWithSignature("cage(bytes32)", 0, 0, 0, 0);
-  //           funcs[1] = abi.encodeWithSelector(End.free.selector, 0, 0, 0, 0);
-  //           funcs[2] = abi.encodeWithSelector(End.thaw.selector, 0, 0, 0, 0);
+  it('test live', async () => {
+    // bytes[] memory funcs = new bytes[](3);
+    // funcs[0] = abi.encodeWithSignature("cage(bytes32)", 0, 0, 0, 0);
+    // funcs[1] = abi.encodeWithSelector(End.free.selector, 0, 0, 0, 0);
+    // funcs[2] = abi.encodeWithSelector(End.thaw.selector, 0, 0, 0, 0);
+    const funcs: any[][] = [
+      ['cage', {}],
+      ['free', { ilk: 0 }],
+      ['thaw', {}],
+    ];
 
-  //           for (uint256 i = 0; i < funcs.length; i++) {
-  //               assertRevert(address(end), funcs[i], "End/still-live");
-  //           }
-  //       }
+    // for (uint256 i = 0; i < funcs.length; i++) {
+    for (let i = 0; i < funcs.length; i++) {
+      try {
+        // assertRevert(address(end), funcs[i], "End/still-live");
+        await invoke(admin, end, funcs[i][0], funcs[i][1]);
+      } catch (err: any) {
+        expect(err.message).to.contain('End/still-live');
+      }
+    }
 
-  //       end.cage();
+    // end.cage();
+    await invoke(admin, end, 'cage');
 
-  //       {
-  //           bytes[] memory funcs = new bytes[](3);
-  //           funcs[0] = abi.encodeWithSignature("file(bytes32,address)", 0, 0, 0, 0);
-  //           funcs[1] = abi.encodeWithSignature("file(bytes32,uint256)", 0, 0, 0, 0);
-  //           funcs[2] = abi.encodeWithSignature("cage()", 0, 0, 0, 0);
+    // {
+    //     bytes[] memory funcs = new bytes[](3);
+    //     funcs[0] = abi.encodeWithSignature("file(bytes32,address)", 0, 0, 0, 0);
+    //     funcs[1] = abi.encodeWithSignature("file(bytes32,uint256)", 0, 0, 0, 0);
+    //     funcs[2] = abi.encodeWithSignature("cage()", 0, 0, 0, 0);
 
-  //           for (uint256 i = 0; i < funcs.length; i++) {
-  //               assertRevert(address(end), funcs[i], "End/not-live");
-  //           }
-  //       }
-  //   }
+    //     for (uint256 i = 0; i < funcs.length; i++) {
+    //         assertRevert(address(end), funcs[i], "End/not-live");
+    //     }
+    // }
+    const funcs2: any[][] = [
+      ['file', { what: 0, data: 0 }],
+      ['file_wait', { what: 0, data: 0 }],
+      ['cage', {}],
+    ];
+
+    for (let i = 0; i < funcs2.length; i++) {
+      try {
+        await invoke(admin, end, funcs[i][0], funcs[i][1]);
+      } catch (err: any) {
+        expect(err.message).to.contain('End/not-live');
+      }
+    }
+  });
 
   //   function testCageBasic() public {
-  //       assertEq(end.live(), 1);
-  //       assertEq(vat.live(), 1);
-  //       assertEq(pot.live(), 1);
-  //       assertEq(spot.live(), 1);
-  //       vm.expectEmit(true, true, true, true);
-  //       emit Cage();
-  //       end.cage();
-  //       assertEq(end.live(), 0);
-  //       assertEq(vat.live(), 0);
-  //       assertEq(pot.live(), 0);
-  //       assertEq(spot.live(), 0);
-  //   }
+  it('test cage basic', async () => {
+    // assertEq(end.live(), 1);
+    expect((await end.call('live')).res).to.equal(1n);
+    // assertEq(vat.live(), 1);
+    expect((await vat.call('live')).res).to.equal(1n);
+    // assertEq(pot.live(), 1);
+    expect((await pot.call('live')).res).to.equal(1n);
+    // assertEq(spot.live(), 1);
+    expect((await spot.call('live')).res).to.equal(1n);
+    // vm.expectEmit(true, true, true, true);
+    // emit Cage();
+    // end.cage();
+    await invoke(admin, end, 'cage');
+    // assertEq(end.live(), 0);
+    // assertEq(vat.live(), 0);
+    // assertEq(pot.live(), 0);
+    // assertEq(spot.live(), 0);
+    expect((await end.call('live')).res).to.equal(0n);
+    expect((await vat.call('live')).res).to.equal(0n);
+    expect((await pot.call('live')).res).to.equal(0n);
+    expect((await spot.call('live')).res).to.equal(0n);
+  });
 
   //   function testCagePotDrip() public {
-  //       assertEq(pot.live(), 1);
-  //       pot.drip();
-  //       end.cage();
-
-  //       assertEq(pot.live(), 0);
-  //       assertEq(pot.dsr(), 10 ** 27);
-  //       assertTrue(!try_pot_file("dsr", 10 ** 27 + 1));
-  //   }
+  it('test cage pot drip', async () => {
+    // assertEq(pot.live(), 1);
+    expect((await pot.call('live')).res).to.equal(1n);
+    // pot.drip();
+    await invoke(admin, pot, 'drip');
+    // end.cage();
+    await invoke(admin, end, 'cage');
+    // assertEq(pot.live(), 0);
+    expect((await pot.call('live')).res).to.equal(0n);
+    // assertEq(pot.dsr(), 10 ** 27);
+    expect(await pot.call('dsr')).to.deep.equal(l2Eth(RAY));
+    // assertTrue(!try_pot_file("dsr", 10 ** 27 + 1));
+    expect(await try_pot_file('dsr', RAY + 1n)).to.be.false;
+  });
 
   //   // -- Scenario where there is one over-collateralised CDP
   //   // -- and there is no Vow deficit or surplus
