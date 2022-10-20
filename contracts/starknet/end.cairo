@@ -369,8 +369,14 @@ func Rely(user: felt) {
 func Deny(user: felt) {
 }
 // event File(bytes32 indexed what, uint256 data);
-//     event File(bytes32 indexed what, address data);
-//     event Cage();
+@event
+func File_wait(what: felt, data: felt) {
+}
+// event File(bytes32 indexed what, address data);
+@event
+func File(what: felt, data: felt) {
+}
+// event Cage();
 @event
 func Cage() {
 }
@@ -531,12 +537,68 @@ func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user:
 //         else revert("End/file-unrecognized-param");
 //         emit File(what, data);
 //     }
-//     function file(bytes32 what, uint256 data) external auth {
-//         require(live == 1, "End/not-live");
-//         if (what == "wait") wait = data;
-//         else revert("End/file-unrecognized-param");
-//         emit File(what, data);
-//     }
+@external
+func file{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(what: felt, data: felt) {
+    alloc_locals;
+    auth();
+    require_live();
+
+    if (what == 'vat') {
+        _vat.write(data);
+        File.emit(what, data);
+        return ();
+    }
+    if (what == 'vow') {
+        _vow.write(data);
+        File.emit(what, data);
+        return ();
+    }
+    if (what == 'pot') {
+        _pot.write(data);
+        File.emit(what, data);
+        return ();
+    }
+    if (what == 'spot') {
+        _spot.write(data);
+        File.emit(what, data);
+        return ();
+    }
+    if (what == 'cure') {
+        _cure.write(data);
+        File.emit(what, data);
+        return ();
+    }
+    if (what == 'claim') {
+        _claim.write(data);
+        File.emit(what, data);
+        return ();
+    }
+
+    with_attr error_message("End/file-unrecognized-param") {
+        assert 0 = 1;
+    }
+
+    return ();
+}
+// function file(bytes32 what, uint256 data) external auth {
+@external
+func file_wait{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    what: felt, data: felt
+) {
+    alloc_locals;
+    auth();
+    // require(live == 1, "End/not-live");
+    require_live();
+    // if (what == "wait") wait = data;
+    // else revert("End/file-unrecognized-param");
+    with_attr error_message("End/file-unrecognized-param") {
+        assert what = 'wait';
+    }
+    _wait.write(data);
+    // emit File(what, data);
+    File_wait.emit(what, data);
+    return ();
+}
 
 // // --- Settlement ---
 //     function cage() external auth {

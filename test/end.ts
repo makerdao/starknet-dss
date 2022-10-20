@@ -155,7 +155,7 @@ describe('end', async function () {
     // end.file("wait", 1 hours);
     await invoke(admin, end, 'file_wait', {
       what: l2String('wait'),
-      data: l2Eth(3600n).res,
+      data: 3600n,
     });
     // vat.rely(address(end));
     await invoke(admin, vat, 'rely', { user: end.address });
