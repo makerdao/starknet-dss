@@ -476,6 +476,22 @@ func fix{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(ilk: f
 }
 
 @view
+func out{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    ilk: felt, user: felt
+) -> (res: Uint256) {
+    let (res) = _out.read(ilk, user);
+    return (res,);
+}
+
+@view
+func gap{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(ilk: felt) -> (
+    res: Uint256
+) {
+    let (res) = _gap.read(ilk);
+    return (res,);
+}
+
+@view
 func vat{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
     let (res) = _vat.read();
     return (res,);
