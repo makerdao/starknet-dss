@@ -468,6 +468,14 @@ func live{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> 
 }
 
 @view
+func fix{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(ilk: felt) -> (
+    res: Uint256
+) {
+    let (res) = _fix.read(ilk);
+    return (res,);
+}
+
+@view
 func vat{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
     let (res) = _vat.read();
     return (res,);

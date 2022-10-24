@@ -1,6 +1,8 @@
 import { expect } from 'chai';
+import { BigNumber } from 'ethers';
 import hre, { starknet } from 'hardhat';
-import { StarknetContract } from 'hardhat/types';
+import { Account, StarknetContract } from 'hardhat/types';
+import { BigNumberish } from 'starknet/utils/number';
 
 import {
   eth,
@@ -45,13 +47,13 @@ function sleep(ms: number) {
 
 describe('end', async function () {
   this.timeout(900_000);
-  let admin: any;
+  let admin: Account;
   let _admin: string;
-  let user1: any;
+  let user1: Account;
   let _user1: string;
-  let user2: any;
-  let _user2: any;
-  let end: any;
+  let user2: Account;
+  let _user2: string;
+  let end: StarknetContract;
   let vat: StarknetContract;
   let vow: StarknetContract;
   let claimToken: StarknetContract;
@@ -167,6 +169,18 @@ describe('end', async function () {
     await starknet.devnet.load(dumpFile);
   });
 
+  async function frob(
+    user: Account,
+    i: any,
+    u: any,
+    v: any,
+    w: any,
+    dink: SplitUintType<bigint>,
+    dart: SplitUintType<bigint>
+  ) {
+    await invoke(user, vat, 'frob', { i, u, v, w, dink, dart });
+  }
+
   async function checkAuth(base: any, contractName: string) {
     const { res: ward } = await base.call('wards', { user: _admin });
 
@@ -210,7 +224,7 @@ describe('end', async function () {
   //       return vat.gem(ilk, urn);
   //   }
   async function gem(ilk: string, urn: string): Promise<SplitUintType<bigint>> {
-    const { gem } = await vat.call('gem', { i: ilk, u: urn });
+    const { gem } = await vat.call('gem', { i: l2String(ilk), u: urn });
     return gem;
   }
   //   function ink(bytes32 ilk, address urn) internal view returns (uint) {
@@ -219,7 +233,7 @@ describe('end', async function () {
   //   }
   async function ink(ilk: string, urn: string) {
     const { urn: _urn } = await vat.call('urns', {
-      i: ilk,
+      i: l2String(ilk),
       u: urn,
     });
     return _urn['ink'];
@@ -230,7 +244,7 @@ describe('end', async function () {
   //   }
   async function art(ilk: string, urn: string) {
     const { urn: _urn } = await vat.call('urns', {
-      i: ilk,
+      i: l2String(ilk),
       u: urn,
     });
     return _urn['art'];
@@ -263,8 +277,19 @@ describe('end', async function () {
     return Promise.resolve(true);
   }
 
+  // function approveClaim(address who, uint256 amount) public {
+  //       claimToken.approve(who, amount);
+  //   }
+  async function approveClaim(
+    account: Account,
+    who: string,
+    amount: string | number | bigint | BigNumber
+  ) {
+    await invoke(account, claimToken, 'approve', { spender: who, amount: l2Eth(amount).res });
+  }
+
   //   function init_collateral(bytes32 name) internal returns (Ilk memory) {
-  async function init_collateral(name: string): Promise<Ilk | undefined> {
+  async function init_collateral(name: string): Promise<Ilk> {
     const _name = l2String(name);
     // MockToken coin = new MockToken("");
     const coin = await simpleDeployL2('mock_token', {}, hre);
@@ -320,7 +345,9 @@ describe('end', async function () {
     // ilks[name].gemA = gemA;
     ILKS.set(name, { pip, gem: coin, gemA });
     // return ilks[name];
-    return ILKS.get(name);
+    const _ilk = ILKS.get(name);
+    if (!_ilk) throw Error('Error while calling init_collateral');
+    return _ilk;
   }
 
   //   function testConstructor() public {
@@ -456,176 +483,283 @@ describe('end', async function () {
   //   // -- Scenario where there is one over-collateralised CDP
   //   // -- and there is no Vow deficit or surplus
   //   function testCageCollateralised() public {
-  //       Ilk memory gold = init_collateral("gold");
+  it('test cage collateral', async () => {
+    // Ilk memory gold = init_collateral("gold");
+    const gold = await init_collateral('gold');
+    // Usr ali = new Usr(vat, end);
+    // // make a CDP:
+    // address urn1 = address(ali);
+    const urn1 = user1.address;
+    // gold.gemA.join(urn1, 10 ether);
+    await invoke(admin, gold.gemA, 'join', { user: urn1, wad: l2Eth(eth('10')).res });
+    // ali.frob("gold", urn1, urn1, urn1, 10 ether, 15 ether);
+    await frob(user1, 'gold', urn1, urn1, urn1, l2Eth(eth('10')).res, l2Eth(eth('10')).res);
+    // ali's urn has 0 gem, 10 ink, 15 tab, 15 dai
 
-  //       Usr ali = new Usr(vat, end);
+    // global checks:
+    // assertEq(vat.debt(), rad(15 ether));
+    // assertEq(vat.vice(), 0);
+    expect((await vat.call('debt')).debt).to.deep.equal(rad(eth('15').toBigInt()));
+    expect((await vat.call('vice')).vice).to.deep.equal(rad(0n));
+    // // collateral price is 5
+    // gold.pip.poke(bytes32(5 * WAD));
+    await invoke(admin, gold.pip, 'poke', { wut: wad(5n) });
+    // end.cage();
+    await invoke(admin, end, 'cage');
+    // vm.expectEmit(true, true, true, true);
+    // emit Cage("gold");
+    // end.cage("gold");
+    await invoke(admin, end, 'cage_ilk', { ilk: l2String('gold') });
+    // vm.expectEmit(true, true, true, true);
+    // emit Skim("gold", urn1, 3 ether, 15 ether);
+    // end.skim("gold", urn1);
+    await invoke(admin, end, 'skim', { ilk: l2String('gold'), urn: urn1 });
 
-  //       // make a CDP:
-  //       address urn1 = address(ali);
-  //       gold.gemA.join(urn1, 10 ether);
-  //       ali.frob("gold", urn1, urn1, urn1, 10 ether, 15 ether);
-  //       // ali's urn has 0 gem, 10 ink, 15 tab, 15 dai
+    // // local checks:
+    // assertEq(art("gold", urn1), 0);
+    // assertEq(ink("gold", urn1), 7 ether);
+    // assertEq(vat.sin(address(vow)), rad(15 ether));
+    expect(await art('gold', urn1)).to.deep.equal(l2Eth(0n));
+    expect(await ink('gold', urn1)).to.deep.equal(l2Eth(eth('7')));
+    expect((await vat.call('sin', { u: vow.address })).sin).to.deep.equal(
+      rad(eth('15').toBigInt())
+    );
 
-  //       // global checks:
-  //       assertEq(vat.debt(), rad(15 ether));
-  //       assertEq(vat.vice(), 0);
+    // // global checks:
+    // assertEq(vat.debt(), rad(15 ether));
+    // assertEq(vat.vice(), rad(15 ether));
+    expect((await vat.call('debt')).debt).to.deep.equal(rad(eth('15').toBigInt()));
+    expect((await vat.call('vice')).vice).to.deep.equal(rad(eth('15').toBigInt()));
+    // // CDP closing
+    // vm.expectEmit(true, true, true, true);
+    // emit Free("gold", address(ali), 7 ether);
+    // ali.free("gold");
+    // assertEq(ink("gold", urn1), 0);
+    // assertEq(gem("gold", urn1), 7 ether);
+    // ali.exit(gold.gemA, address(this), 7 ether);
+    await invoke(user1, end, 'free', { ilk: l2String('gold') });
+    expect(await ink('gold', urn1)).to.deep.equal(rad(0n));
+    expect(await gem('gold', urn1)).to.deep.equal(uint(eth('7').toBigInt()));
+    await invoke(user1, gold.gemA, 'exit', { user: _admin, wad: l2Eth(eth('7')).res });
+    // vm.warp(block.timestamp + 1 hours);
+    await starknet.devnet.increaseTime(new Date().getTime() * 1000 + 3600);
+    await starknet.devnet.createBlock();
+    // vm.expectEmit(true, true, true, true);
+    // emit Thaw();
+    // end.thaw();
+    await invoke(admin, end, 'thaw');
+    // vm.expectEmit(true, true, true, true);
+    // emit Flow("gold");
+    // end.flow("gold");
+    await invoke(admin, end, 'flow', { ilk: l2String('gold') });
+    // assertTrue(end.fix("gold") != 0);
+    expect(await end.call('fix', { ilk: l2String('gold') })).to.not.be.deep.equal(l2Eth(0n));
+    // // dai redemption
+    // claimToken.mint(address(ali), 15 ether);
+    // ali.approveClaim(address(end), 15 ether);
+    // vm.expectEmit(true, true, true, true);
+    // emit Pack(address(ali), 15 ether);
+    // ali.pack(15 ether);
+    await invoke(admin, claimToken, 'mint', {
+      account: user1.address,
+      amount: l2Eth(eth('15')).res,
+    });
+    await approveClaim(user1, end.address, eth('15'));
+    await invoke(user1, end, 'pack', { wad: l2Eth(eth('15')).res });
+    // // global checks:
+    // assertEq(vat.debt(), rad(15 ether));
+    // assertEq(vat.vice(), rad(15 ether));
+    // assertEq(vat.sin(address(vow)), rad(15 ether));
+    // assertEq(claimToken.balanceOf(address(vow)), 15 ether);
+    expect((await vat.call('debt')).debt).to.deep.equal(rad(eth('15').toBigInt()));
+    expect((await vat.call('vice')).vice).to.deep.equal(rad(eth('15').toBigInt()));
+    expect((await vat.call('sin', { u: vow.address })).sin).to.deep.equal(
+      rad(eth('15').toBigInt())
+    );
+    expect(await claimToken.call('balanceOf', { user: vow.address })).to.deep.equal(
+      l2Eth(eth('15')).res
+    );
+    // vm.expectEmit(true, true, true, true);
+    // emit Cash("gold", address(ali), 15 ether);
+    // ali.cash("gold", 15 ether);
+    await invoke(user1, end, 'cash', { ilk: l2String('gold'), wad: l2Eth(eth('15')).res });
 
-  //       // collateral price is 5
-  //       gold.pip.poke(bytes32(5 * WAD));
-  //       end.cage();
-  //       vm.expectEmit(true, true, true, true);
-  //       emit Cage("gold");
-  //       end.cage("gold");
-  //       vm.expectEmit(true, true, true, true);
-  //       emit Skim("gold", urn1, 3 ether, 15 ether);
-  //       end.skim("gold", urn1);
+    // // local checks:
+    // assertEq(dai(urn1), 15 ether);
+    // assertEq(gem("gold", urn1), 3 ether);
+    // ali.exit(gold.gemA, address(this), 3 ether);
+    expect(await dai(urn1)).to.deep.equal(uint(eth('15').toBigInt()));
+    expect(await gem('gold', urn1)).to.deep.equal(uint(eth('3').toBigInt()));
+    await invoke(user1, gold.gemA, 'exit', { user: _admin, wad: l2Eth(eth('3')).res });
 
-  //       // local checks:
-  //       assertEq(art("gold", urn1), 0);
-  //       assertEq(ink("gold", urn1), 7 ether);
-  //       assertEq(vat.sin(address(vow)), rad(15 ether));
-
-  //       // global checks:
-  //       assertEq(vat.debt(), rad(15 ether));
-  //       assertEq(vat.vice(), rad(15 ether));
-
-  //       // CDP closing
-  //       vm.expectEmit(true, true, true, true);
-  //       emit Free("gold", address(ali), 7 ether);
-  //       ali.free("gold");
-  //       assertEq(ink("gold", urn1), 0);
-  //       assertEq(gem("gold", urn1), 7 ether);
-  //       ali.exit(gold.gemA, address(this), 7 ether);
-
-  //       vm.warp(block.timestamp + 1 hours);
-  //       vm.expectEmit(true, true, true, true);
-  //       emit Thaw();
-  //       end.thaw();
-  //       vm.expectEmit(true, true, true, true);
-  //       emit Flow("gold");
-  //       end.flow("gold");
-  //       assertTrue(end.fix("gold") != 0);
-
-  //       // dai redemption
-  //       claimToken.mint(address(ali), 15 ether);
-  //       ali.approveClaim(address(end), 15 ether);
-  //       vm.expectEmit(true, true, true, true);
-  //       emit Pack(address(ali), 15 ether);
-  //       ali.pack(15 ether);
-
-  //       // global checks:
-  //       assertEq(vat.debt(), rad(15 ether));
-  //       assertEq(vat.vice(), rad(15 ether));
-  //       assertEq(vat.sin(address(vow)), rad(15 ether));
-  //       assertEq(claimToken.balanceOf(address(vow)), 15 ether);
-
-  //       vm.expectEmit(true, true, true, true);
-  //       emit Cash("gold", address(ali), 15 ether);
-  //       ali.cash("gold", 15 ether);
-
-  //       // local checks:
-  //       assertEq(dai(urn1), 15 ether);
-  //       assertEq(gem("gold", urn1), 3 ether);
-  //       ali.exit(gold.gemA, address(this), 3 ether);
-
-  //       assertEq(gem("gold", address(end)), 0);
-  //       assertEq(balanceOf("gold", address(gold.gemA)), 0);
-  //   }
+    // assertEq(gem("gold", address(end)), 0);
+    expect(await gem('gold', end.address)).to.deep.equal(uint(0n));
+    // assertEq(balanceOf("gold", address(gold.gemA)), 0);
+    expect(await balanceOf('gold', gold.gemA.address)).to.deep.equal(uint(0n));
+  });
 
   //   // -- Scenario where there is one over-collateralised and one
   //   // -- under-collateralised CDP, and no Vow deficit or surplus
   //   function testCageUndercollateralised() public {
-  //       Ilk memory gold = init_collateral("gold");
+  it('test cage undercollateralised', async () => {
+    // Ilk memory gold = init_collateral("gold");
+    const gold: Ilk = await init_collateral('gold');
+    // Usr ali = new Usr(vat, end);
+    // Usr bob = new Usr(vat, end);
+    // // make a CDP:
+    // address urn1 = address(ali);
+    const urn1 = user1.address;
+    // gold.gemA.join(urn1, 10 ether);
+    // ali.frob("gold", urn1, urn1, urn1, 10 ether, 15 ether);
+    await invoke(admin, gold.gemA, 'join', { user: urn1, wad: l2Eth(eth('10')).res });
+    await frob(user1, 'gold', urn1, urn1, urn1, l2Eth(eth('10')).res, l2Eth(eth('15')).res);
+    // // ali's urn has 0 gem, 10 ink, 15 tab, 15 dai
+    // // make a second CDP:
+    // address urn2 = address(bob);
+    const urn2 = user2.address;
+    // gold.gemA.join(urn2, 1 ether);
+    // bob.frob("gold", urn2, urn2, urn2, 1 ether, 3 ether);
+    await invoke(admin, gold.gemA, 'join', { user: urn2, wad: l2Eth(eth('1')).res });
+    await frob(user1, 'gold', urn1, urn1, urn1, l2Eth(eth('10')).res, l2Eth(eth('15')).res);
+    // // bob's urn has 0 gem, 1 ink, 3 tab, 3 dai
+    // // global checks:
+    // assertEq(vat.debt(), rad(18 ether));
+    // assertEq(vat.vice(), 0);
+    expect((await vat.call('debt')).debt).to.deep.equal(rad(eth('18').toBigInt()));
+    expect((await vat.call('vice')).vice).to.deep.equal(rad(0n));
+    // // collateral price is 2
+    // gold.pip.poke(bytes32(2 * WAD));
+    await invoke(admin, gold.pip, 'poke', { wut: wad(2n) });
+    // end.cage();
+    await invoke(admin, end, 'cage');
+    // end.cage("gold");
+    await invoke(admin, end, 'cage_ilk', { ilk: l2String('gold') });
+    // end.skim("gold", urn1);  // over-collateralised
+    await invoke(admin, end, 'skim', { ilk: l2String('gold'), urn: urn1 });
+    // end.skim("gold", urn2);  // under-collateralised
+    await invoke(admin, end, 'skim', { ilk: l2String('gold'), urn: urn2 });
 
-  //       Usr ali = new Usr(vat, end);
-  //       Usr bob = new Usr(vat, end);
+    // // local checks
+    // assertEq(art("gold", urn1), 0);
+    // assertEq(ink("gold", urn1), 2.5 ether);
+    // assertEq(art("gold", urn2), 0);
+    // assertEq(ink("gold", urn2), 0);
+    // assertEq(vat.sin(address(vow)), rad(18 ether));
+    expect(await art('gold', urn1)).to.deep.equal(l2Eth(0n));
+    expect(await ink('gold', urn1)).to.deep.equal(l2Eth(eth('2.5')));
+    expect(await art('gold', urn2)).to.deep.equal(l2Eth(0n));
+    expect(await ink('gold', urn2)).to.deep.equal(l2Eth(0n));
+    expect((await vat.call('sin', { u: vow.address })).sin).to.deep.equal(
+      rad(eth('18').toBigInt())
+    );
 
-  //       // make a CDP:
-  //       address urn1 = address(ali);
-  //       gold.gemA.join(urn1, 10 ether);
-  //       ali.frob("gold", urn1, urn1, urn1, 10 ether, 15 ether);
-  //       // ali's urn has 0 gem, 10 ink, 15 tab, 15 dai
+    // // global checks
+    // assertEq(vat.debt(), rad(18 ether));
+    // assertEq(vat.vice(), rad(18 ether));
+    expect((await vat.call('debt')).debt).to.deep.equal(rad(eth('18').toBigInt()));
+    expect((await vat.call('vice')).vice).to.deep.equal(rad(eth('18').toBigInt()));
+    // // CDP closing
+    // ali.free("gold");
+    // assertEq(ink("gold", urn1), 0);
+    // assertEq(gem("gold", urn1), 2.5 ether);
+    // ali.exit(gold.gemA, address(this), 2.5 ether);
+    await invoke(user1, end, 'free', { ilk: l2String('gold') });
+    expect(await ink('gold', urn1)).to.deep.equal(rad(0n));
+    expect(await gem('gold', urn1)).to.deep.equal(uint(eth('2.5').toBigInt()));
+    await invoke(user1, gold.gemA, 'exit', { user: _admin, wad: l2Eth(eth('2.5')).res });
+    // vm.warp(block.timestamp + 1 hours);
+    await starknet.devnet.increaseTime(new Date().getTime() * 1000 + 3600);
+    await starknet.devnet.createBlock();
+    // end.thaw();
+    await invoke(admin, end, 'thaw');
+    // end.flow("gold");
+    await invoke(admin, end, 'flow', { ilk: l2String('gold') });
+    // assertTrue(end.fix("gold") != 0);
+    expect(await end.call('fix', { ilk: l2String('gold') })).to.not.be.deep.equal(l2Eth(0n));
 
-  //       // make a second CDP:
-  //       address urn2 = address(bob);
-  //       gold.gemA.join(urn2, 1 ether);
-  //       bob.frob("gold", urn2, urn2, urn2, 1 ether, 3 ether);
-  //       // bob's urn has 0 gem, 1 ink, 3 tab, 3 dai
+    // // first dai redemption
+    // claimToken.mint(address(ali), 15 ether);
+    // ali.approveClaim(address(end), 15 ether);
+    // ali.pack(15 ether);
+    await invoke(admin, claimToken, 'mint', {
+      account: user1.address,
+      amount: l2Eth(eth('15')).res,
+    });
+    await approveClaim(user1, end.address, eth('15'));
+    await invoke(user1, end, 'pack', { wad: l2Eth(eth('15')).res });
+    // // global checks:
+    // assertEq(vat.debt(), rad(18 ether));
+    // assertEq(vat.vice(), rad(18 ether));
+    // assertEq(vat.sin(address(vow)), rad(18 ether));
+    // assertEq(claimToken.balanceOf(address(vow)), 15 ether);
+    expect((await vat.call('debt')).debt).to.deep.equal(rad(eth('18').toBigInt()));
+    expect((await vat.call('vice')).vice).to.deep.equal(rad(eth('18').toBigInt()));
+    expect((await vat.call('sin', { u: vow.address })).sin).to.deep.equal(
+      rad(eth('18').toBigInt())
+    );
+    expect(await claimToken.call('balanceOf', { user: vow.address })).to.deep.equal(
+      l2Eth(eth('15')).res
+    );
+    // ali.cash("gold", 15 ether);
+    await invoke(user1, end, 'cash', { ilk: l2String('gold'), wad: l2Eth(eth('15')).res });
 
-  //       // global checks:
-  //       assertEq(vat.debt(), rad(18 ether));
-  //       assertEq(vat.vice(), 0);
+    // // local checks:
+    // assertEq(dai(urn1), 15 ether);
+    expect(await dai(urn1)).to.deep.equal(uint(eth('15').toBigInt()));
+    // uint256 fix = end.fix("gold");
+    // assertEq(gem("gold", urn1), rmul(fix, 15 ether));
+    // ali.exit(gold.gemA, address(this), rmul(fix, 15 ether));
+    const { res } = await end.call('fix', { ilk: l2String('gold') });
+    const _fix: SplitUint = new SplitUint(res);
+    const fix = uint((_fix.toUint() * eth('15').toBigInt()) / RAY);
+    expect(await gem('gold', urn1)).to.deep.equal(fix);
+    await invoke(user1, gold.gemA, 'exit', { user: _admin, wad: fix });
 
-  //       // collateral price is 2
-  //       gold.pip.poke(bytes32(2 * WAD));
-  //       end.cage();
-  //       end.cage("gold");
-  //       end.skim("gold", urn1);  // over-collateralised
-  //       end.skim("gold", urn2);  // under-collateralised
+    // // second dai redemption
+    // claimToken.mint(address(bob), 3 ether);
+    // bob.approveClaim(address(end), 3 ether);
+    // bob.pack(3 ether);
+    await invoke(admin, claimToken, 'mint', {
+      account: user2.address,
+      amount: l2Eth(eth('3')).res,
+    });
+    await approveClaim(user1, end.address, eth('3'));
+    await invoke(user1, end, 'pack', { wad: l2Eth(eth('3')).res });
 
-  //       // local checks
-  //       assertEq(art("gold", urn1), 0);
-  //       assertEq(ink("gold", urn1), 2.5 ether);
-  //       assertEq(art("gold", urn2), 0);
-  //       assertEq(ink("gold", urn2), 0);
-  //       assertEq(vat.sin(address(vow)), rad(18 ether));
+    // // global checks:
+    // assertEq(vat.debt(), rad(18 ether));
+    // assertEq(vat.vice(), rad(18 ether));
+    // assertEq(vat.sin(address(vow)), rad(18 ether));
+    // assertEq(claimToken.balanceOf(address(vow)), 18 ether);
+    expect((await vat.call('debt')).debt).to.deep.equal(rad(eth('18').toBigInt()));
+    expect((await vat.call('vice')).vice).to.deep.equal(rad(eth('18').toBigInt()));
+    expect((await vat.call('sin', { u: vow.address })).sin).to.deep.equal(
+      rad(eth('18').toBigInt())
+    );
+    expect(await claimToken.call('balanceOf', { user: vow.address })).to.deep.equal(
+      l2Eth(eth('18')).res
+    );
 
-  //       // global checks
-  //       assertEq(vat.debt(), rad(18 ether));
-  //       assertEq(vat.vice(), rad(18 ether));
+    // bob.cash("gold", 3 ether);
+    await invoke(user2, end, 'cash', { ilk: l2String('gold'), wad: l2Eth(eth('3')).res });
 
-  //       // CDP closing
-  //       ali.free("gold");
-  //       assertEq(ink("gold", urn1), 0);
-  //       assertEq(gem("gold", urn1), 2.5 ether);
-  //       ali.exit(gold.gemA, address(this), 2.5 ether);
+    // // local checks:
+    // assertEq(dai(urn2), 3 ether);
+    // assertEq(gem("gold", urn2), rmul(fix, 3 ether));
+    // bob.exit(gold.gemA, address(this), rmul(fix, 3 ether));
+    expect(await dai(urn2)).to.deep.equal(uint(eth('3').toBigInt()));
+    const { res: res2 } = await end.call('fix', { ilk: l2String('gold') });
+    const _fix2: SplitUint = new SplitUint(res2);
+    const fix2 = uint((_fix2.toUint() * eth('3').toBigInt()) / RAY);
+    expect(await gem('gold', urn2)).to.deep.equal(fix2);
+    await invoke(user2, gold.gemA, 'exit', { user: _admin, wad: fix2 });
 
-  //       vm.warp(block.timestamp + 1 hours);
-  //       end.thaw();
-  //       end.flow("gold");
-  //       assertTrue(end.fix("gold") != 0);
-
-  //       // first dai redemption
-  //       claimToken.mint(address(ali), 15 ether);
-  //       ali.approveClaim(address(end), 15 ether);
-  //       ali.pack(15 ether);
-
-  //       // global checks:
-  //       assertEq(vat.debt(), rad(18 ether));
-  //       assertEq(vat.vice(), rad(18 ether));
-  //       assertEq(vat.sin(address(vow)), rad(18 ether));
-  //       assertEq(claimToken.balanceOf(address(vow)), 15 ether);
-
-  //       ali.cash("gold", 15 ether);
-
-  //       // local checks:
-  //       assertEq(dai(urn1), 15 ether);
-  //       uint256 fix = end.fix("gold");
-  //       assertEq(gem("gold", urn1), rmul(fix, 15 ether));
-  //       ali.exit(gold.gemA, address(this), rmul(fix, 15 ether));
-
-  //       // second dai redemption
-  //       claimToken.mint(address(bob), 3 ether);
-  //       bob.approveClaim(address(end), 3 ether);
-  //       bob.pack(3 ether);
-
-  //       // global checks:
-  //       assertEq(vat.debt(), rad(18 ether));
-  //       assertEq(vat.vice(), rad(18 ether));
-  //       assertEq(vat.sin(address(vow)), rad(18 ether));
-  //       assertEq(claimToken.balanceOf(address(vow)), 18 ether);
-
-  //       bob.cash("gold", 3 ether);
-
-  //       // local checks:
-  //       assertEq(dai(urn2), 3 ether);
-  //       assertEq(gem("gold", urn2), rmul(fix, 3 ether));
-  //       bob.exit(gold.gemA, address(this), rmul(fix, 3 ether));
-
-  //       // some dust remains in the End because of rounding:
-  //       assertEq(gem("gold", address(end)), 1);
-  //       assertEq(balanceOf("gold", address(gold.gemA)), 1);
-  //   }
+    // // some dust remains in the End because of rounding:
+    // assertEq(gem("gold", address(end)), 1);
+    expect(await gem('gold', end.address)).to.deep.equal(uint(1n));
+    // assertEq(balanceOf("gold", address(gold.gemA)), 1);
+    expect(await balanceOf('gold', gold.gemA.address)).to.deep.equal(1n);
+  });
 
   //   // -- Scenario where there is one over-collateralised CDP
   //   // -- and there is a deficit in the Vow
