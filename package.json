@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.7.2",
-    "@shardlabs/starknet-hardhat-plugin": "^0.6.7",
+    "@shardlabs/starknet-hardhat-plugin": "^0.6.8-alpha.0",
     "concurrently": "^7.3.0",
     "ethereumjs-util": "^7.1.5",
     "install": "^0.13.0",
