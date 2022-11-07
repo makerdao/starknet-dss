@@ -14,7 +14,7 @@ from starkware.starknet.common.syscalls import (
 from starkware.cairo.common.uint256 import Uint256
 from starkware.cairo.common.math_cmp import is_not_zero
 from starkware.cairo.common.math import assert_not_zero
-from contracts.starknet.assertions import assert_either, is_eq, le
+from contracts.starknet.assertions import assert_either, is_eq, assert_le
 from contracts.starknet.teleport_GUID import TeleportGUID
 from contracts.starknet.enumerableset import EnumerableSet
 from contracts.starknet.safe_math import add
@@ -499,12 +499,11 @@ func flush{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(targ
     alloc_locals;
 
     // uint256 daiToFlush = batches[targetDomain];
-    //     require(daiToFlush >= fdust, "TeleportRouter/flush-dust");
+    // require(daiToFlush >= fdust, "TeleportRouter/flush-dust");
     let (dai_to_flush) = _batches.read(target_domain);
     let (fdust) = _fdust.read();
     with_attr error_message("TeleportRouter/flush-dust") {
-        let (valid) = le(fdust, dai_to_flush);
-        assert valid = 1;
+        assert_le(fdust, dai_to_flush);
     }
 
     // batches[targetDomain] = 0;

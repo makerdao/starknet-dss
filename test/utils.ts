@@ -188,3 +188,10 @@ export function uint(a: bigint): SplitUintType<bigint> {
   const _a = l2Eth(a);
   return { low: BigInt(_a.toDec()[0]), high: BigInt(_a.toDec()[1]) };
 }
+export const logGas = async (message: string, tx: Promise<any>, skip?: boolean): Promise<any> => {
+  return tx.then(async (result) => {
+    const receipt = await result.wait();
+    if (!skip) console.log('           Used', receipt.gasUsed.toNumber(), `gas for >${message}<`);
+    return result;
+  });
+};

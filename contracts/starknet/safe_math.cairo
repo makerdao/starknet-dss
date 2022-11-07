@@ -192,3 +192,74 @@ func min{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         return (z=y);
     }
 }
+
+func _uint_to_felt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    value: Uint256
+) -> (value: felt) {
+    assert_lt_felt(value.high, 2 ** 123);
+    return (value.high * (2 ** 128) + value.low,);
+}
+
+func _felt_to_uint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    value: felt
+) -> (value: Uint256) {
+    let (high, low) = split_felt(value);
+    tempvar res: Uint256;
+    res.high = high;
+    res.low = low;
+    return (res,);
+}
+
+func div{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    a: Uint256, b: Uint256
+) -> (c: Uint256) {
+    alloc_locals;
+    uint256_check(a);
+    uint256_check(b);
+
+    let (is_zero) = uint256_eq(b, Uint256(0, 0));
+    with_attr error_message("SafeUint256: divisor cannot be zero") {
+        assert is_zero = 0;
+    }
+
+    let (c: Uint256, rem: Uint256) = uint256_unsigned_div_rem(a, b);
+    return (c,);
+}
+
+func sub_signed256{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(lhs: Int256, rhs: Int256) -> (
+    res: Uint256
+) {
+    // First sign extend both operands
+    let (left_msb: felt) = bitwise_and(lhs.high, 0x80000000000000000000000000000000);
+    let (right_msb: felt) = bitwise_and(rhs.high, 0x80000000000000000000000000000000);
+    let left_overflow: felt = left_msb / 0x80000000000000000000000000000000;
+    let right_overflow: felt = right_msb / 0x80000000000000000000000000000000;
+
+    // Now safely negate the rhs and add (l - r = l + (-r))
+    let (right_flipped: Uint256) = uint256_not(rhs);
+    let (right_neg, overflow) = uint256_add(right_flipped, Uint256(1, 0));
+    let right_overflow_neg = overflow + 1 - right_overflow;
+    let (res, res_base_overflow) = uint256_add(lhs, right_neg);
+    let res_overflow = res_base_overflow + left_overflow + right_overflow_neg;
+
+    // Check if the result fits in the correct width
+    let (res_msb: felt) = bitwise_and(res.high, 0x80000000000000000000000000000000);
+    let (res_overflow_lsb: felt) = bitwise_and(res_overflow, 1);
+    assert res_overflow_lsb * 0x80000000000000000000000000000000 = res_msb;
+
+    // Narrow and return
+    return (res=res);
+}
+
+func add_signed256{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(lhs: Int256, rhs: Int256) -> (
+    res: Uint256
+) {
+    let (lhs_extend) = bitwise_and(lhs.high, 0x80000000000000000000000000000000);
+    let (rhs_extend) = bitwise_and(rhs.high, 0x80000000000000000000000000000000);
+    let (res: Uint256, carry: felt) = uint256_add(lhs, rhs);
+    let carry_extend = lhs_extend + rhs_extend + carry * 0x80000000000000000000000000000000;
+    let (msb) = bitwise_and(res.high, 0x80000000000000000000000000000000);
+    let (carry_lsb) = bitwise_and(carry_extend, 0x80000000000000000000000000000000);
+    assert msb = carry_lsb;
+    return (res=res);
+}

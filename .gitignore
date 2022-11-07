@@ -7,4 +7,17 @@ node_modules
 cache/
 starknet-artifacts/
 .vscode/
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Local deployments
+deployed_contracts/local.json
+
+*.DS_Store
+dump.pkl
+unittest-dump.dmp
 *.dmp
