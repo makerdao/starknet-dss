@@ -66,6 +66,7 @@ func _ge_0{range_check_ptr}(a: Int256) -> (res: felt) {
     return (res,);
 }
 
+
 func le{range_check_ptr}(a: Uint256, b: Uint256) -> (res: felt) {
     alloc_locals;
     let (local lt) = uint256_lt(a, b);
@@ -76,6 +77,7 @@ func le{range_check_ptr}(a: Uint256, b: Uint256) -> (res: felt) {
         return (1,);
     }
 }
+
 
 func _le{range_check_ptr}(a: Int256, b: Int256) -> (res: felt) {
     alloc_locals;
