@@ -66,7 +66,6 @@ func _ge_0{range_check_ptr}(a: Int256) -> (res: felt) {
     return (res,);
 }
 
-
 func le{range_check_ptr}(a: Uint256, b: Uint256) -> (res: felt) {
     alloc_locals;
     let (local lt) = uint256_lt(a, b);
@@ -77,7 +76,6 @@ func le{range_check_ptr}(a: Uint256, b: Uint256) -> (res: felt) {
         return (1,);
     }
 }
-
 
 func _le{range_check_ptr}(a: Int256, b: Int256) -> (res: felt) {
     alloc_locals;
@@ -122,4 +120,12 @@ func is_lt{syscall_ptr: felt*, range_check_ptr}(lhs: felt, rhs: felt) -> (res: f
     }
     let res: felt = is_le(lhs, rhs - 1);
     return (res,);
+}
+
+func is_eq(a: felt, b: felt) -> (res: felt) {
+    if (a == b) {
+        return (1,);
+    } else {
+        return (0,);
+    }
 }
