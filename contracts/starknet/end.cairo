@@ -457,6 +457,16 @@ func require_live{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
     return ();
 }
 
+func require_not_live{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    // require(live == 1, "End/not-live");
+    with_attr error_message("End/still-live") {
+        let (live) = _live.read();
+        assert live = 0;
+    }
+
+    return ();
+}
+
 @view
 func wards{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user: felt) -> (
     res: felt
@@ -554,7 +564,6 @@ func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user:
     auth();
 
     // require(live == 1, "End/not-live");
-    // TODO: consider: https://github.com/makerdao/xdomain-dss/issues/4
     require_live();
 
     // wards[usr] = 0;
@@ -678,7 +687,7 @@ func cage{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
 func cage_ilk{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(ilk: felt) {
     alloc_locals;
     // require(live == 0, "End/still-live");
-    require_live();
+    require_not_live();
     // require(tag[ilk] == 0, "End/tag-ilk-already-defined");
     let (tag) = _tag.read(ilk);
     with_attr error_message("End/tag-ilk-already-defined") {
@@ -761,7 +770,7 @@ func skim{
 func free{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(ilk: felt) {
     alloc_locals;
     // require(live == 0, "End/still-live");
-    require_live();
+    require_not_live();
     // (uint256 ink, uint256 art) = vat.urns(ilk, msg.sender);
     let (vat) = _vat.read();
     let (sender) = get_caller_address();
@@ -793,7 +802,7 @@ func thaw{
 }() {
     alloc_locals;
     // require(live == 0, "End/still-live");
-    require_live();
+    require_not_live();
     // require(debt == 0, "End/debt-not-zero");
     let (debt) = _debt.read();
     with_attr error_message("End/debt-not-zero") {

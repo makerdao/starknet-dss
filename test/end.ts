@@ -118,6 +118,7 @@ describe('end', async function () {
       'end',
       {
         ward: _admin,
+        vat: vat.address,
       },
       hre
     );

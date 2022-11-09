@@ -30,18 +30,3 @@ func _felt_to_uint{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
     return (res,);
 }
 
-func is_zero(value) -> (res: felt) {
-    if (value == 0) {
-        return (res=1);
-    }
-
-    return (res=0);
-}
-
-func is_equal(a: felt, b: felt) -> (res: felt) {
-    if (a == b) {
-        return (1,);
-    } else {
-        return (0,);
-    }
-}

@@ -129,3 +129,11 @@ func is_eq(a: felt, b: felt) -> (res: felt) {
         return (0,);
     }
 }
+
+func is_zero(value) -> (res: felt) {
+    if (value == 0) {
+        return (res=1);
+    }
+
+    return (res=0);
+}

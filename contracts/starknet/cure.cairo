@@ -33,8 +33,8 @@ from starkware.cairo.common.uint256 import (
     uint256_le,
     uint256_check,
 )
-from contracts.starknet.assertions import assert_both, is_lt, either
-from contracts.starknet.utils import _uint_to_felt, is_zero, is_equal
+from starkware.cairo.common.alloc import alloc
+from contracts.starknet.assertions import assert_both, is_lt, either, is_eq, is_zero
 from contracts.starknet.safe_math import add, sub
 
 // interface SourceLike {
@@ -98,20 +98,18 @@ func _say() -> (say: Uint256) {
 //     event Rely(address indexed usr);
 //     event Deny(address indexed usr);
 @event
-func Rely(user: felt) {
+func Rely(usr: felt) {
 }
 
 @event
-func Deny(user: felt) {
+func Deny(usr: felt) {
 }
 
-@event
-func File(what: felt, data: Uint256) {
-}
 // event File(bytes32 indexed what, uint256 data);
 @event
-func File_ilk(ilk: felt, what: felt, data: Uint256) {
+func File(what: felt, data: felt) {
 }
+
 // event Lift(address indexed src);
 @event
 func Lift(src: felt) {
@@ -219,7 +217,31 @@ func wait{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> 
 }
 
 // function list() external view returns (address[] memory) {
-//         return srcs;
+@view
+func list{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+    arr_len: felt, arr: felt*
+) {
+    alloc_locals;
+    let (arr_len: felt) = _srcs_length.read();
+    let (arr: felt*) = alloc();
+
+    get_list_rec(arr_len, arr, 0);
+
+    return (arr_len, arr);
+}
+
+func get_list_rec{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    array_len: felt, array: felt*, index: felt
+) {
+    if (index == array_len) {
+        return ();
+    }
+    let (src) = _srcs.read(index);
+    assert array[index] = src;
+
+    return get_list_rec(array_len, array, index + 1);
+}
+// return srcs;
 //     }
 
 // function tell() external view returns (uint256) {
@@ -237,7 +259,7 @@ func tell{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> 
         let (when) = _when.read();
 
         let (not_live) = is_zero(live);
-        let (same_length) = is_equal(lCount, length);
+        let (same_length) = is_eq(lCount, length);
         let time_passed = is_le_felt(when, timestamp);
         let (valid) = either(same_length, time_passed);
 
@@ -259,33 +281,25 @@ func require_live{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
 }
 
 // function rely(address usr) external auth {
-//         require(live == 1, "Cure/not-live");
-//         wards[usr] = 1;
-//         emit Rely(usr);
-//     }
 @external
-func rely{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user: felt) {
+func rely{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: felt) {
     auth();
 
     // require(live == 1, "Cure/not-live");
     require_live();
 
     // wards[usr] = 1;
-    _wards.write(user, 1);
+    _wards.write(usr, 1);
 
-    // emit Rely(user);
-    Rely.emit(user);
+    // emit Rely(usr);
+    Rely.emit(usr);
 
     return ();
 }
 
 // function deny(address usr) external auth {
-//         require(live == 1, "Cure/not-live");
-//         wards[usr] = 0;
-//         emit Deny(usr);
-//     }
 @external
-func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user: felt) {
+func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: felt) {
     auth();
 
     // require(live == 1, "Cure/not-live");
@@ -293,10 +307,10 @@ func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user:
     require_live();
 
     // wards[usr] = 0;
-    _wards.write(user, 0);
+    _wards.write(usr, 0);
 
     // emit Deny(usr);
-    Deny.emit(user);
+    Deny.emit(usr);
 
     return ();
 }
@@ -308,9 +322,7 @@ func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user:
 //         emit File(what, data);
 //     }
 @external
-func file{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    what: felt, data: Uint256
-) {
+func file{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(what: felt, data: felt) {
     auth();
 
     require_live();
@@ -318,8 +330,7 @@ func file{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     with_attr error_message("Cure/file-unrecognized-param") {
         assert what = 'wait';
     }
-    let (data_) = _uint_to_felt(data);
-    _wait.write(data_);
+    _wait.write(data);
 
     File.emit(what, data);
 
@@ -397,6 +408,7 @@ func drop{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(src: 
     }
 
     _srcs_length.write(last - 1);
+    _srcs.write(last, 0);
     _pos.write(src, 0);
     _amt.write(src, Uint256(0, 0));
     Drop.emit(src);
@@ -427,22 +439,18 @@ func cage{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
 }
 
 // function load(address src) external {
-//         require(live == 0, "Cure/still-live");
-//         require(pos[src] > 0, "Cure/non-existing-source");
-//
-//         emit Load(src);
-//     }
-// }
 @external
 func load{
     syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*
 }(src: felt) {
     alloc_locals;
+    // require(live == 0, "Cure/still-live");
     with_attr error_message("Cure/still-live") {
         let (live) = _live.read();
         assert live = 0;
     }
 
+    // require(pos[src] > 0, "Cure/non-existing-source");
     let (pos_) = _pos.read(src);
     with_attr error_message("Cure/non-existing-source") {
         assert_lt(0, pos_);
@@ -477,6 +485,7 @@ func load{
         tempvar range_check_ptr = range_check_ptr;
     }
 
+    // emit Load(src);
     Load.emit(src);
 
     return ();

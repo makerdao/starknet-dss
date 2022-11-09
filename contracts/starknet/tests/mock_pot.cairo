@@ -21,6 +21,12 @@ func _dsr() -> (res: Uint256) {
 
 const RAY = 10 ** 27;
 
+@view
+func live{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _live.read();
+    return (res,);
+}
+
 func require_live{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     // require(live == 1, "End/not-live");
     with_attr error_message("Pot/not-live") {

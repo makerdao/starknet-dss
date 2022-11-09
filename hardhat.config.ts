@@ -69,7 +69,7 @@ const config: HardhatUserConfig = {
     // venv: './.venv',
     dockerizedVersion: '0.10.1',
     network: 'starknetLocal',
-    // recompile: true,
+    recompile: true,
   },
 };
 

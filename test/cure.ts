@@ -55,23 +55,23 @@ describe('cure', async function () {
 
     expect((await base.call('wards', { user: TEST_ADDRESS })).res).to.equal(0n);
 
-    await invoke(admin, base, 'rely', { user: TEST_ADDRESS });
+    await invoke(admin, base, 'rely', { usr: TEST_ADDRESS });
 
     expect((await base.call('wards', { user: TEST_ADDRESS })).res).to.equal(1n);
 
-    await invoke(admin, base, 'deny', { user: TEST_ADDRESS });
+    await invoke(admin, base, 'deny', { usr: TEST_ADDRESS });
 
     expect((await base.call('wards', { user: TEST_ADDRESS })).res).to.equal(0n);
 
-    await invoke(admin, base, 'deny', { user: _admin });
+    await invoke(admin, base, 'deny', { usr: _admin });
 
     try {
-      await invoke(admin, base, 'rely', { user: TEST_ADDRESS });
+      await invoke(admin, base, 'rely', { usr: TEST_ADDRESS });
     } catch (err: any) {
       expect(err.message).to.contain(`${contractName}/not-authorized`);
     }
     try {
-      await invoke(admin, base, 'deny', { user: TEST_ADDRESS });
+      await invoke(admin, base, 'deny', { usr: TEST_ADDRESS });
     } catch (err: any) {
       expect(err.message).to.contain(`${contractName}/not-authorized`);
     }
@@ -102,7 +102,7 @@ describe('cure', async function () {
   //  function testAuthModifier() public {
   it('test auth modifier', async () => {
     //     cure.deny(address(this));
-    await invoke(admin, cure, 'deny', { user: _admin });
+    await invoke(admin, cure, 'deny', { usr: _admin });
 
     //     bytes[] memory funcs = new bytes[](3);
     //     funcs[0] = abi.encodeWithSelector(Cure.lift.selector, 0, 0, 0, 0);
@@ -137,9 +137,9 @@ describe('cure', async function () {
     //       funcs[4] = abi.encodeWithSelector(Cure.drop.selector, 0, 0, 0, 0);
     //       funcs[5] = abi.encodeWithSelector(Cure.cage.selector, 0, 0, 0, 0);
     const funcs: any[][] = [
-      ['rely', { user: 0 }],
-      ['deny', { user: 0 }],
-      ['file', { what: 0, data: l2Eth(0n).res }],
+      ['rely', { usr: 0 }],
+      ['deny', { usr: 0 }],
+      ['file', { what: 0, data: 0n }],
       ['lift', { src: 0 }],
       ['drop', { src: 0 }],
       ['cage', {}],
@@ -332,7 +332,7 @@ describe('cure', async function () {
   });
 
   xit('test fail add source auth', async () => {
-    await invoke(admin, cure, 'deny', { user: _admin });
+    await invoke(admin, cure, 'deny', { usr: _admin });
     const { address: addr } = await simpleDeployL2(
       'mock_source',
       {
@@ -362,7 +362,7 @@ describe('cure', async function () {
       hre
     );
     await invoke(admin, cure, 'lift', { src: addr });
-    await invoke(admin, cure, 'deny', { user: _admin });
+    await invoke(admin, cure, 'deny', { usr: _admin });
     try {
       await invoke(admin, cure, 'drop', { src: addr });
     } catch (err: any) {
@@ -508,7 +508,7 @@ describe('cure', async function () {
     // cure.file('wait', 10);
     await invoke(admin, cure, 'file', {
       what: l2String('wait'),
-      data: { low: l2Eth(10n).toDec()[0], high: l2Eth(10n).toDec()[1] },
+      data: 10n,
     });
     // cure.cage();
     await invoke(admin, cure, 'cage');
@@ -569,7 +569,7 @@ describe('cure', async function () {
     // cure.file("wait", 10);
     await invoke(admin, cure, 'file', {
       what: l2String('wait'),
-      data: l2Eth(10n).res,
+      data: 10n,
     });
     // cure.cage();
     await invoke(admin, cure, 'cage');
@@ -620,7 +620,7 @@ describe('cure', async function () {
     // cure.file('wait', 10);
     await invoke(admin, cure, 'file', {
       what: l2String('wait'),
-      data: { low: l2Eth(10n).toDec()[0], high: l2Eth(10n).toDec()[1] },
+      data: 10n,
     });
     // cure.cage();
     await invoke(admin, cure, 'cage');
@@ -771,7 +771,7 @@ describe('cure', async function () {
   xit('test fail caged rely', async () => {
     await invoke(admin, cure, 'cage');
     try {
-      await invoke(admin, cure, 'rely', { user: TEST_ADDRESS });
+      await invoke(admin, cure, 'rely', { usr: TEST_ADDRESS });
     } catch (err: any) {
       expect(err.message).to.contain('Cure/not-live');
     }
@@ -781,7 +781,7 @@ describe('cure', async function () {
     await invoke(admin, cure, 'cage');
 
     try {
-      await invoke(admin, cure, 'deny', { user: TEST_ADDRESS });
+      await invoke(admin, cure, 'deny', { usr: TEST_ADDRESS });
     } catch (err: any) {
       expect(err.message).to.contain('Cure/not-live');
     }
