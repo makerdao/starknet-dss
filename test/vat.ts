@@ -67,23 +67,23 @@ describe('vat', async function () {
 
     expect((await base.call('wards', { user: TEST_ADDRESS })).res).to.equal(0n);
 
-    await admin.invoke(base, 'rely', { user: TEST_ADDRESS });
+    await admin.invoke(base, 'rely', { usr: TEST_ADDRESS });
 
     expect((await base.call('wards', { user: TEST_ADDRESS })).res).to.equal(1n);
 
-    await admin.invoke(base, 'deny', { user: TEST_ADDRESS });
+    await admin.invoke(base, 'deny', { usr: TEST_ADDRESS });
 
     expect((await base.call('wards', { user: TEST_ADDRESS })).res).to.equal(0n);
 
-    await admin.invoke(base, 'deny', { user: _admin });
+    await admin.invoke(base, 'deny', { usr: _admin });
 
     try {
-      await admin.invoke(base, 'rely', { user: TEST_ADDRESS });
+      await admin.invoke(base, 'rely', { usr: TEST_ADDRESS });
     } catch (err: any) {
       expect(err.message).to.contain(`${contractName}/not-authorized`);
     }
     try {
-      await admin.invoke(base, 'deny', { user: TEST_ADDRESS });
+      await admin.invoke(base, 'deny', { usr: TEST_ADDRESS });
     } catch (err: any) {
       expect(err.message).to.contain(`${contractName}/not-authorized`);
     }
@@ -146,7 +146,7 @@ describe('vat', async function () {
     }
 
     // Finally check that file is authed
-    await admin.invoke(base, 'deny', { user: _admin });
+    await admin.invoke(base, 'deny', { usr: _admin });
     try {
       await admin.invoke(base, 'file', {
         what: l2String('some value'),
@@ -269,7 +269,7 @@ describe('vat', async function () {
     }
 
     // Not authed
-    await admin.invoke(vat, 'deny', { user: _admin });
+    await admin.invoke(vat, 'deny', { usr: _admin });
     try {
       await admin.invoke(vat, 'file_ilk', {
         ilk: ILK,
@@ -282,7 +282,7 @@ describe('vat', async function () {
   });
 
   it('test auth modifier', async () => {
-    await admin.invoke(vat, 'deny', { user: _user1 });
+    await admin.invoke(vat, 'deny', { usr: _user1 });
 
     const funcs = [
       ['init', { ilk: ILK }],
@@ -315,8 +315,8 @@ describe('vat', async function () {
     await admin.invoke(vat, 'cage');
 
     const funcs = [
-      ['rely', { user: 0 }],
-      ['deny', { user: 0 }],
+      ['rely', { usr: 0 }],
+      ['deny', { usr: 0 }],
       ['file', { what: Line, data: { low: 0, high: 0 } }],
       ['file_ilk', { ilk: ILK, what: Line, data: { low: 0, high: 0 } }],
       [

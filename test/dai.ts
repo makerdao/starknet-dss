@@ -253,7 +253,7 @@ describe('dai', async function () {
   it('test mint guy auth', async () => {
     const mintAmount = l2Eth(10n);
     // token.rely(user1);
-    await admin.invoke(dai, 'rely', { user: _user1 });
+    await admin.invoke(dai, 'rely', { usr: _user1 });
     // TokenUser(user1).doMint(user2, 10);
     await user1.invoke(dai, 'mint', { account: _user1, amount: mintAmount.res });
   });
@@ -300,7 +300,7 @@ describe('dai', async function () {
     // token.transfer(user1, 10);
     const burnAmount = l2Eth(10n);
     // token.rely(user1);
-    await admin.invoke(dai, 'rely', { user: _user1 });
+    await admin.invoke(dai, 'rely', { usr: _user1 });
     // TokenUser(user1).doBurn(10);
     await user1.invoke(dai, 'burn', { account: _user1, amount: burnAmount.res });
   });

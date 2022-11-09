@@ -145,23 +145,23 @@ export async function checkAuth(base: any, contractName: string, admin: Account)
 
   expect((await base.call('wards', { user: TEST_ADDRESS })).res).to.equal(0n);
 
-  await invoke(admin, base, 'rely', { user: TEST_ADDRESS });
+  await invoke(admin, base, 'rely', { usr: TEST_ADDRESS });
 
   expect((await base.call('wards', { user: TEST_ADDRESS })).res).to.equal(1n);
 
-  await invoke(admin, base, 'deny', { user: TEST_ADDRESS });
+  await invoke(admin, base, 'deny', { usr: TEST_ADDRESS });
 
   expect((await base.call('wards', { user: TEST_ADDRESS })).res).to.equal(0n);
 
-  await invoke(admin, base, 'deny', { user: admin.starknetContract.address });
+  await invoke(admin, base, 'deny', { usr: admin.starknetContract.address });
 
   try {
-    await invoke(admin, base, 'rely', { user: TEST_ADDRESS });
+    await invoke(admin, base, 'rely', { usr: TEST_ADDRESS });
   } catch (err: any) {
     expect(err.message).to.contain(`${contractName}/not-authorized`);
   }
   try {
-    await invoke(admin, base, 'deny', { user: TEST_ADDRESS });
+    await invoke(admin, base, 'deny', { usr: TEST_ADDRESS });
   } catch (err: any) {
     expect(err.message).to.contain(`${contractName}/not-authorized`);
   }

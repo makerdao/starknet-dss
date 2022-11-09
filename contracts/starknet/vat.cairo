@@ -363,24 +363,24 @@ func require_live{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
 // // --- Administration ---
 // function rely(address usr) external auth {
 @external
-func rely{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user: felt) {
+func rely{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: felt) {
     auth();
 
     // require(live == 1, "Vat/not-live");
     require_live();
 
     // wards[usr] = 1;
-    _wards.write(user, 1);
+    _wards.write(usr, 1);
 
-    // emit Rely(user);
-    Rely.emit(user);
+    // emit Rely(usr);
+    Rely.emit(usr);
 
     return ();
 }
 
 // function deny(address usr) external auth {
 @external
-func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user: felt) {
+func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: felt) {
     auth();
 
     // require(live == 1, "Vat/not-live");
@@ -388,10 +388,10 @@ func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user:
     require_live();
 
     // wards[usr] = 0;
-    _wards.write(user, 0);
+    _wards.write(usr, 0);
 
     // emit Deny(usr);
-    Deny.emit(user);
+    Deny.emit(usr);
 
     return ();
 }

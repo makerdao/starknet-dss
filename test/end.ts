@@ -93,7 +93,7 @@ describe('end', async function () {
     // pot = new Pot(address(vat));
     pot = await simpleDeployL2('mock_pot', { vat: vat.address, vow: vow.address }, hre);
     // vat.rely(address(pot));
-    await invoke(admin, vat, 'rely', { user: pot.address });
+    await invoke(admin, vat, 'rely', { usr: pot.address });
     // pot.file("vow", address(vow));
     // await invoke(admin, pot, 'file', { what: l2String('vow'), data: vow.address });
     // spot = new Spotter(address(vat));
@@ -104,7 +104,7 @@ describe('end', async function () {
       data: rad(eth('1000000').toBigInt()),
     });
     // vat.rely(address(spot));
-    await invoke(admin, vat, 'rely', { user: spot.address });
+    await invoke(admin, vat, 'rely', { usr: spot.address });
     // cure = new Cure();
     cure = await simpleDeployL2(
       'cure',
@@ -154,13 +154,13 @@ describe('end', async function () {
       data: 3600n,
     });
     // vat.rely(address(end));
-    await invoke(admin, vat, 'rely', { user: end.address });
+    await invoke(admin, vat, 'rely', { usr: end.address });
     // spot.rely(address(end));
-    await invoke(admin, spot, 'rely', { user: end.address });
+    await invoke(admin, spot, 'rely', { usr: end.address });
     // pot.rely(address(end));
-    await invoke(admin, pot, 'rely', { user: end.address });
+    await invoke(admin, pot, 'rely', { usr: end.address });
     // cure.rely(address(end));
-    await invoke(admin, cure, 'rely', { user: end.address });
+    await invoke(admin, cure, 'rely', { usr: end.address });
 
     await starknet.devnet.dump(dumpFile);
     await sleep(5000);
@@ -189,23 +189,23 @@ describe('end', async function () {
 
     expect((await base.call('wards', { user: TEST_ADDRESS })).res).to.equal(0n);
 
-    await admin.invoke(base, 'rely', { user: TEST_ADDRESS });
+    await admin.invoke(base, 'rely', { usr: TEST_ADDRESS });
 
     expect((await base.call('wards', { user: TEST_ADDRESS })).res).to.equal(1n);
 
-    await admin.invoke(base, 'deny', { user: TEST_ADDRESS });
+    await admin.invoke(base, 'deny', { usr: TEST_ADDRESS });
 
     expect((await base.call('wards', { user: TEST_ADDRESS })).res).to.equal(0n);
 
-    await admin.invoke(base, 'deny', { user: _admin });
+    await admin.invoke(base, 'deny', { usr: _admin });
 
     try {
-      await admin.invoke(base, 'rely', { user: TEST_ADDRESS });
+      await admin.invoke(base, 'rely', { usr: TEST_ADDRESS });
     } catch (err: any) {
       expect(err.message).to.contain(`${contractName}/not-authorized`);
     }
     try {
-      await admin.invoke(base, 'deny', { user: TEST_ADDRESS });
+      await admin.invoke(base, 'deny', { usr: TEST_ADDRESS });
     } catch (err: any) {
       expect(err.message).to.contain(`${contractName}/not-authorized`);
     }
@@ -348,7 +348,7 @@ describe('end', async function () {
       amount: l2Eth(MAX).res,
     });
     // vat.rely(address(gemA));
-    await invoke(admin, vat, 'rely', { user: gemA.address });
+    await invoke(admin, vat, 'rely', { usr: gemA.address });
     // ilks[name].pip = pip;
     // ilks[name].gem = coin;
     // ilks[name].gemA = gemA;
@@ -384,7 +384,7 @@ describe('end', async function () {
   //   function testAuthModifier() public {
   it('test auth modifier', async () => {
     // end.deny(address(this));
-    await invoke(admin, end, 'deny', { user: _admin });
+    await invoke(admin, end, 'deny', { usr: _admin });
     // bytes[] memory funcs = new bytes[](1);
     // funcs[0] = abi.encodeWithSignature("cage()", 0, 0, 0, 0);
     const funcs: any[][] = [['cage', {}]];

@@ -540,17 +540,17 @@ func _min{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 //         emit Rely(usr);
 //     }
 @external
-func rely{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user: felt) {
+func rely{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: felt) {
     auth();
 
     // require(live == 1, "End/not-live");
     require_live();
 
     // wards[usr] = 1;
-    _wards.write(user, 1);
+    _wards.write(usr, 1);
 
-    // emit Rely(user);
-    Rely.emit(user);
+    // emit Rely(usr);
+    Rely.emit(usr);
 
     return ();
 }
@@ -560,17 +560,17 @@ func rely{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user:
 //         emit Deny(usr);
 //     }
 @external
-func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user: felt) {
+func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: felt) {
     auth();
 
     // require(live == 1, "End/not-live");
     require_live();
 
     // wards[usr] = 0;
-    _wards.write(user, 0);
+    _wards.write(usr, 0);
 
     // emit Deny(usr);
-    Deny.emit(user);
+    Deny.emit(usr);
 
     return ();
 }
