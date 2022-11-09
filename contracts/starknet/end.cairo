@@ -430,12 +430,16 @@ func auth{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
 // live = 1;
 //     }
 @constructor
-func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(ward: felt) {
+func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    ward: felt, vat: felt
+) {
     // wards[msg.sender] = 1;
     _wards.write(ward, 1);
 
     // live = 1;
     _live.write(1);
+
+    _vat.write(vat);
 
     // emit Rely(msg.sender);
     Rely.emit(ward);
@@ -579,11 +583,6 @@ func file{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(what:
     auth();
     require_live();
 
-    if (what == 'vat') {
-        _vat.write(data);
-        File.emit(what, data);
-        return ();
-    }
     if (what == 'vow') {
         _vow.write(data);
         File.emit(what, data);

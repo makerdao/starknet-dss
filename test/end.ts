@@ -300,19 +300,19 @@ describe('end', async function () {
   async function init_collateral(name: string): Promise<Ilk> {
     const _name = l2String(name);
     // MockToken coin = new MockToken("");
-    const coin = await simpleDeployL2('mock_token', {}, hre);
+    const coin = await simpleDeployL2('mock_token', { ward: _admin }, hre);
     // coin.mint(500_000 ether);
     await invoke(admin, coin, 'mint', { account: _admin, amount: l2Eth(eth('500000')).res });
     // DSValue pip = new DSValue();
     const pip = await simpleDeployL2('ds_value', {}, hre);
     // spot.file(name, "pip", address(pip));
-    await invoke(admin, spot, 'file', {
+    await invoke(admin, spot, 'file_pip', {
       ilk: _name,
       what: l2String('pip'),
       data: pip.address,
     });
     // spot.file(name, "mat", ray(2 ether));
-    await invoke(admin, spot, 'file', {
+    await invoke(admin, spot, 'file_mat', {
       ilk: _name,
       what: l2String('mat'),
       data: ray(eth('2').toBigInt()),
@@ -453,7 +453,7 @@ describe('end', async function () {
     // assertEq(end.live(), 1);
     expect((await end.call('live')).res).to.equal(1n);
     // assertEq(vat.live(), 1);
-    expect((await vat.call('live')).res).to.equal(1n);
+    expect((await vat.call('live')).live).to.equal(1n);
     // assertEq(pot.live(), 1);
     expect((await pot.call('live')).res).to.equal(1n);
     // assertEq(spot.live(), 1);
@@ -467,7 +467,7 @@ describe('end', async function () {
     // assertEq(pot.live(), 0);
     // assertEq(spot.live(), 0);
     expect((await end.call('live')).res).to.equal(0n);
-    expect((await vat.call('live')).res).to.equal(0n);
+    expect((await vat.call('live')).live).to.equal(0n);
     expect((await pot.call('live')).res).to.equal(0n);
     expect((await spot.call('live')).res).to.equal(0n);
   });

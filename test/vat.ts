@@ -206,7 +206,7 @@ describe('vat', async function () {
     // Give some gems to the users
     await admin.invoke(vat, 'slip', {
       ilk: ILK,
-      user: _admin,
+      usr: _admin,
       wad: {
         low: l2Eth(100n * WAD).toDec()[0],
         high: l2Eth(100n * WAD).toDec()[1],
@@ -214,7 +214,7 @@ describe('vat', async function () {
     });
     await admin.invoke(vat, 'slip', {
       ilk: ILK,
-      user: user2.address,
+      usr: user2.address,
       wad: {
         low: l2Eth(100n * WAD).toDec()[0],
         high: l2Eth(100n * WAD).toDec()[1],
@@ -287,7 +287,7 @@ describe('vat', async function () {
     const funcs = [
       ['init', { ilk: ILK }],
       ['cage', {}],
-      ['slip', { ilk: ILK, user: 0, wad: { low: 0, high: 0 } }],
+      ['slip', { ilk: ILK, usr: 0, wad: { low: 0, high: 0 } }],
       [
         'grab',
         {
@@ -433,7 +433,7 @@ describe('vat', async function () {
       // emit Slip(ILK, TEST_ADDRESS, int256(100 * WAD));
       await admin.invoke(vat, 'slip', {
         ilk: ILK,
-        user: TEST_ADDRESS,
+        usr: TEST_ADDRESS,
         wad: SplitUint.fromUint(100n * WAD).res,
       });
 
@@ -469,7 +469,7 @@ describe('vat', async function () {
     it('test flux self other', async () => {
       await admin.invoke(vat, 'slip', {
         ilk: ILK,
-        user: _user1,
+        usr: _user1,
         wad: SplitUint.fromUint(100n * WAD).res,
       });
 
@@ -499,7 +499,7 @@ describe('vat', async function () {
     it('test flux other self', async () => {
       await admin.invoke(vat, 'slip', {
         ilk: ILK,
-        user: user1,
+        usr: _user1,
         wad: SplitUint.fromUint(100n * WAD).res,
       });
 
@@ -528,7 +528,7 @@ describe('vat', async function () {
     it('test flux other self no permission', async () => {
       await admin.invoke(vat, 'slip', {
         ilk: ILK,
-        user: _user1,
+        usr: _user1,
         wad: SplitUint.fromUint(100n * WAD).res,
       });
 
@@ -553,7 +553,7 @@ describe('vat', async function () {
     it('test flux self self', async () => {
       await admin.invoke(vat, 'slip', {
         ilk: ILK,
-        user: _user1,
+        usr: _user1,
         wad: SplitUint.fromUint(100n * WAD).res,
       });
 
