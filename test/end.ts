@@ -179,7 +179,7 @@ describe('end', async function () {
     dink: SplitUintType<bigint>,
     dart: SplitUintType<bigint>
   ) {
-    await invoke(user, vat, 'frob', { i, u, v, w, dink, dart });
+    await invoke(user, vat, 'frob', { i: l2String(i), u, v, w, dink, dart });
   }
 
   async function checkAuth(base: any, contractName: string) {
@@ -406,7 +406,7 @@ describe('end', async function () {
     // funcs[1] = abi.encodeWithSelector(End.free.selector, 0, 0, 0, 0);
     // funcs[2] = abi.encodeWithSelector(End.thaw.selector, 0, 0, 0, 0);
     const funcs: any[][] = [
-      ['cage', {}],
+      ['cage_ilk', { ilk: 0 }],
       ['free', { ilk: 0 }],
       ['thaw', {}],
     ];
@@ -442,7 +442,7 @@ describe('end', async function () {
 
     for (let i = 0; i < funcs2.length; i++) {
       try {
-        await invoke(admin, end, funcs[i][0], funcs[i][1]);
+        await invoke(admin, end, funcs2[i][0], funcs2[i][1]);
       } catch (err: any) {
         expect(err.message).to.contain('End/not-live');
       }

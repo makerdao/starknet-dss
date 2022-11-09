@@ -53,6 +53,12 @@ func _vat() -> (res: felt) {
 
 const RAY = 10 ** 27;
 
+@view
+func live{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _live.read();
+    return (res,);
+}
+
 func require_live{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     // require(live == 1, "Spotter/not-live");
     with_attr error_message("Spotter/not-live") {
@@ -67,6 +73,7 @@ func require_live{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(vat: felt) {
     _vat.write(vat);
     _live.write(1);
+    _par.write(Uint256(RAY, 0));
     return ();
 }
 
@@ -109,6 +116,17 @@ func file_pip{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 //     else revert("Spotter/file-unrecognized-param");
 //     emit File(what, data);
 // }
+@external
+func file_par{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    what: felt, data: Uint256
+) {
+    require_live();
+    with_attr error_message("Spotter/file-unrecognized-param") {
+        assert what = 'par';
+    }
+    _par.write(data);
+    return ();
+}
 
 // function file(bytes32 ilk, bytes32 what, uint256 data) external auth {
 //     require(live == 1, "Spotter/not-live");
