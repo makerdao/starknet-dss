@@ -211,7 +211,7 @@ describe('vat', async function () {
     dink: SplitUintType<bigint>,
     dart: SplitUintType<bigint>
   ) {
-    await invoke(user, vat, 'frob', { ilk, src, dst, dink, dart });
+    await invoke(user, vat, 'fork', { ilk, src, dst, dink, dart });
   }
 
   async function grab(
@@ -876,9 +876,10 @@ describe('vat', async function () {
         expect(err.message).to.contain('Vat/not-allowed');
       }
     });
+
     it('test fork other self', async () => {
       await frob(user1, ILK, _user1, _user1, _user1, wad(100n), wad(100n));
-      await hope(user2, _user1);
+      await hope(user1, _user2);
       expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
       expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
       expect((await vat.call('art', { i: ILK, u: _user2 })).res).to.deep.equal(wad(0n));
@@ -892,6 +893,7 @@ describe('vat', async function () {
       expect((await vat.call('art', { i: ILK, u: _user2 })).res).to.deep.equal(wad(100n));
       expect((await vat.call('ink', { i: ILK, u: _user2 })).res).to.deep.equal(wad(100n));
     });
+
     it('test fork other self negative', async () => {
       // usr1.frob(ILK, ausr1, ausr1, ausr1, int256(100 * WAD), int256(100 * WAD));
       await frob(user1, ILK, _user1, _user1, _user1, wad(100n), wad(100n));
@@ -924,6 +926,7 @@ describe('vat', async function () {
       expect((await vat.call('art', { i: ILK, u: _user2 })).res).to.deep.equal(wad(0n));
       expect((await vat.call('ink', { i: ILK, u: _user2 })).res).to.deep.equal(wad(0n));
     });
+
     it('test fork other self no permission', async () => {
       await frob(user1, ILK, _user1, _user1, _user1, wad(100n), wad(100n));
 
@@ -934,16 +937,26 @@ describe('vat', async function () {
         expect(err.message).to.contain('Vat/not-allowed');
       }
     });
+
     it('test fork self self', async () => {
       // usr1.frob(ILK, ausr1, ausr1, ausr1, int256(100 * WAD), int256(100 * WAD));
       await frob(user1, ILK, _user1, _user1, _user1, wad(100n), wad(100n));
+      // assertEq(usr1.art(ILK), 100 * WAD);
+      // assertEq(usr1.ink(ILK), 100 * WAD);
+      // assertEq(usr2.art(ILK), 0);
+      // assertEq(usr2.ink(ILK), 0);
       expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
       expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
       expect((await vat.call('art', { i: ILK, u: _user2 })).res).to.deep.equal(wad(0n));
       expect((await vat.call('ink', { i: ILK, u: _user2 })).res).to.deep.equal(wad(0n));
       // vm.expectEmit(true, true, true, true);
       // emit Fork(ILK, ausr1, ausr1, int256(100 * WAD), int256(100 * WAD));
+      // usr1.fork(ILK, ausr1, ausr1, int256(100 * WAD), int256(100 * WAD));
       await fork(user1, ILK, _user1, _user1, wad(100n), wad(100n));
+      // assertEq(usr1.art(ILK), 100 * WAD);
+      // assertEq(usr1.ink(ILK), 100 * WAD);
+      // assertEq(usr2.art(ILK), 0);
+      // assertEq(usr2.ink(ILK), 0);
       expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
       expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
       expect((await vat.call('art', { i: ILK, u: _user2 })).res).to.deep.equal(wad(0n));
@@ -954,7 +967,8 @@ describe('vat', async function () {
       await frob(user2, ILK, _user2, _user2, _user2, wad(100n), wad(100n));
       await hope(user2, _user1);
       // Vaults are underwater
-      await invoke(admin, vat, 'file', {
+      await invoke(admin, vat, 'file_ilk', {
+        ilk: ILK,
         what: spot,
         data: SplitUint.fromUint(RAY / 2n).res,
       });
@@ -969,7 +983,8 @@ describe('vat', async function () {
       await frob(user2, ILK, _user2, _user2, _user2, wad(100n), wad(100n));
       await hope(user2, _user1);
       // usr2 vault is underwater
-      await invoke(admin, vat, 'file', {
+      await invoke(admin, vat, 'file_ilk', {
+        ilk: ILK,
         what: spot,
         data: SplitUint.fromUint(RAY / 2n).res,
       });

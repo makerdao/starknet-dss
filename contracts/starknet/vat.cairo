@@ -834,8 +834,17 @@ func fork{
     let (v_ink) = _add(v.ink, dink);
     let (v_art) = _add(v.art, dart);
 
-    _urns.write(ilk, src, Urn(ink=u_ink, art=u_art));
-    _urns.write(ilk, dst, Urn(ink=v_ink, art=v_art));
+    if (src != dst) {
+        _urns.write(ilk, src, Urn(ink=u_ink, art=u_art));
+        _urns.write(ilk, dst, Urn(ink=v_ink, art=v_art));
+        tempvar pedersen_ptr: HashBuiltin* = pedersen_ptr;
+        tempvar syscall_ptr: felt* = syscall_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+    } else {
+        tempvar pedersen_ptr: HashBuiltin* = pedersen_ptr;
+        tempvar syscall_ptr: felt* = syscall_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+    }
 
     // uint256 utab = u.art * i.rate;
     // uint256 vtab = v.art * i.rate;
