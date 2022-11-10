@@ -128,7 +128,7 @@ describe('vat', async function () {
     }
 
     // Finally check that file is authed
-    await invoke(admin, base, 'deny', { user: _admin });
+    await invoke(admin, base, 'deny', { usr: _admin });
     try {
       await invoke(admin, base, 'file', {
         what: l2String('some value'),
@@ -289,7 +289,7 @@ describe('vat', async function () {
     }
 
     // Not authed
-    await invoke(admin, vat, 'deny', { user: _admin });
+    await invoke(admin, vat, 'deny', { usr: _admin });
     try {
       await invoke(admin, vat, 'file_ilk', {
         ilk: ILK,
@@ -302,7 +302,7 @@ describe('vat', async function () {
   });
 
   it('test auth modifier', async () => {
-    await invoke(admin, vat, 'deny', { user: _user1 });
+    await invoke(admin, vat, 'deny', { usr: _user1 });
 
     const funcs: any[] = [
       ['init', { ilk: ILK }],
@@ -335,8 +335,8 @@ describe('vat', async function () {
     await invoke(admin, vat, 'cage');
 
     const funcs: any[] = [
-      ['rely', { user: 0 }],
-      ['deny', { user: 0 }],
+      ['rely', { usr: 0 }],
+      ['deny', { usr: 0 }],
       ['file', { what: Line, data: uint(0n) }],
       ['file_ilk', { ilk: ILK, what: Line, data: uint(0n) }],
       [
@@ -678,7 +678,17 @@ describe('vat', async function () {
       expect((await vat.call('ilks', { i: ILK })).ilk.Art).to.deep.equal(wad(100n));
       // vm.expectEmit(true, true, true, true);
       // emit Frob(ILK, ausr1, ausr1, ausr1, -int256(50 * WAD), -int256(50 * WAD));
-      await frob(user1, ILK, _user1, _user1, _user1, wad(-50n), wad(-50n));
+      const _value = (50n * WAD).toString(16);
+      const value = BigInt(`0x${((~_value + 1) >>> 0).toString(16)}`);
+      await frob(
+        user1,
+        ILK,
+        _user1,
+        _user1,
+        _user1,
+        SplitUint.fromUint(value).res,
+        SplitUint.fromUint(value).res
+      );
       expect((await vat.call('dai', { u: _user1 })).dai).to.deep.equal(rad(50n));
       expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(50n));
       expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(50n));
@@ -1140,7 +1150,7 @@ describe('vat', async function () {
 
       expect((await vat.call('ilks', { i: ILK })).ilk.Art).to.deep.equal(wad(100n));
       expect((await vat.call('ilks', { i: ILK })).ilk.rate).to.deep.equal(
-        SplitUint.fromUint((11n * RAY) / 10n)
+        SplitUint.fromUint((11n * RAY) / 10n).res
       );
       expect((await vat.call('dai', { u: TEST_ADDRESS })).dai).to.deep.equal(uint(10n));
       expect((await vat.call('debt')).debt).to.deep.equal(rad(110n));
@@ -1156,11 +1166,11 @@ describe('vat', async function () {
       });
       await fold(ILK, TEST_ADDRESS, SplitUint.fromUint((1n * RAY) / 10n).res);
 
-      expect((await vat.call('ilks', { i: ILK })).ilk.Art.res).to.deep.equal(wad(100n));
+      expect((await vat.call('ilks', { i: ILK })).ilk.Art).to.deep.equal(wad(100n));
       expect((await vat.call('ilks', { i: ILK })).ilk.rate).to.deep.equal(
         SplitUint.fromUint((11n * RAY) / 10n)
       );
-      expect((await vat.call('dai', { u: TEST_ADDRESS })).dai.res).to.deep.equal(rad(10n));
+      expect((await vat.call('dai', { u: TEST_ADDRESS })).dai).to.deep.equal(rad(10n));
       expect((await vat.call('debt')).debt.res).to.deep.equal(rad(110n));
 
       // vm.expectEmit(true, true, true, true);

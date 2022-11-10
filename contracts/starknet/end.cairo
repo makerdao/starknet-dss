@@ -35,6 +35,14 @@ from contracts.starknet.safe_math import (
     _mul,
     add_signed,
     div_rem,
+    ray_mul,
+    Ray,
+    ray_mul_no_rounding,
+    Wad,
+    ray_to_wad_no_rounding,
+    wad_to_ray,
+    ray_div,
+    MASK128,
 )
 from contracts.starknet.assertions import (
     assert_either,
@@ -53,16 +61,6 @@ from contracts.starknet.assertions import (
     check,
 )
 from starkware.cairo.common.uint256 import Uint256, uint256_le, uint256_neg
-from contracts.starknet.wad_ray_math import (
-    ray_mul,
-    Ray,
-    ray_mul_no_rounding,
-    Wad,
-    ray_to_wad_no_rounding,
-    wad_to_ray,
-    ray_div,
-)
-from contracts.starknet.utils import _felt_to_uint
 
 // interface VatLike {
 //     function dai(address usr) external view returns (uint256);
@@ -82,7 +80,6 @@ from contracts.starknet.utils import _felt_to_uint
 //     function hope(address usr) external;
 //     function flux(bytes32 ilk, address src, address dst, uint256 rad) external;
 //     function grab(bytes32 i, address u, address v, address w, int256 dink, int256 dart) external;
-//     function suck(address u, address v, uint256 rad) external;
 //     function cage() external;
 // }
 @contract_interface
@@ -90,7 +87,18 @@ namespace VatLike {
     func dai(u: felt) -> (dai: Uint256) {
     }
 
+    func ilks(ilk: felt) -> (
+        Art: Uint256, rate: Uint256, spot: Uint256, line: Uint256, dust: Uint256
+    ) {
+    }
+
+    func urns(i: felt, u: felt) -> (ink: Uint256, art: Uint256) {
+    }
+
     func debt() -> (debt: Uint256) {
+    }
+
+    func move(src: felt, dst: felt, rad: Uint256) {
     }
 
     func live() -> (live: felt) {
@@ -99,32 +107,13 @@ namespace VatLike {
     func hope(usr: felt) {
     }
 
-    func frob(i: felt, u: felt, v: felt, w: felt, dink: Uint256, dart: Uint256) {
+    func flux(ilk: felt, src: felt, dst: felt, rad: Uint256) {
     }
 
-    func slip(ilk: felt, usr: felt, wad: Int256) {
-    }
-
-    func urns(i: felt, u: felt) -> (ink: Uint256, art: Uint256) {
-    }
-
-    func ilks(ilk: felt) -> (
-        Art: Uint256, rate: Uint256, spot: Uint256, line: Uint256, dust: Uint256
-    ) {
-    }
-
-    func move(src: felt, dst: felt, rad: Uint256) {
-    }
-
-    func cage() {
-    }
-
-    // function grab(bytes32 i, address u, address v, address w, int256 dink, int256 dart) external;
     func grab(i: felt, u: felt, v: felt, w: felt, dink: Int256, dart: Int256) {
     }
 
-    // function flux(bytes32 ilk, address src, address dst, uint256 rad) external;
-    func flux(ilk: felt, src: felt, dst: felt, rad: Uint256) {
+    func cage() {
     }
 }
 
@@ -137,6 +126,14 @@ namespace VatLike {
 //     );
 //     function cage() external;
 // }
+@contract_interface
+namespace DogLike {
+    func ilks(ilk: felt) -> (clip: felt, chop: Uint256, hole: Uint256, dirt: Uint256) {
+    }
+
+    func cage() {
+    }
+}
 
 // interface PotLike {
 //     function cage() external;
@@ -151,6 +148,14 @@ namespace PotLike {
 //     function grain() external view returns (uint256);
 //     function tell(uint256 value) external;
 // }
+@contract_interface
+namespace VowLike {
+    func grain() -> (Line: Uint256) {
+    }
+
+    func tell(value: Uint256) {
+    }
+}
 
 // interface ClipLike {
 //     function sales(uint256 id) external view returns (
@@ -163,13 +168,23 @@ namespace PotLike {
 //     );
 //     function yank(uint256 id) external;
 // }
+@contract_interface
+namespace ClipLike {
+    func sales(id: Uint256) -> (
+        pos: Uint256, tab: Uint256, lot: Uint256, usr: felt, tic: felt, top: Uint256
+    ) {
+    }
+
+    func yank(id: Uint256) {
+    }
+}
 
 // interface PipLike {
 //     function read() external view returns (bytes32);
 // }
 @contract_interface
 namespace PipLike {
-    func read() -> (pip: felt) {
+    func read() -> (pip: Uint256) {
     }
 }
 
@@ -362,16 +377,13 @@ func _out(ilk: felt, address: felt) -> (out: Uint256) {
 //     event Rely(address indexed usr);
 //     event Deny(address indexed usr);
 @event
-func Rely(user: felt) {
+func Rely(usr: felt) {
 }
 
 @event
-func Deny(user: felt) {
+func Deny(usr: felt) {
 }
-// event File(bytes32 indexed what, uint256 data);
-@event
-func File_wait(what: felt, data: felt) {
-}
+
 // event File(bytes32 indexed what, address data);
 @event
 func File(what: felt, data: felt) {
@@ -617,30 +629,16 @@ func file{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(what:
         File.emit(what, data);
         return ();
     }
+    if (what == 'wait') {
+        _wait.write(data);
+        File.emit(what, data);
+        return ();
+    }
 
     with_attr error_message("End/file-unrecognized-param") {
         assert 0 = 1;
     }
 
-    return ();
-}
-// function file(bytes32 what, uint256 data) external auth {
-@external
-func file_wait{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    what: felt, data: felt
-) {
-    alloc_locals;
-    auth();
-    // require(live == 1, "End/not-live");
-    require_live();
-    // if (what == "wait") wait = data;
-    // else revert("End/file-unrecognized-param");
-    with_attr error_message("End/file-unrecognized-param") {
-        assert what = 'wait';
-    }
-    _wait.write(data);
-    // emit File(what, data);
-    File_wait.emit(what, data);
     return ();
 }
 
@@ -703,8 +701,7 @@ func cage_ilk{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(i
     // // par is a ray, pip returns a wad
     let (par) = SpotLike.par(spot);
     let (pip_val) = PipLike.read(pip);
-    let (local pip_val_uint) = _felt_to_uint(pip_val);
-    let (local pip_val_ray: Ray) = wad_to_ray(Wad(pip_val_uint));
+    let (local pip_val_ray: Ray) = wad_to_ray(Wad(pip_val));
     // tag[ilk] = wdiv(spot.par(), uint256(pip.read()));
     let (new_tag) = ray_div(Ray(par), pip_val_ray);
     _tag.write(ilk, new_tag.ray);
@@ -748,9 +745,8 @@ func skim{
 
     // require(wad <= 2**255 && art <= 2**255, "End/overflow");
     with_attr error_message("End/overflow") {
-        let (max) = _felt_to_uint(2 ** 255);
-        let (wad_overflow) = le(wad, max);
-        let (art_overflow) = le(art, max);
+        let (wad_overflow) = le(wad, Uint256(MASK128, MASK128));
+        let (art_overflow) = le(art, Uint256(MASK128, MASK128));
         assert_both(wad_overflow, art_overflow);
     }
 
@@ -782,8 +778,7 @@ func free{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(ilk: 
     }
     // require(ink <= 2**255, "End/overflow");
     with_attr error_message("End/overflow") {
-        let (max) = _felt_to_uint(2 ** 255);
-        assert_le(ink, max);
+        assert_le(ink, Uint256(MASK128, MASK128));
     }
     let (vow) = _vow.read();
     let (minus_ink) = uint256_neg(ink);

@@ -27,7 +27,6 @@ from contracts.starknet.safe_math import (
     _mul,
     add_signed,
     min,
-    _felt_to_uint,
     _uint_to_felt,
     div,
     sub_signed256,

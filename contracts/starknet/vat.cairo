@@ -373,24 +373,24 @@ func require_live{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
 // // --- Administration ---
 // function rely(address usr) external auth {
 @external
-func rely{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user: felt) {
+func rely{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: felt) {
     auth();
 
     // require(live == 1, "Vat/not-live");
     require_live();
 
     // wards[usr] = 1;
-    _wards.write(user, 1);
+    _wards.write(usr, 1);
 
-    // emit Rely(user);
-    Rely.emit(user);
+    // emit Rely(usr);
+    Rely.emit(usr);
 
     return ();
 }
 
 // function deny(address usr) external auth {
 @external
-func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user: felt) {
+func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: felt) {
     auth();
 
     // require(live == 1, "Vat/not-live");
@@ -398,10 +398,10 @@ func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user:
     require_live();
 
     // wards[usr] = 0;
-    _wards.write(user, 0);
+    _wards.write(usr, 0);
 
     // emit Deny(usr);
-    Deny.emit(user);
+    Deny.emit(usr);
 
     return ();
 }
@@ -687,7 +687,7 @@ func move{
 @external
 func frob{
     syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*
-}(i: felt, u: felt, v: felt, w: felt, dink: Uint256, dart: Uint256) {
+}(i: felt, u: felt, v: felt, w: felt, dink: Int256, dart: Int256) {
     alloc_locals;
 
     check(dink);
@@ -720,7 +720,7 @@ func frob{
     // int256 dtab = _int256(ilk.rate) * dart;
     // uint256 tab = ilk.rate * urn.art;
     // debt     = _add(debt, dtab);
-    let (dtab) = mul_signed256(ilk.rate, dart);
+    let (dtab) = _mul(ilk.rate, dart);
     let (tab) = mul(ilk.rate, art);
     let (debt) = _debt.read();
     let (debt) = _add(debt, dtab);
@@ -780,7 +780,7 @@ func frob{
     // require(either(urn.art == 0, tab >= ilk.dust), "Vat/dust");
     // TODO: how to manage underwater dusty vaults?
     with_attr error_message("Vat/dust") {
-        let (no_debt) = eq_0(urn.art);
+        let (no_debt) = eq_0(art);
         let (non_dusty) = ge(tab, ilk.dust);
         assert_either(no_debt, non_dusty);
     }
@@ -812,7 +812,7 @@ func frob{
 @external
 func fork{
     syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*
-}(ilk: felt, src: felt, dst: felt, dink: Uint256, dart: Uint256) {
+}(ilk: felt, src: felt, dst: felt, dink: Int256, dart: Int256) {
     alloc_locals;
 
     check(dink);
