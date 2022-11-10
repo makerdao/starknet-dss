@@ -177,6 +177,34 @@ func add_signed256{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(lhs: Int256, r
     return (res=res);
 }
 
+func mul_signed256{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(lhs: Uint256, rhs: Uint256) -> (
+    result: Uint256
+) {
+    alloc_locals;
+    // 1 => lhs >= 0, 0 => lhs < 0
+    let (lhs_nn) = uint256_signed_nn(lhs);
+    // 1 => rhs >= 0, 0 => rhs < 0
+    let (local rhs_nn) = uint256_signed_nn(rhs);
+    // negates if arg is 1, which is if lhs_nn is 0, which is if lhs < 0
+    let (lhs_abs) = uint256_cond_neg(lhs, 1 - lhs_nn);
+    // negates if arg is 1
+    let (rhs_abs) = uint256_cond_neg(rhs, 1 - rhs_nn);
+    let (res_abs, overflow) = uint256_mul(lhs_abs, rhs_abs);
+    assert overflow.low = 0;
+    assert overflow.high = 0;
+    let res_should_be_neg = lhs_nn + rhs_nn;
+    if (res_should_be_neg == 1) {
+        let (in_range) = uint256_le(res_abs, Uint256(0, 0x80000000000000000000000000000000));
+        assert in_range = 1;
+        let (negated) = uint256_neg(res_abs);
+        return (result=negated);
+    } else {
+        let (msb) = bitwise_and(res_abs.high, 0x80000000000000000000000000000000);
+        assert msb = 0;
+        return (result=res_abs);
+    }
+}
+
 // // --- Math ---
 //     uint256 constant WAD = 10 ** 18;
 //     uint256 constant RAY = 10 ** 27;

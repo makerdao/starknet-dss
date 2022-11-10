@@ -3,7 +3,17 @@
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.cairo.common.uint256 import Uint256, uint256_check, uint256_le
 from starkware.starknet.common.syscalls import get_caller_address
-from contracts.starknet.safe_math import Int256, add, _add, sub, _sub, mul, _mul, add_signed
+from contracts.starknet.safe_math import (
+    Int256,
+    add,
+    _add,
+    sub,
+    _sub,
+    mul,
+    _mul,
+    add_signed,
+    mul_signed256,
+)
 from contracts.starknet.assertions import (
     assert_either,
     either,
@@ -363,24 +373,24 @@ func require_live{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
 // // --- Administration ---
 // function rely(address usr) external auth {
 @external
-func rely{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: felt) {
+func rely{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user: felt) {
     auth();
 
     // require(live == 1, "Vat/not-live");
     require_live();
 
     // wards[usr] = 1;
-    _wards.write(usr, 1);
+    _wards.write(user, 1);
 
-    // emit Rely(usr);
-    Rely.emit(usr);
+    // emit Rely(user);
+    Rely.emit(user);
 
     return ();
 }
 
 // function deny(address usr) external auth {
 @external
-func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: felt) {
+func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user: felt) {
     auth();
 
     // require(live == 1, "Vat/not-live");
@@ -388,10 +398,10 @@ func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: 
     require_live();
 
     // wards[usr] = 0;
-    _wards.write(usr, 0);
+    _wards.write(user, 0);
 
     // emit Deny(usr);
-    Deny.emit(usr);
+    Deny.emit(user);
 
     return ();
 }
@@ -611,7 +621,9 @@ func flux{
     // require(wish(src, msg.sender), "Vat/not-allowed");
     let (caller) = get_caller_address();
     let (src_consents) = wish(src, caller);
-    assert src_consents = 1;
+    with_attr error_message("Vat/not-allowed") {
+        assert src_consents = 1;
+    }
 
     // gem[ilk][src] = gem[ilk][src] - wad;
     let (gem_src) = _gem.read(ilk, src);
@@ -708,7 +720,7 @@ func frob{
     // int256 dtab = _int256(ilk.rate) * dart;
     // uint256 tab = ilk.rate * urn.art;
     // debt     = _add(debt, dtab);
-    let (dtab) = _mul(ilk.rate, dart);
+    let (dtab) = mul_signed256(ilk.rate, dart);
     let (tab) = mul(ilk.rate, art);
     let (debt) = _debt.read();
     let (debt) = _add(debt, dtab);
@@ -768,7 +780,7 @@ func frob{
     // require(either(urn.art == 0, tab >= ilk.dust), "Vat/dust");
     // TODO: how to manage underwater dusty vaults?
     with_attr error_message("Vat/dust") {
-        let (no_debt) = eq_0(art);
+        let (no_debt) = eq_0(urn.art);
         let (non_dusty) = ge(tab, ilk.dust);
         assert_either(no_debt, non_dusty);
     }
