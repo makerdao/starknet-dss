@@ -598,8 +598,8 @@ func slip{
 
     // gem[ilk][user] = _add(gem[ilk][usr], wad);
     let (gem) = _gem.read(ilk, usr);
-    let (gem) = _add(gem, wad);
-    _gem.write(ilk, usr, gem);
+    let (gem_) = _add(gem, wad);
+    _gem.write(ilk, usr, gem_);
 
     // emit Slip(ilk, usr, wad);
     Slip.emit(ilk, usr, wad);

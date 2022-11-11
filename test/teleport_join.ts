@@ -14,6 +14,8 @@ import {
   invoke,
   SplitUintType,
   adaptUrl,
+  neg,
+  uint,
 } from './utils';
 
 // Cairo encoding of "valid_domains"
@@ -1168,12 +1170,7 @@ describe('teleport join', async function () {
 
     // assertEq(join.debt("l2network"), -100_000 ether);
     // assertEq(join.cure(), 0);
-    // const P = BigNumber.from('800000000000011000000000000000000000000000000000000000000000001');
-    // const N = eth('-100000');
-    // const NN = N.add(P);
-    // const _debt = SplitUint.fromUint(NN);
-    // console.log(_debt);
-    // expect(await debt(l2String('l2network'))).to.deep.equal(_debt);
+    expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(neg(eth('100000').toBigInt())));
     expect(await join.call('cure')).to.deep.equal(l2Eth(0));
   });
 
@@ -1193,8 +1190,7 @@ describe('teleport join', async function () {
 
     // assertEq(join.debt("l2network"), -100_000 ether);
     // assertEq(join.cure(), 0);
-    // TODO: handle negative numbers
-    // expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(eth('-100000')));
+    expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(neg(eth('100000').toBigInt())));
     expect(await join.call('cure')).to.deep.equal(l2Eth(0));
 
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
@@ -1248,7 +1244,7 @@ describe('teleport join', async function () {
 
     // assertEq(join.debt("l2network"), -100_000 ether);
     // assertEq(join.cure(), 0);
-    // expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(eth('-100000')));
+    expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(neg(eth('100000').toBigInt())));
     expect(await join.call('cure')).to.deep.equal(l2Eth(0));
 
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
@@ -1310,7 +1306,7 @@ describe('teleport join', async function () {
     await settle(l2String('l2network'), VALID_DOMAINS, l2Eth(eth('100000')).res);
     // assertEq(join.debt("l2network"), -100_000 ether);
     // assertEq(join.cure(), 0);
-    // expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(eth('-100000')));
+    expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(neg(eth('100000').toBigInt())));
     expect(await join.call('cure')).to.deep.equal(l2Eth(0));
 
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
@@ -1755,7 +1751,7 @@ describe('teleport join', async function () {
     //     assertEq(join.debt("l2network_2"), 150_000 ether);
     //     assertEq(join.debt("l2network_3"), 50_000 ether);
     //     assertEq(join.cure(), 200_000 * RAD);
-    // expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(eth('-100000')));
+    expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(neg(eth('100000').toBigInt())));
     expect(await debt(l2String('l2network_2'))).to.deep.equal(l2Eth(eth('150000')));
     expect(await debt(l2String('l2network_3'))).to.deep.equal(l2Eth(eth('50000')));
     expect(await join.call('cure')).to.deep.equal(l2Eth(200000n * RAD));
