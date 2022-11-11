@@ -17,6 +17,7 @@ import {
   wad,
   uint,
   SplitUintType,
+  neg,
 } from './utils';
 
 // Cairo encoding of "valid_domains"
@@ -455,29 +456,41 @@ describe('vat', async function () {
 
       expect((await vat.call('gem', { i: ILK, u: TEST_ADDRESS })).gem).to.deep.equal(wad(100n));
     });
-    /*
-    it("test slip negative", async () => {
-      await invoke(admin, vat, "slip", {
+
+    it('test slip negative', async () => {
+      // vat.slip(ILK, TEST_ADDRESS, int256(100 * WAD));
+      await invoke(admin, vat, 'slip', {
         ilk: ILK,
-        user: TEST_ADDRESS,
+        usr: TEST_ADDRESS,
         wad: wad(100n),
       });
-
-      expect((await vat.call("gem", { i: ILK, u: TEST_ADDRESS })).gem).to.deep.equal(wad(100n));
-
+      // assertEq(vat.gem(ILK, TEST_ADDRESS), 100 * WAD);
+      expect((await vat.call('gem', { i: ILK, u: TEST_ADDRESS })).gem).to.deep.equal(wad(100n));
       // vm.expectEmit(true, true, true, true);
       // emit Slip(ILK, TEST_ADDRESS, -int256(50 * WAD));
+      // vat.slip(ILK, TEST_ADDRESS, -int256(50 * WAD));
+      await invoke(admin, vat, 'slip', {
+        i: ILK,
+        u: TEST_ADDRESS,
+        wad: SplitUint.fromUint(neg(50n * WAD)).res,
+      });
 
-      await invoke(admin, vat, "slip", { i: ILK, u: TEST_ADDRESS, wad: SplitUint.fromUint(-50n * WAD).res });
-
-      expect((await vat.call("gem", { i: ILK, u: TEST_ADDRESS })).gem).to.deep.equal(SplitUint.fromUint(50n * WAD).res);
+      // assertEq(vat.gem(ILK, TEST_ADDRESS), 50 * WAD);
+      expect((await vat.call('gem', { i: ILK, u: TEST_ADDRESS })).gem).to.deep.equal(
+        SplitUint.fromUint(50n * WAD).res
+      );
     });
-    it("test slip negative underflow", async () => {
-      expect((await vat.call("gem", { i: ILK, u: TEST_ADDRESS })).gem).to.deep.equal(uint(0n));
 
-      await invoke(admin, vat, "slip", { ilk: ILK, user: TEST_ADDRESS, wad: SplitUint.fromUint(-50n * WAD).res });
+    it('test slip negative underflow', async () => {
+      // assertEq(vat.gem(ILK, TEST_ADDRESS), 0);
+      expect((await vat.call('gem', { i: ILK, u: TEST_ADDRESS })).gem).to.deep.equal(uint(0n));
+      // vat.slip(ILK, TEST_ADDRESS, -int256(50 * WAD));
+      await invoke(admin, vat, 'slip', {
+        ilk: ILK,
+        usr: TEST_ADDRESS,
+        wad: SplitUint.fromUint(neg(50n * WAD)).res,
+      });
     });
-    */
   });
   describe('flux', async function () {
     it('test flux self other', async () => {
@@ -678,16 +691,14 @@ describe('vat', async function () {
       expect((await vat.call('ilks', { i: ILK })).ilk.Art).to.deep.equal(wad(100n));
       // vm.expectEmit(true, true, true, true);
       // emit Frob(ILK, ausr1, ausr1, ausr1, -int256(50 * WAD), -int256(50 * WAD));
-      const _value = (50n * WAD).toString(16);
-      const value = BigInt(`0x${((~_value + 1) >>> 0).toString(16)}`);
       await frob(
         user1,
         ILK,
         _user1,
         _user1,
         _user1,
-        SplitUint.fromUint(value).res,
-        SplitUint.fromUint(value).res
+        SplitUint.fromUint(neg(50n * WAD)).res,
+        SplitUint.fromUint(neg(50n * WAD)).res
       );
       expect((await vat.call('dai', { u: _user1 })).dai).to.deep.equal(rad(50n));
       expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(50n));
@@ -723,25 +734,32 @@ describe('vat', async function () {
       }
     });
     it('test frob not safe', async () => {
+      //  usr1.frob(ILK, ausr1, ausr1, ausr1, int256(100 * WAD), int256(100 * WAD));
       await frob(user1, ILK, _user1, _user1, _user1, wad(100n), wad(100n));
+      //  assertEq(usr1.dai(), 100 * RAD);
+      //  assertEq(usr1.ink(ILK), 100 * WAD);
+      //  assertEq(usr1.art(ILK), 100 * WAD);
+      //  assertEq(usr1.gems(ILK), 0);
       expect((await vat.call('dai', { u: _user1 })).dai).to.deep.equal(rad(100n));
       expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
       expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
       expect((await vat.call('gem', { i: ILK, u: _user1 })).gem).to.deep.equal(wad(0n));
-      // // Cannot mint one more DAI it's undercollateralized
+      // Cannot mint one more DAI it's undercollateralized
       try {
+        // usr1.frob(ILK, ausr1, ausr1, ausr1, 0, int256(1 * WAD));
         await frob(user1, ILK, _user1, _user1, _user1, wad(0n), wad(1n));
       } catch (err: any) {
         expect(err.message).to.contain('Vat/not-safe');
       }
-      // // Cannot remove even one ink or it's undercollateralized
-      // TODO: handle negative numbers
-      // try {
-      //   await frob(user1, ILK, _user1, _user1, _user1, wad(-1n), wad(0n));
-      // } catch (err: any) {
-      //   expect(err.message).to.contain('Vat/not-safe');
-      // }
+      // Cannot remove even one ink or it's undercollateralized
+      try {
+        // usr1.frob(ILK, ausr1, ausr1, ausr1, -int256(1 * WAD), 0);
+        await frob(user1, ILK, _user1, _user1, _user1, uint(neg(1n * WAD)), wad(0n));
+      } catch (err: any) {
+        expect(err.message).to.contain('Vat/not-safe');
+      }
     });
+
     it('test frob not safe less risky', async () => {
       await frob(user1, ILK, _user1, _user1, _user1, wad(50n), wad(50n));
       expect((await vat.call('dai', { u: _user1 })).dai).to.deep.equal(rad(50n));
@@ -755,7 +773,7 @@ describe('vat', async function () {
         data: uint(RAY / 2n),
       });
       // // Can repay debt even if it's undercollateralized
-      await frob(user1, ILK, _user1, _user1, _user1, wad(0n), wad(-1n));
+      await frob(user1, ILK, _user1, _user1, _user1, wad(0n), uint(neg(WAD)));
       expect((await vat.call('dai', { u: _user1 })).dai).to.deep.equal(rad(49n));
       expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(50n));
       expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(49n));
@@ -767,6 +785,7 @@ describe('vat', async function () {
       expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(49n));
       expect((await vat.call('gem', { i: ILK, u: _user1 })).gem).to.deep.equal(wad(49n));
     });
+
     it('test frob permissionless and collateral', async () => {
       await frob(user1, ILK, _user1, _user1, _user1, wad(100n), wad(100n));
       expect((await vat.call('dai', { u: _user1 })).dai).to.deep.equal(rad(100n));
@@ -783,6 +802,7 @@ describe('vat', async function () {
       expect((await vat.call('gem', { i: ILK, u: _user1 })).gem).to.deep.equal(wad(0n));
       expect((await vat.call('gem', { i: ILK, u: _user2 })).gem).to.deep.equal(wad(0n));
     });
+
     it('test frob permissionless repay', async () => {
       //  usr1.frob(ILK, ausr1, ausr1, ausr1, int256(100 * WAD), int256(100 * WAD));
       //  vat.suck(TEST_ADDRESS, ausr2, 100 * RAD);
@@ -800,7 +820,7 @@ describe('vat', async function () {
       expect((await vat.call('dai', { u: _user2 })).dai).to.deep.equal(rad(100n));
       // vm.expectEmit(true, true, true, true);
       // emit Frob(ILK, ausr1, TEST_ADDRESS, ausr2, 0, -int256(100 * WAD));
-      await frob(user2, ILK, _user1, TEST_ADDRESS, _user2, uint(0n), wad(-100n));
+      await frob(user2, ILK, _user1, TEST_ADDRESS, _user2, uint(0n), uint(neg(100n * WAD)));
       expect((await vat.call('dai', { u: _user1 })).dai).to.deep.equal(rad(100n));
       expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(100n));
       expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(0n));
@@ -814,12 +834,14 @@ describe('vat', async function () {
         expect(err.message).to.contain('Vat/dust');
       }
     });
+
     it('test frob other', async () => {
-      // // usr2 can completely manipulate usr1's vault with permission
+      // usr2 can completely manipulate usr1's vault with permission
       await hope(user1, _user2);
       await frob(user2, ILK, _user1, _user1, _user1, wad(100n), wad(100n));
-      await frob(user2, ILK, _user1, _user1, _user1, wad(-50n), wad(-50n));
+      await frob(user2, ILK, _user1, _user1, _user1, uint(neg(50n)), uint(neg(50n)));
     });
+
     it('test frob non one rate', async () => {
       await fold(ILK, TEST_ADDRESS, SplitUint.fromUint((1n * RAY) / 10n).res); // 10% interest collected
       expect((await vat.call('dai', { u: _user1 })).dai).to.deep.equal(rad(0n));
@@ -868,7 +890,7 @@ describe('vat', async function () {
       expect((await vat.call('ink', { i: ILK, u: _user2 })).res).to.deep.equal(wad(100n));
       // vm.expectEmit(true, true, true, true);
       // emit Fork(ILK, ausr1, ausr2, -int256(100 * WAD), -int256(100 * WAD));
-      await fork(user1, ILK, _user1, _user2, wad(-100n), wad(-100n));
+      await fork(user1, ILK, _user1, _user2, uint(neg(100n * WAD)), uint(neg(100n * WAD)));
       expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(200n));
       expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(200n));
       expect((await vat.call('art', { i: ILK, u: _user2 })).res).to.deep.equal(wad(0n));
@@ -912,7 +934,7 @@ describe('vat', async function () {
       await frob(user2, ILK, _user2, _user2, _user2, wad(100n), wad(100n));
 
       // usr1.hope(ausr2);
-      await hope(user2, _user1);
+      await hope(user1, _user2);
 
       // assertEq(usr1.art(ILK), 100 * WAD);
       // assertEq(usr1.ink(ILK), 100 * WAD);
@@ -926,7 +948,7 @@ describe('vat', async function () {
       // vm.expectEmit(true, true, true, true);
       // emit Fork(ILK, ausr1, ausr2, -int256(100 * WAD), -int256(100 * WAD));
       // usr2.fork(ILK, ausr1, ausr2, -int256(100 * WAD), -int256(100 * WAD));
-      await fork(user2, ILK, _user1, _user2, wad(-100n), wad(-100n));
+      await fork(user2, ILK, _user1, _user2, uint(neg(100n * WAD)), uint(neg(100n * WAD)));
       // assertEq(usr1.art(ILK), 200 * WAD);
       // assertEq(usr1.ink(ILK), 200 * WAD);
       // assertEq(usr2.art(ILK), 0);
@@ -1015,11 +1037,15 @@ describe('vat', async function () {
       }
     });
     it('test fork dust dst', async () => {
+      // usr1.frob(ILK, ausr1, ausr1, ausr1, int256(100 * WAD), int256(100 * WAD));
       await frob(user1, ILK, _user1, _user1, _user1, wad(100n), wad(100n));
+      // usr2.frob(ILK, ausr2, ausr2, ausr2, int256(100 * WAD), int256(100 * WAD));
       await frob(user2, ILK, _user2, _user2, _user2, wad(100n), wad(100n));
+      // usr2.hope(ausr1);
       await hope(user2, _user1);
       try {
-        await fork(user1, ILK, _user1, _user2, wad(-95n), wad(-95n));
+        // usr1.fork(ILK, ausr1, ausr2, -int256(95 * WAD), -int256(95 * WAD));
+        await fork(user1, ILK, _user1, _user2, uint(neg(95n * WAD)), uint(neg(95n * WAD)));
       } catch (err: any) {
         expect(err.message).to.contain('Vat/dust-dst');
       }
@@ -1041,7 +1067,7 @@ describe('vat', async function () {
       expect((await vat.call('vice')).vice).to.deep.equal(rad(0n));
       // vm.expectEmit(true, true, true, true);
       // emit Grab(ILK, ausr1, ausr2, TEST_ADDRESS, -int256(100 * WAD), -int256(100 * WAD));
-      await grab(ILK, _user1, _user2, TEST_ADDRESS, wad(-100n), wad(-100n));
+      await grab(ILK, _user1, _user2, TEST_ADDRESS, uint(neg(100n * WAD)), uint(neg(100n * WAD)));
       expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(0n));
       expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(0n));
       expect((await vat.call('ilks', { i: ILK })).ilk.Art).to.deep.equal(wad(0n));
@@ -1059,7 +1085,7 @@ describe('vat', async function () {
       expect((await vat.call('vice')).vice).to.deep.equal(rad(0n));
       // vm.expectEmit(true, true, true, true);
       // emit Grab(ILK, ausr1, ausr2, TEST_ADDRESS, -int256(50 * WAD), -int256(50 * WAD));
-      await grab(ILK, _user1, _user2, TEST_ADDRESS, wad(-100n), wad(-100n));
+      await grab(ILK, _user1, _user2, TEST_ADDRESS, uint(neg(50n * WAD)), uint(neg(50n * WAD)));
       expect((await vat.call('art', { i: ILK, u: _user1 })).res).to.deep.equal(wad(50n));
       expect((await vat.call('ink', { i: ILK, u: _user1 })).res).to.deep.equal(wad(50n));
       expect((await vat.call('ilks', { i: ILK })).ilk.Art).to.deep.equal(wad(50n));
@@ -1175,7 +1201,7 @@ describe('vat', async function () {
 
       // vm.expectEmit(true, true, true, true);
       // emit Fold(ILK, TEST_ADDRESS, -int256(1 * RAY / 20));
-      await fold(ILK, TEST_ADDRESS, SplitUint.fromUint((-1n * RAY) / 20n).res);
+      await fold(ILK, TEST_ADDRESS, SplitUint.fromUint(neg((1n * RAY) / 20n)).res);
 
       expect((await vat.call('ilks', { i: ILK })).ilk.Art).to.deep.equal(wad(100n));
       expect((await vat.call('ilks', { i: ILK })).ilk.rate).to.deep.equal(

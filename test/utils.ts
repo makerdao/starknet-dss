@@ -195,3 +195,8 @@ export const logGas = async (message: string, tx: Promise<any>, skip?: boolean):
     return result;
   });
 };
+
+export const neg = (amount: bigint): bigint => {
+  const value = ~((amount - 1n) | ~((1n << 256n) - 1n));
+  return value;
+};

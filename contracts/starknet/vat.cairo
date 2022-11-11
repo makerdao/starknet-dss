@@ -721,8 +721,8 @@ func frob{
     let (tab) = mul(ilk.rate, art);
     // debt     = _add(debt, dtab);
     let (debt) = _debt.read();
-    let (debt) = _add(debt, dtab);
-    _debt.write(debt);
+    let (debt_) = _add(debt, dtab);
+    _debt.write(debt_);
 
     // either debt has decreased, or debt ceilings are not exceeded
     // require(either(dart <= 0, both(ilk.Art * ilk.rate <= ilk.line, debt <= Line)), "Vat/ceiling-exceeded");
@@ -730,14 +730,14 @@ func frob{
         let (debt_decreased) = _le_0(dart);
         let (ilk_debt) = mul(Art, ilk.rate);
         let (line_ok) = uint256_le(ilk_debt, ilk.line);
-        let (Line_ok) = uint256_le(debt, ilk.line);
+        let (Line_ok) = uint256_le(debt_, ilk.line);
         let (lines_ok) = both(line_ok, Line_ok);
         assert_either(debt_decreased, lines_ok);
     }
 
     // urn is either less risky than before, or it is safe
     // require(either(both(dart <= 0, dink >= 0), tab <= urn.ink * ilk.spot), "Vat/not-safe");
-    %{ print('INK', ids.ink.low, ids.ink.high, 'SPOT', ids.ilk.spot.low, ids.ilk.spot.high, 'TAB', ids.tab.low, ids.tab.high) %}
+    // %{ print('INK', ids.ink.low, ids.ink.high, 'SPOT', ids.ilk.spot.low, ids.ilk.spot.high, 'TAB', ids.tab.low, ids.tab.high) %}
     with_attr error_message("Vat/not-safe") {
         let (dart_le_0) = _le_0(dart);
         let (dink_ge_0) = _ge_0(dink);
