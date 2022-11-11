@@ -1152,7 +1152,7 @@ describe('vat', async function () {
       expect((await vat.call('ilks', { i: ILK })).ilk.rate).to.deep.equal(
         SplitUint.fromUint((11n * RAY) / 10n).res
       );
-      expect((await vat.call('dai', { u: TEST_ADDRESS })).dai).to.deep.equal(uint(10n));
+      expect((await vat.call('dai', { u: TEST_ADDRESS })).dai).to.deep.equal(rad(10n));
       expect((await vat.call('debt')).debt).to.deep.equal(rad(110n));
     });
     it('test fold negative', async () => {
@@ -1168,10 +1168,10 @@ describe('vat', async function () {
 
       expect((await vat.call('ilks', { i: ILK })).ilk.Art).to.deep.equal(wad(100n));
       expect((await vat.call('ilks', { i: ILK })).ilk.rate).to.deep.equal(
-        SplitUint.fromUint((11n * RAY) / 10n)
+        SplitUint.fromUint((11n * RAY) / 10n).res
       );
       expect((await vat.call('dai', { u: TEST_ADDRESS })).dai).to.deep.equal(rad(10n));
-      expect((await vat.call('debt')).debt.res).to.deep.equal(rad(110n));
+      expect((await vat.call('debt')).debt).to.deep.equal(rad(110n));
 
       // vm.expectEmit(true, true, true, true);
       // emit Fold(ILK, TEST_ADDRESS, -int256(1 * RAY / 20));
@@ -1179,7 +1179,7 @@ describe('vat', async function () {
 
       expect((await vat.call('ilks', { i: ILK })).ilk.Art).to.deep.equal(wad(100n));
       expect((await vat.call('ilks', { i: ILK })).ilk.rate).to.deep.equal(
-        SplitUint.fromUint((21n * RAY) / 20n)
+        SplitUint.fromUint((21n * RAY) / 20n).res
       );
       expect((await vat.call('dai', { u: TEST_ADDRESS })).dai).to.deep.equal(rad(5n));
       expect((await vat.call('debt')).debt).to.deep.equal(rad(105n));

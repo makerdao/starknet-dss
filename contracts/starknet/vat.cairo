@@ -449,7 +449,6 @@ func file{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 
     _Line.write(data);
 
-    // TODO
     // emit File(what, data);
     File.emit(what, data);
 
@@ -494,7 +493,6 @@ func file_ilk{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         assert 1 = 0;
     }
 
-    // TODO
     // emit File(ilk, what, data);
     File_ilk.emit(ilk, what, data);
 
@@ -693,7 +691,7 @@ func frob{
     check(dink);
     check(dart);
 
-    // // system is live
+    // system is live
     // require(live == 1, "Vat/not-live");
     require_live();
 
@@ -702,7 +700,7 @@ func frob{
     let (urn) = _urns.read(i, u);
     let (local ilk) = _ilks.read(i);
 
-    // // ilk has been initialised
+    // ilk has been initialised
     // require(ilk.rate != 0, "Vat/ilk-not-init");
     with_attr error_message("Vat/ilk-not-init") {
         assert_not_0(ilk.rate);
@@ -710,23 +708,23 @@ func frob{
 
     // urn.ink = _add(urn.ink, dink);
     // urn.art = _add(urn.art, dart);
-    // ilk.Art = _add(ilk.Art, dart);
     let (ink) = _add(urn.ink, dink);
     let (art) = _add(urn.art, dart);
     _urns.write(i, u, Urn(ink, art));
+    // ilk.Art = _add(ilk.Art, dart);
     let (Art) = _add(ilk.Art, dart);
     _ilks.write(i, Ilk(Art, ilk.rate, ilk.spot, ilk.line, ilk.dust));
 
     // int256 dtab = _int256(ilk.rate) * dart;
     // uint256 tab = ilk.rate * urn.art;
-    // debt     = _add(debt, dtab);
     let (dtab) = _mul(ilk.rate, dart);
     let (tab) = mul(ilk.rate, art);
+    // debt     = _add(debt, dtab);
     let (debt) = _debt.read();
     let (debt) = _add(debt, dtab);
     _debt.write(debt);
 
-    // // either debt has decreased, or debt ceilings are not exceeded
+    // either debt has decreased, or debt ceilings are not exceeded
     // require(either(dart <= 0, both(ilk.Art * ilk.rate <= ilk.line, debt <= Line)), "Vat/ceiling-exceeded");
     with_attr error_message("Vat/ceiling-exceeded") {
         let (debt_decreased) = _le_0(dart);
@@ -737,8 +735,9 @@ func frob{
         assert_either(debt_decreased, lines_ok);
     }
 
-    // // urn is either less risky than before, or it is safe
+    // urn is either less risky than before, or it is safe
     // require(either(both(dart <= 0, dink >= 0), tab <= urn.ink * ilk.spot), "Vat/not-safe");
+    %{ print('INK', ids.ink.low, ids.ink.high, 'SPOT', ids.ilk.spot.low, ids.ilk.spot.high, 'TAB', ids.tab.low, ids.tab.high) %}
     with_attr error_message("Vat/not-safe") {
         let (dart_le_0) = _le_0(dart);
         let (dink_ge_0) = _ge_0(dink);
@@ -750,7 +749,7 @@ func frob{
 
     let (caller) = get_caller_address();
 
-    // // urn is either more safe, or the owner consents
+    // urn is either more safe, or the owner consents
     // require(either(both(dart <= 0, dink >= 0), wish(u, msg.sender)), "Vat/not-allowed-u");
     with_attr error_message("Vat/not-allowed-u") {
         let (dart_le_0) = _le_0(dart);
@@ -760,7 +759,7 @@ func frob{
         assert_either(less_risky, owner_consents);
     }
 
-    // // collateral src consents
+    // collateral src consents
     // require(either(dink <= 0, wish(v, msg.sender)), "Vat/not-allowed-v");
     with_attr error_message("Vat/not-allowed-v") {
         let (dink_le_0) = _le_0(dink);
@@ -768,7 +767,7 @@ func frob{
         assert_either(dink_le_0, src_consents);
     }
 
-    // // debt dst consents
+    // debt dst consents
     // require(either(dart >= 0, wish(w, msg.sender)), "Vat/not-allowed-w");
     with_attr error_message("Vat/not-allowed-w") {
         let (dart_ge_0) = _ge_0(dart);
@@ -776,7 +775,7 @@ func frob{
         assert_either(dart_ge_0, dst_consents);
     }
 
-    // // urn has no debt, or a non-dusty amount
+    // urn has no debt, or a non-dusty amount
     // require(either(urn.art == 0, tab >= ilk.dust), "Vat/dust");
     // TODO: how to manage underwater dusty vaults?
     with_attr error_message("Vat/dust") {

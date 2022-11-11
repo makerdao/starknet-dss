@@ -2,7 +2,6 @@ import { expect } from 'chai';
 import { BigNumber } from 'ethers';
 import hre, { starknet } from 'hardhat';
 import { Account, StarknetContract } from 'hardhat/types';
-import { BigNumberish } from 'starknet/utils/number';
 
 import {
   eth,
@@ -149,7 +148,7 @@ describe('end', async function () {
       data: claimToken.address,
     });
     // end.file("wait", 1 hours);
-    await invoke(admin, end, 'file_wait', {
+    await invoke(admin, end, 'file', {
       what: l2String('wait'),
       data: 3600n,
     });
@@ -436,7 +435,6 @@ describe('end', async function () {
     // }
     const funcs2: any[][] = [
       ['file', { what: 0, data: 0 }],
-      ['file_wait', { what: 0, data: 0 }],
       ['cage', {}],
     ];
 
@@ -492,7 +490,7 @@ describe('end', async function () {
   //   // -- Scenario where there is one over-collateralised CDP
   //   // -- and there is no Vow deficit or surplus
   //   function testCageCollateralised() public {
-  it('test cage collateral', async () => {
+  it('test cage collateralised', async () => {
     // Ilk memory gold = init_collateral("gold");
     const gold = await init_collateral('gold');
     // Usr ali = new Usr(vat, end);
@@ -502,7 +500,7 @@ describe('end', async function () {
     // gold.gemA.join(urn1, 10 ether);
     await invoke(admin, gold.gemA, 'join', { user: urn1, wad: l2Eth(eth('10')).res });
     // ali.frob("gold", urn1, urn1, urn1, 10 ether, 15 ether);
-    await frob(user1, 'gold', urn1, urn1, urn1, l2Eth(eth('10')).res, l2Eth(eth('10')).res);
+    await frob(user1, 'gold', urn1, urn1, urn1, l2Eth(eth('10')).res, l2Eth(eth('15')).res);
     // ali's urn has 0 gem, 10 ink, 15 tab, 15 dai
 
     // global checks:

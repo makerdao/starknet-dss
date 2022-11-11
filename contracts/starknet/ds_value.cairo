@@ -30,8 +30,16 @@ func peek{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> 
 //     require(haz, "haz-not");
 //     return wut;
 // }
+@view
+func read{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (wut: Uint256) {
+    let (val, has) = peek();
+    with_attr error_message("haz-not") {
+        assert has = 1;
+    }
+    return (wut=val);
+}
 
-// function poke(bytes32 wut) public note auth {
+// function poke(bytes32 wut) public {
 //     val = wut;
 //     has = true;
 // }
@@ -42,6 +50,11 @@ func poke{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(wut: 
     return ();
 }
 
-// function void() public note auth {  // unset the value
+// function void() public {  // unset the value
 //     has = false;
 // }
+@external
+func name{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    _has.write(0);
+    return ();
+}

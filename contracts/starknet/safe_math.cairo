@@ -127,8 +127,6 @@ func div_rem{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     a: Uint256, b: Uint256
 ) -> (c: Uint256, rem: Uint256) {
     alloc_locals;
-    uint256_check(a);
-    uint256_check(b);
 
     let (is_zero) = uint256_eq(b, Uint256(0, 0));
     with_attr error_message("SafeUint256: divisor cannot be zero") {
@@ -243,8 +241,6 @@ func div{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     a: Uint256, b: Uint256
 ) -> (c: Uint256) {
     alloc_locals;
-    uint256_check(a);
-    uint256_check(b);
 
     let (is_zero) = uint256_eq(b, Uint256(0, 0));
     with_attr error_message("SafeUint256: divisor cannot be zero") {

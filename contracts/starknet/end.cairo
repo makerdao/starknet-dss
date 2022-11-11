@@ -98,12 +98,6 @@ namespace VatLike {
     func debt() -> (debt: Uint256) {
     }
 
-    func move(src: felt, dst: felt, rad: Uint256) {
-    }
-
-    func live() -> (live: felt) {
-    }
-
     func hope(usr: felt) {
     }
 
@@ -698,7 +692,7 @@ func cage_ilk{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(i
     // (PipLike pip,) = spot.ilks(ilk);
     let (spot) = _spot.read();
     let (pip: felt, _) = SpotLike.ilks(spot, ilk);
-    // // par is a ray, pip returns a wad
+    // par is a ray, pip returns a wad
     let (par) = SpotLike.par(spot);
     let (pip_val) = PipLike.read(pip);
     let (local pip_val_ray: Ray) = wad_to_ray(Wad(pip_val));
