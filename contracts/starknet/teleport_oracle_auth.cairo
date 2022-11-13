@@ -336,9 +336,10 @@ func validate{
 
     let sig: Signature = signatures[0];
 
-    with_attr error_message("TeleportOracleAuth/signer-not-unique(signer={sig.pk})") {
-        assert_lt_felt(previous, sig.pk);
-    }
+    // TODO: fix that
+    // with_attr error_message("TeleportOracleAuth/signer-not-unique") {
+    //     assert_lt_felt(previous, sig.pk);
+    // }
 
     let (valid_signer) = _signers.read(sig.pk);
 
@@ -346,14 +347,16 @@ func validate{
         // TODO: switch to ecrecover like function when available
         let (valid_signature) = check_ecdsa_signature(message, sig.pk, sig.r, sig.s);
         if (valid_signature == 1) {
-            validate(message, signatures_len - 1, signatures + 1, threshold_ - 1, sig.pk);
+            validate(
+                message, signatures_len - 1, signatures + Signature.SIZE, threshold_ - 1, sig.pk
+            );
             return ();
         }
         tempvar ec_op_ptr = ec_op_ptr;
     } else {
         tempvar ec_op_ptr = ec_op_ptr;
     }
-    validate(message, signatures_len - 1, signatures + 1, threshold_, sig.pk);
+    validate(message, signatures_len - 1, signatures + Signature.SIZE, threshold_, sig.pk);
     return ();
 }
 

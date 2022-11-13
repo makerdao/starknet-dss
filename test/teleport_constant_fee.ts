@@ -53,8 +53,12 @@ describe('teleport constant fee', async function () {
       hre
     );
 
-    await starknet.devnet.dump('dump.pkl');
+    await starknet.devnet.dump('unittest-dump.dmp');
     await sleep(5000);
+  });
+
+  beforeEach(async () => {
+    await starknet.devnet.load('unittest-dump.dmp');
   });
 
   it('test constructor', async () => {

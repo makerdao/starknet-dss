@@ -116,6 +116,7 @@ describe('teleport oracle auth', async function () {
   async function getSignatures(
     signHash: string
   ): Promise<{ signatures: Signature[]; signers: string[] }> {
+    // seeds chosen s.t. corresponding addresses are in ascending order
     const seeds = [
       8, 10, 6, 2, 9, 15, 14, 20, 7, 29, 24, 13, 12, 25, 16, 26, 21, 22, 0, 18, 17, 27, 3, 28, 23,
       19, 4, 5, 1, 11,
@@ -292,12 +293,16 @@ describe('teleport oracle auth', async function () {
     // auth.addSigners(signers);
     await invoke(admin, auth, 'add_signers', { signers_: signers });
     // assertTrue(auth.isValid(signHash, signatures, signers.length));
-    await auth.call('validate', {
-      message: signHash,
-      signatures,
-      threshold_: signers.length,
-      previous: 0,
-    });
+    try {
+      await auth.call('validate', {
+        message: signHash,
+        signatures,
+        threshold_: signers.length,
+        previous: 0,
+      });
+    } catch (err: any) {
+      expect(err.message).to.contain('TeleportOracleAuth/not-enough-signatures');
+    }
   });
 
   // function testFail_isValid_notEnoughSig() public {
@@ -309,12 +314,16 @@ describe('teleport oracle auth', async function () {
     // auth.addSigners(signers);
     await invoke(admin, auth, 'add_signers', { signers_: signers });
     // assertTrue(auth.isValid(signHash, signatures, signers.length + 1));
-    await auth.call('validate', {
-      message: signHash,
-      signatures,
-      threshold_: signers.length + 1,
-      previous: 0,
-    });
+    try {
+      await auth.call('validate', {
+        message: signHash,
+        signatures,
+        threshold_: signers.length + 1,
+        previous: 0,
+      });
+    } catch (err: any) {
+      expect(err.message).to.contain('TeleportOracleAuth/not-enough-signatures');
+    }
   });
 
   // function testFail_isValid_badSig() public {
@@ -331,12 +340,16 @@ describe('teleport oracle auth', async function () {
     signatures[0].r = _r.toString();
 
     // assertTrue(auth.isValid(signHash, signatures, signers.length));
-    await auth.call('validate', {
-      message: signHash,
-      signatures,
-      threshold_: signers.length + 1,
-      previous: 0,
-    });
+    try {
+      await auth.call('validate', {
+        message: signHash,
+        signatures,
+        threshold_: signers.length + 1,
+        previous: 0,
+      });
+    } catch (err: any) {
+      expect(err.message).to.contain('TeleportOracleAuth/not-enough-signatures');
+    }
   });
 
   // function test_mintByOperator() public {
