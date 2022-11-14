@@ -721,8 +721,8 @@ func frob{
     let (tab) = mul(ilk.rate, art);
     // debt     = _add(debt, dtab);
     let (debt) = _debt.read();
-    let (debt_) = _add(debt, dtab);
-    _debt.write(debt_);
+    let (debt) = _add(debt, dtab);
+    _debt.write(debt);
 
     // either debt has decreased, or debt ceilings are not exceeded
     // require(either(dart <= 0, both(ilk.Art * ilk.rate <= ilk.line, debt <= Line)), "Vat/ceiling-exceeded");
@@ -730,7 +730,7 @@ func frob{
         let (debt_decreased) = _le_0(dart);
         let (ilk_debt) = mul(Art, ilk.rate);
         let (line_ok) = uint256_le(ilk_debt, ilk.line);
-        let (Line_ok) = uint256_le(debt_, ilk.line);
+        let (Line_ok) = uint256_le(debt, ilk.line);
         let (lines_ok) = both(line_ok, Line_ok);
         assert_either(debt_decreased, lines_ok);
     }
