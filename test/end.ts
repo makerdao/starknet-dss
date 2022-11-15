@@ -488,7 +488,7 @@ describe('end', async function () {
   //   // -- Scenario where there is one over-collateralised CDP
   //   // -- and there is no Vow deficit or surplus
   //   function testCageCollateralised() public {
-  it.only('test cage collateralised', async () => {
+  it('test cage collateralised', async () => {
     // Ilk memory gold = init_collateral("gold");
     const gold = await init_collateral('gold');
     // Usr ali = new Usr(vat, end);
@@ -524,8 +524,8 @@ describe('end', async function () {
     // assertEq(art("gold", urn1), 0);
     // assertEq(ink("gold", urn1), 7 ether);
     // assertEq(vat.sin(address(vow)), rad(15 ether));
-    expect(await art('gold', urn1)).to.deep.equal(l2Eth(0n));
-    expect(await ink('gold', urn1)).to.deep.equal(l2Eth(eth('7')));
+    expect(await art('gold', urn1)).to.deep.equal(l2Eth(0n).res);
+    expect(await ink('gold', urn1)).to.deep.equal(l2Eth(eth('7')).res);
     expect((await vat.call('sin', { u: vow.address })).sin).to.deep.equal(
       rad(eth('15').toBigInt())
     );
@@ -547,7 +547,7 @@ describe('end', async function () {
     expect(await gem('gold', urn1)).to.deep.equal(uint(eth('7').toBigInt()));
     await invoke(ali, gold.gemA, 'exit', { user: _admin, wad: l2Eth(eth('7')).res });
     // vm.warp(block.timestamp + 1 hours);
-    await starknet.devnet.increaseTime(new Date().getTime() / 1000 + 3600);
+    await starknet.devnet.increaseTime(3600);
     await starknet.devnet.createBlock();
     // vm.expectEmit(true, true, true, true);
     // emit Thaw();
@@ -650,10 +650,10 @@ describe('end', async function () {
     // assertEq(art("gold", urn2), 0);
     // assertEq(ink("gold", urn2), 0);
     // assertEq(vat.sin(address(vow)), rad(18 ether));
-    expect(await art('gold', urn1)).to.deep.equal(l2Eth(0n));
-    expect(await ink('gold', urn1)).to.deep.equal(l2Eth(eth('2.5')));
-    expect(await art('gold', urn2)).to.deep.equal(l2Eth(0n));
-    expect(await ink('gold', urn2)).to.deep.equal(l2Eth(0n));
+    expect(await art('gold', urn1)).to.deep.equal(uint(0n));
+    expect(await ink('gold', urn1)).to.deep.equal(l2Eth(eth('2.5')).res);
+    expect(await art('gold', urn2)).to.deep.equal(uint(0n));
+    expect(await ink('gold', urn2)).to.deep.equal(uint(0n));
     expect((await vat.call('sin', { u: vow.address })).sin).to.deep.equal(
       rad(eth('18').toBigInt())
     );
@@ -673,7 +673,7 @@ describe('end', async function () {
     expect(await gem('gold', urn1)).to.deep.equal(uint(eth('2.5').toBigInt()));
     await invoke(ali, gold.gemA, 'exit', { user: _admin, wad: l2Eth(eth('2.5')).res });
     // vm.warp(block.timestamp + 1 hours);
-    await starknet.devnet.increaseTime(new Date().getTime() / 1000 + 3600);
+    await starknet.devnet.increaseTime( + 3600);
     await starknet.devnet.createBlock();
     // end.thaw();
     await invoke(admin, end, 'thaw');
@@ -803,8 +803,8 @@ describe('end', async function () {
     // assertEq(art("gold", urn1), 0);
     // assertEq(ink("gold", urn1), 7 ether);
     // assertEq(vat.sin(address(vow)), rad(16 ether));
-    expect(await art('gold', urn1)).to.deep.equal(l2Eth(0n));
-    expect(await ink('gold', urn1)).to.deep.equal(l2Eth(eth('7')));
+    expect(await art('gold', urn1)).to.deep.equal(uint(0n));
+    expect(await ink('gold', urn1)).to.deep.equal(wad(7n));
     expect((await vat.call('sin', { u: vow.address })).sin).to.deep.equal(
       rad(eth('16').toBigInt())
     );
@@ -824,7 +824,7 @@ describe('end', async function () {
     expect(await gem('gold', urn1)).to.deep.equal(uint(eth('7').toBigInt()));
     await invoke(ali, gold.gemA, 'exit', { user: _admin, wad: l2Eth(eth('7')).res });
     // vm.warp(block.timestamp + 1 hours);
-    await starknet.devnet.increaseTime(new Date().getTime() / 1000 + 3600);
+    await starknet.devnet.increaseTime(3600);
     await starknet.devnet.createBlock();
     // end.thaw();
     // end.flow("gold");
@@ -911,7 +911,7 @@ describe('end', async function () {
     // assertEq(vat.debt(), rad(18 ether));
     // assertEq(vat.vice(), 0);
     expect((await vat.call('debt')).debt).to.deep.equal(rad(eth('18').toBigInt()));
-    expect((await vat.call('vice')).vice).to.deep.equal(rad(0n));
+    expect((await vat.call('vice')).vice).to.deep.equal(uint(0n));
     // // collateral price is 2
     // gold.pip.poke(bytes32(2 * WAD));
     await invoke(admin, gold.pip, 'poke', { wut: wad(2n) });
@@ -929,10 +929,10 @@ describe('end', async function () {
     // assertEq(art("gold", urn2), 0);
     // assertEq(ink("gold", urn2), 0);
     // assertEq(vat.sin(address(vow)), rad(18 ether));
-    expect(await art('gold', urn1)).to.deep.equal(l2Eth(0n));
-    expect(await ink('gold', urn1)).to.deep.equal(l2Eth(eth('2.5')));
-    expect(await art('gold', urn2)).to.deep.equal(l2Eth(0n));
-    expect(await ink('gold', urn2)).to.deep.equal(l2Eth(0n));
+    expect(await art('gold', urn1)).to.deep.equal(uint(0n));
+    expect(await ink('gold', urn1)).to.deep.equal(l2Eth(eth('2.5')).res);
+    expect(await art('gold', urn2)).to.deep.equal(uint(0n));
+    expect(await ink('gold', urn2)).to.deep.equal(uint(0n));
     expect((await vat.call('sin', { u: vow.address })).sin).to.deep.equal(
       rad(eth('18').toBigInt())
     );
@@ -952,7 +952,7 @@ describe('end', async function () {
     expect(await gem('gold', urn1)).to.deep.equal(uint(eth('2.5').toBigInt()));
     await invoke(ali, gold.gemA, 'exit', { user: _admin, wad: l2Eth(eth('2.5')).res });
     // vm.warp(block.timestamp + 1 hours);
-    await starknet.devnet.increaseTime(new Date().getTime() / 1000 + 3600);
+    await starknet.devnet.increaseTime(3600);
     await starknet.devnet.createBlock();
 
     // // balance the vow
@@ -1059,7 +1059,7 @@ describe('end', async function () {
     // coal.gemA.join(urn2, 1 ether);
     await invoke(admin, coal.gemA, 'join', { user: urn2, wad: l2Eth(eth('1')).res });
     // vat.file("coal", "spot", ray(5 ether));
-    await invoke(admin, vat, 'file', {
+    await invoke(admin, vat, 'file_ilk', {
       ilk: l2String('coal'),
       what: l2String('spot'),
       data: ray(eth('5').toBigInt()),
@@ -1086,7 +1086,7 @@ describe('end', async function () {
     // end.skim("coal", urn2);  // under-collateralised
     await invoke(admin, end, 'skim', { ilk: l2String('coal'), urn: urn2 });
     // vm.warp(block.timestamp + 1 hours);
-    await starknet.devnet.increaseTime(new Date().getTime() / 1000 + 3600);
+    await starknet.devnet.increaseTime(3600);
     await starknet.devnet.createBlock();
     // end.thaw();
     await invoke(admin, end, 'thaw');
@@ -1246,8 +1246,8 @@ describe('end', async function () {
     // assertEq(art("gold", urn1), 0);
     // assertEq(ink("gold", urn1), 300_000 ether);
     // assertEq(vat.sin(address(vow)), rad(1_000_000 ether));
-    expect(await art('gold', urn1)).to.deep.equal(l2Eth(0n));
-    expect(await ink('gold', urn1)).to.deep.equal(l2Eth(eth('300000')));
+    expect(await art('gold', urn1)).to.deep.equal(wad(0n));
+    expect(await ink('gold', urn1)).to.deep.equal(wad(300000n));
     expect((await vat.call('sin', { u: vow.address })).sin).to.deep.equal(
       rad(eth('1000000').toBigInt())
     );
@@ -1269,7 +1269,7 @@ describe('end', async function () {
     await invoke(ali, gold.gemA, 'exit', { user: _admin, wad: l2Eth(eth('300000')).res });
 
     // vm.warp(block.timestamp + 1 hours);
-    await starknet.devnet.increaseTime(new Date().getTime() / 1000 + 3600);
+    await starknet.devnet.increaseTime(3600);
     await starknet.devnet.createBlock();
 
     // end.thaw();

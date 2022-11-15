@@ -784,7 +784,7 @@ describe('teleport join', async function () {
     // Over ttl - you don't pay fees
     //     hevm.warp(block.timestamp + TTL + 1 days);    // Over ttl - you don't pay fees
     //     join.requestMint(guid, 0, 0);
-    await starknet.devnet.increaseTime(new Date().getTime() / 1000 + ttl + 86400);
+    await starknet.devnet.increaseTime(ttl + 86400);
     await starknet.devnet.createBlock();
     await requestMint(guid, 0, 0);
     // assertEq(vat.dai(vow), 0);

@@ -59,6 +59,20 @@ func live{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> 
     return (res,);
 }
 
+@view
+func par{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: Uint256) {
+    let (res) = _par.read();
+    return (res,);
+}
+
+@view
+func ilks{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(ilk: felt) -> (
+    pip: felt, mat: Uint256
+) {
+    let (ilk_: Ilk) = _ilks.read(ilk);
+    return (pip=ilk_.pip, mat=ilk_.mat);
+}
+
 func require_live{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     // require(live == 1, "Spotter/not-live");
     with_attr error_message("Spotter/not-live") {

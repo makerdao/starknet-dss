@@ -38,13 +38,12 @@ from contracts.starknet.safe_math import (
     _mul,
     add_signed,
     div_rem,
-    ray_mul,
     Ray,
     ray_mul_no_rounding,
     Wad,
     ray_to_wad_no_rounding,
     wad_to_ray,
-    ray_div,
+    ray_div_no_rounding,
     MASK128,
 )
 from contracts.starknet.assertions import (
@@ -700,7 +699,7 @@ func cage_ilk{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(i
     let (pip_val) = PipLike.read(pip);
     let (local pip_val_ray: Ray) = wad_to_ray(Wad(pip_val));
     // tag[ilk] = wdiv(spot.par(), uint256(pip.read()));
-    let (new_tag) = ray_div(Ray(par), pip_val_ray);
+    let (new_tag) = ray_div_no_rounding(Ray(par), pip_val_ray);
     _tag.write(ilk, new_tag.ray);
     // emit Cage(ilk);
     Cage_ilk.emit(ilk);

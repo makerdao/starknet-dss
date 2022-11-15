@@ -174,13 +174,13 @@ export function wad(a: bigint): SplitUintType<bigint> {
   return { low: BigInt(_a.toDec()[0]), high: BigInt(_a.toDec()[1]) };
 }
 
-export function ray(a: bigint): SplitUintType<bigint> {
-  const _a = l2Eth(a * RAY);
+export function ray(wad: bigint): SplitUintType<bigint> {
+  const _a = l2Eth(wad * 10n ** 9n);
   return { low: BigInt(_a.toDec()[0]), high: BigInt(_a.toDec()[1]) };
 }
 
-export function rad(a: bigint): SplitUintType<bigint> {
-  const _a = l2Eth(a * RAD);
+export function rad(wad: bigint): SplitUintType<bigint> {
+  const _a = l2Eth(wad * RAY);
   return { low: BigInt(_a.toDec()[0]), high: BigInt(_a.toDec()[1]) };
 }
 
