@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import hre, { network, starknet } from 'hardhat';
 import { HttpNetworkConfig } from 'hardhat/types';
+import fs from 'fs';
 
 import { asDec, eth, l2Eth, simpleDeployL2, SplitUint, toBytes32, l2String } from './utils';
 
@@ -17,11 +18,7 @@ const zero_uint = { low: 0n, high: 0n };
 const fee = eth('0.01');
 const ttl = 60 * 60 * 24 * 8; // 8 days
 
-function sleep(ms: number) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
+const dumpFile = 'unittest-dump.dmp';
 
 describe('teleport constant fee', async function () {
   this.timeout(900_000);
@@ -53,12 +50,15 @@ describe('teleport constant fee', async function () {
       hre
     );
 
-    await starknet.devnet.dump('unittest-dump.dmp');
-    await sleep(5000);
+    await starknet.devnet.dump(dumpFile);
   });
 
   beforeEach(async () => {
-    await starknet.devnet.load('unittest-dump.dmp');
+    await starknet.devnet.load(dumpFile);
+  });
+
+  after(async function () {
+    fs.unlink(dumpFile, () => {});
   });
 
   it('test constructor', async () => {

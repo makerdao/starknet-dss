@@ -17,6 +17,7 @@ import {
   wad,
   rad,
 } from './utils';
+import fs from 'fs';
 
 const ILK = l2String('SOME-ILK-A');
 
@@ -37,12 +38,6 @@ interface Ilk {
 }
 
 const ILKS: Map<string, Ilk> = new Map();
-
-function sleep(ms: number) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
 
 describe('end', async function () {
   this.timeout(900_000);
@@ -162,11 +157,14 @@ describe('end', async function () {
     await invoke(admin, cure, 'rely', { usr: end.address });
 
     await starknet.devnet.dump(dumpFile);
-    await sleep(5000);
   });
 
   beforeEach(async () => {
     await starknet.devnet.load(dumpFile);
+  });
+
+  after(async function () {
+    fs.unlink(dumpFile, () => {});
   });
 
   async function frob(
@@ -490,7 +488,7 @@ describe('end', async function () {
   //   // -- Scenario where there is one over-collateralised CDP
   //   // -- and there is no Vow deficit or surplus
   //   function testCageCollateralised() public {
-  it('test cage collateralised', async () => {
+  it.only('test cage collateralised', async () => {
     // Ilk memory gold = init_collateral("gold");
     const gold = await init_collateral('gold');
     // Usr ali = new Usr(vat, end);

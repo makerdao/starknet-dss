@@ -2,6 +2,8 @@ import { expect } from 'chai';
 import { writeFileSync } from 'fs';
 // import { BigNumber } from 'ethers';
 import hre, { starknet } from 'hardhat';
+import fs from 'fs';
+
 import { Account, StarknetContract } from 'hardhat/types';
 import { pedersen } from 'starknet/dist/utils/hash';
 
@@ -30,6 +32,8 @@ const ILK = l2String('L2-DAI');
 
 const ttl = 60 * 60 * 24 * 8; // 8 days
 
+const dumpFile = 'unittest-dump.dmp';
+
 type TeleportGUID = {
   source_domain: string;
   target_domain: string;
@@ -39,12 +43,6 @@ type TeleportGUID = {
   nonce: number;
   timestamp: number;
 };
-
-function sleep(ms: number) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
 
 describe('teleport join', async function () {
   this.timeout(900_000);
@@ -128,12 +126,15 @@ describe('teleport join', async function () {
 
     await invoke(admin, vat, 'hope', { usr: daiJoin.address });
 
-    await starknet.devnet.dump('unittest-dump.dmp');
-    await sleep(5000);
+    await starknet.devnet.dump(dumpFile);
   });
 
   beforeEach(async () => {
-    await starknet.devnet.load('unittest-dump.dmp');
+    await starknet.devnet.load(dumpFile);
+  });
+
+  after(async function () {
+    fs.unlink(dumpFile, () => {});
   });
 
   function getGUIDHash(guid: TeleportGUID): string {

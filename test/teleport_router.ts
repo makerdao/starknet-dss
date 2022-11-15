@@ -4,6 +4,7 @@ import { expect } from 'chai';
 import { BigNumber } from 'ethers';
 import hre, { starknet } from 'hardhat';
 import { toFelt } from 'starknet/utils/number';
+import fs from 'fs';
 
 import { eth, l2Eth, simpleDeployL2, l2String, invoke, SplitUintType } from './utils';
 
@@ -12,11 +13,7 @@ const TEST_ADDRESS = '9379074284324409537785911406195';
 const DOMAIN = l2String('rollup');
 const PARENT_DOMAIN = l2String('ethereum');
 
-function sleep(ms: number) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
+const dumpFile = 'unittest-dump.dmp';
 
 describe('teleport router', async function () {
   this.timeout(900_000);
@@ -51,12 +48,15 @@ describe('teleport router', async function () {
       hre
     );
 
-    await starknet.devnet.dump('unittest-dump.dmp');
-    await sleep(5000);
+    await starknet.devnet.dump(dumpFile);
   });
 
   beforeEach(async () => {
-    await starknet.devnet.load('unittest-dump.dmp');
+    await starknet.devnet.load(dumpFile);
+  });
+
+  after(async function () {
+    fs.unlink(dumpFile, () => {});
   });
 
   async function _tryRely(account: Account, usr: string): Promise<boolean> {

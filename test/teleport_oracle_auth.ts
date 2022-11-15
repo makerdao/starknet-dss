@@ -6,11 +6,13 @@ import { KeyPair, validateAndParseAddress } from 'starknet';
 import { getKeyPair, getStarkKey, sign } from 'starknet/dist/utils/ellipticCurve';
 import { pedersen } from 'starknet/dist/utils/hash';
 import { BigNumberish, toBN, toFelt } from 'starknet/utils/number';
+import fs from 'fs';
 
 import { l2Eth, simpleDeployL2, l2String, invoke, SplitUintType } from './utils';
 
 // Cairo encoding of "valid_domains"
 const TEST_ADDRESS = '9379074284324409537785911406195';
+const dumpFile = 'unittest-dump.dmp';
 
 type TeleportGUID = {
   source_domain: string;
@@ -27,12 +29,6 @@ type Signature = {
   r: BigNumberish;
   s: BigNumberish;
 };
-
-function sleep(ms: number) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
 
 describe('teleport oracle auth', async function () {
   this.timeout(900_000);
@@ -63,12 +59,15 @@ describe('teleport oracle auth', async function () {
       hre
     );
 
-    await starknet.devnet.dump('unittest-dump.dmp');
-    await sleep(5000);
+    await starknet.devnet.dump(dumpFile);
   });
 
   beforeEach(async () => {
-    await starknet.devnet.load('unittest-dump.dmp');
+    await starknet.devnet.load(dumpFile);
+  });
+
+  after(async function () {
+    fs.unlink(dumpFile, () => {});
   });
 
   function getGUIDHash(guid: TeleportGUID): string {

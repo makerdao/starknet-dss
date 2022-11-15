@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import hre, { starknet } from 'hardhat';
+import fs from 'fs';
 
 import { l2Eth, simpleDeployL2, SplitUint } from './utils';
 
@@ -8,11 +9,7 @@ const initialBalanceCal = l2Eth(100n);
 
 const MAX = 2n ** 256n - 1n;
 
-function sleep(ms: number) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
+const dumpFile = 'unittest-dump.dmp';
 
 describe('dai', async function () {
   this.timeout(900_000);
@@ -49,12 +46,15 @@ describe('dai', async function () {
       amount: initialBalanceCal.res,
     });
 
-    await starknet.devnet.dump('unittest-dump.dmp');
-    await sleep(5000);
+    await starknet.devnet.dump(dumpFile);
   });
 
   beforeEach(async () => {
-    await starknet.devnet.load('unittest-dump.dmp');
+    await starknet.devnet.load(dumpFile);
+  });
+
+  after(async function () {
+    fs.unlink(dumpFile, () => {});
   });
 
   it('test setup precondition', async () => {

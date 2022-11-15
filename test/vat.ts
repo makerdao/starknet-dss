@@ -19,6 +19,7 @@ import {
   SplitUintType,
   neg,
 } from './utils';
+import fs from 'fs';
 
 // Cairo encoding of "valid_domains"
 const VALID_DOMAINS = '9379074284324409537785911406195';
@@ -36,11 +37,7 @@ const line = l2String('line');
 const spot = l2String('spot');
 const dust = l2String('dust');
 
-function sleep(ms: number) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
+const dumpFile = 'unittest-dump.dmp';
 
 describe('vat', async function () {
   this.timeout(900_000);
@@ -70,8 +67,7 @@ describe('vat', async function () {
       hre
     );
 
-    await starknet.devnet.dump('unittest-dump.dmp');
-    await sleep(5000);
+    await starknet.devnet.dump(dumpFile);
   });
 
   async function checkFileUint(base: any, contractName: string, values: string[]) {
@@ -147,7 +143,11 @@ describe('vat', async function () {
   }
 
   beforeEach(async () => {
-    await starknet.devnet.load('unittest-dump.dmp');
+    await starknet.devnet.load(dumpFile);
+  });
+
+  after(async function () {
+    fs.unlink(dumpFile, () => {});
   });
 
   async function setupCdpOps() {
