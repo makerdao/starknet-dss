@@ -549,7 +549,7 @@ describe('end', async function () {
     expect(await gem('gold', urn1)).to.deep.equal(uint(eth('7').toBigInt()));
     await invoke(user1, gold.gemA, 'exit', { user: _admin, wad: l2Eth(eth('7')).res });
     // vm.warp(block.timestamp + 1 hours);
-    await starknet.devnet.increaseTime(new Date().getTime() * 1000 + 3600);
+    await starknet.devnet.increaseTime(new Date().getTime() / 1000 + 3600);
     await starknet.devnet.createBlock();
     // vm.expectEmit(true, true, true, true);
     // emit Thaw();
@@ -627,7 +627,7 @@ describe('end', async function () {
     // gold.gemA.join(urn2, 1 ether);
     // bob.frob("gold", urn2, urn2, urn2, 1 ether, 3 ether);
     await invoke(admin, gold.gemA, 'join', { user: urn2, wad: l2Eth(eth('1')).res });
-    await frob(user1, 'gold', urn1, urn1, urn1, l2Eth(eth('10')).res, l2Eth(eth('15')).res);
+    await frob(user2, 'gold', urn2, urn2, urn2, l2Eth(eth('1')).res, l2Eth(eth('3')).res);
     // // bob's urn has 0 gem, 1 ink, 3 tab, 3 dai
     // // global checks:
     // assertEq(vat.debt(), rad(18 ether));
@@ -675,7 +675,7 @@ describe('end', async function () {
     expect(await gem('gold', urn1)).to.deep.equal(uint(eth('2.5').toBigInt()));
     await invoke(user1, gold.gemA, 'exit', { user: _admin, wad: l2Eth(eth('2.5')).res });
     // vm.warp(block.timestamp + 1 hours);
-    await starknet.devnet.increaseTime(new Date().getTime() * 1000 + 3600);
+    await starknet.devnet.increaseTime(new Date().getTime() / 1000 + 3600);
     await starknet.devnet.createBlock();
     // end.thaw();
     await invoke(admin, end, 'thaw');
@@ -826,7 +826,7 @@ describe('end', async function () {
     expect(await gem('gold', urn1)).to.deep.equal(uint(eth('7').toBigInt()));
     await invoke(user1, gold.gemA, 'exit', { user: _admin, wad: l2Eth(eth('7')).res });
     // vm.warp(block.timestamp + 1 hours);
-    await starknet.devnet.increaseTime(new Date().getTime() * 1000 + 3600);
+    await starknet.devnet.increaseTime(new Date().getTime() / 1000 + 3600);
     await starknet.devnet.createBlock();
     // end.thaw();
     // end.flow("gold");
@@ -954,7 +954,7 @@ describe('end', async function () {
     expect(await gem('gold', urn1)).to.deep.equal(uint(eth('2.5').toBigInt()));
     await invoke(user1, gold.gemA, 'exit', { user: _admin, wad: l2Eth(eth('2.5')).res });
     // vm.warp(block.timestamp + 1 hours);
-    await starknet.devnet.increaseTime(new Date().getTime() * 1000 + 3600);
+    await starknet.devnet.increaseTime(new Date().getTime() / 1000 + 3600);
     await starknet.devnet.createBlock();
 
     // // balance the vow
@@ -1096,7 +1096,7 @@ describe('end', async function () {
     // end.skim("coal", urn2);  // under-collateralised
     await invoke(admin, end, 'skim', { ilk: l2String('coal'), urn: urn2 });
     // vm.warp(block.timestamp + 1 hours);
-    await starknet.devnet.increaseTime(new Date().getTime() * 1000 + 3600);
+    await starknet.devnet.increaseTime(new Date().getTime() / 1000 + 3600);
     await starknet.devnet.createBlock();
     // end.thaw();
     await invoke(admin, end, 'thaw');
@@ -1287,7 +1287,7 @@ describe('end', async function () {
     await invoke(user1, gold.gemA, 'exit', { user: _admin, wad: l2Eth(eth('300000')).res });
 
     // vm.warp(block.timestamp + 1 hours);
-    await starknet.devnet.increaseTime(new Date().getTime() * 1000 + 3600);
+    await starknet.devnet.increaseTime(new Date().getTime() / 1000 + 3600);
     await starknet.devnet.createBlock();
 
     // end.thaw();

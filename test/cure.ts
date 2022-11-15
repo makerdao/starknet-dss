@@ -189,17 +189,17 @@ describe('cure', async function () {
     await invoke(admin, cure, 'lift', { src: addr2 });
     expect((await cure.call('tCount')).res).to.equal(2n);
 
+    // address addr3 = address(new SourceMock(0));
     const { address: addr3 } = await simpleDeployL2(
       'mock_source',
       {
-        cure_: {
-          low: l2Eth(0n).toDec()[0],
-          high: l2Eth(0n).toDec()[1],
-        },
+        cure_: l2Eth(0n).res,
       },
       hre
     );
+    // cure.lift(addr3);
     await invoke(admin, cure, 'lift', { src: addr3 });
+    // assertEq(cure.tCount(), 3);
     expect((await cure.call('tCount')).res).to.equal(3n);
     // assertEq(cure.srcs(0), addr1);
     // assertEq(cure.pos(addr1), 1);
@@ -282,10 +282,7 @@ describe('cure', async function () {
     const { address: addr4 } = await simpleDeployL2(
       'mock_source',
       {
-        cure_: {
-          low: l2Eth(0n).toDec()[0],
-          high: l2Eth(0n).toDec()[1],
-        },
+        cure_: l2Eth(0n).res,
       },
       hre
     );
@@ -336,10 +333,7 @@ describe('cure', async function () {
     const { address: addr } = await simpleDeployL2(
       'mock_source',
       {
-        cure_: {
-          low: l2Eth(0n).toDec()[0],
-          high: l2Eth(0n).toDec()[1],
-        },
+        cure_: l2Eth(0n).res,
       },
       hre
     );
@@ -354,10 +348,7 @@ describe('cure', async function () {
     const { address: addr } = await simpleDeployL2(
       'mock_source',
       {
-        cure_: {
-          low: l2Eth(0n).toDec()[0],
-          high: l2Eth(0n).toDec()[1],
-        },
+        cure_: l2Eth(0n).res,
       },
       hre
     );
@@ -793,10 +784,7 @@ describe('cure', async function () {
     const { address: source } = await simpleDeployL2(
       'mock_source',
       {
-        cure_: {
-          low: l2Eth(0n).toDec()[0],
-          high: l2Eth(0n).toDec()[1],
-        },
+        cure_: l2Eth(0n).res,
       },
       hre
     );
@@ -812,10 +800,7 @@ describe('cure', async function () {
     const { address: source } = await simpleDeployL2(
       'mock_source',
       {
-        cure_: {
-          low: l2Eth(0n).toDec()[0],
-          high: l2Eth(0n).toDec()[1],
-        },
+        cure_: l2Eth(0n).res,
       },
       hre
     );

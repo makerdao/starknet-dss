@@ -74,7 +74,7 @@ describe('teleport constant fee', async function () {
       operator: toBytes32(_admin),
       amount: { low: 0, high: 0 },
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
 
     expect(

@@ -388,7 +388,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
 
     //  assertEq(dai.balanceOf(address(123)), 0);
@@ -435,7 +435,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
 
     // assertEq(dai.balanceOf(address(123)), 0);
@@ -490,7 +490,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
 
     // join.file("line", "l2network", 200_000 ether);
@@ -542,7 +542,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
 
     // join.file("line", "l2network", 0);
@@ -594,7 +594,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
 
     await requestMint(guid, 0, 0);
@@ -626,7 +626,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
 
     try {
@@ -656,7 +656,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
     //         assertEq(vat.dai(vow), 0);
     //         TeleportConstantFee fees = new TeleportConstantFee(100 ether, TTL);
@@ -718,7 +718,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
 
     // join.file("fees", "l2network", address(new TeleportConstantFee(100 ether, TTL)));
@@ -756,7 +756,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
     // assertEq(vat.dai(vow), 0);
     //     TeleportConstantFee fees = new TeleportConstantFee(100 ether, TTL);
@@ -783,7 +783,7 @@ describe('teleport join', async function () {
     // Over ttl - you don't pay fees
     //     hevm.warp(block.timestamp + TTL + 1 days);    // Over ttl - you don't pay fees
     //     join.requestMint(guid, 0, 0);
-    await starknet.devnet.increaseTime(new Date().getTime() * 1000 + ttl + 86400);
+    await starknet.devnet.increaseTime(new Date().getTime() / 1000 + ttl + 86400);
     await starknet.devnet.createBlock();
     await requestMint(guid, 0, 0);
     // assertEq(vat.dai(vow), 0);
@@ -813,7 +813,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
     // assertEq(vat.dai(vow), 0);
     expect((await vat.call('dai', { u: VOW_ADDRESS })).dai).to.deep.equal(l2Eth(0).res);
@@ -891,7 +891,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
 
     // assertEq(vat.dai(vow), 0);
@@ -935,7 +935,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
     // assertEq(vat.dai(vow), 0);
     expect((await vat.call('dai', { u: VOW_ADDRESS })).dai).to.deep.equal(l2Eth(0).res);
@@ -985,7 +985,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
     //  join.file("line", "l2network", 200_000 ether);
     // join.requestMint(guid, 0, 0);
@@ -1027,7 +1027,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
     // join.file("line", "l2network", 200_000 ether);
     await invoke(admin, join, 'file_line', {
@@ -1072,7 +1072,7 @@ describe('teleport join', async function () {
       operator: TEST_RECEIVER_ADDRESS,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
 
     // join.file("line", "l2network", 200_000 ether);
@@ -1125,7 +1125,7 @@ describe('teleport join', async function () {
       operator: TEST_OPERATOR_ADDRESS,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
     // join.file("line", "l2network", 200_000 ether);
     // join.requestMint(guid, 0, 0);
@@ -1211,7 +1211,7 @@ describe('teleport join', async function () {
       operator: TEST_OPERATOR_ADDRESS,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
     // join.requestMint(guid, 0, 0);
     await requestMint(guid, 0, 0);
@@ -1265,7 +1265,7 @@ describe('teleport join', async function () {
       operator: TEST_OPERATOR_ADDRESS,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
 
     //  join.file("line", "l2network", 100_000 ether);
@@ -1327,7 +1327,7 @@ describe('teleport join', async function () {
       operator: TEST_OPERATOR_ADDRESS,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
     // vat.cage();
     // assertEq(vat.live(), 0);
@@ -1386,7 +1386,7 @@ describe('teleport join', async function () {
       operator: TEST_OPERATOR_ADDRESS,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
 
     await requestMint(guid, 0, 0);
@@ -1440,7 +1440,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
     // assertEq(dai.balanceOf(address(this)), 0);
     // (uint256 daiSent, uint256 totalFee) = join.requestMint(guid, 0, 250 ether);
@@ -1484,7 +1484,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
 
     try {
@@ -1512,7 +1512,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
     // join.file("line", "l2network", 200_000 ether);
     await invoke(admin, join, 'file_line', {
@@ -1577,7 +1577,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
     // assertEq(dai.balanceOf(address(this)), 0);
     expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('0')));
@@ -1625,7 +1625,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
 
     const fees = await simpleDeployL2(
@@ -1722,7 +1722,7 @@ describe('teleport join', async function () {
       operator: TEST_OPERATOR_ADDRESS,
       amount: l2Eth(eth('150000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
     await requestMint(guid, 0, 0);
     // guid = TeleportGUID({
@@ -1742,7 +1742,7 @@ describe('teleport join', async function () {
       operator: TEST_OPERATOR_ADDRESS,
       amount: l2Eth(eth('50000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
     // join.requestMint(guid, 0, 0);
     await requestMint(guid, 0, 0);
@@ -1772,7 +1772,7 @@ describe('teleport join', async function () {
       operator: TEST_OPERATOR_ADDRESS,
       amount: l2Eth(eth('50000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
     await requestMint(guid, 0, 0);
 
@@ -1827,7 +1827,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
     //     join.requestMint(guid, 0, 0);
     await requestMint(guid, 0, 0);
@@ -1869,7 +1869,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('100000')).res,
       nonce: 6,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: new Date().getTime() / 1000,
     };
     // join.requestMint(guid, 0, 0);
     await requestMint(guid, 0, 0);

@@ -1,7 +1,7 @@
 from starkware.cairo.common.bitwise import bitwise_and
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.cairo.common.math import assert_not_zero
-from starkware.cairo.common.math_cmp import is_le
+from starkware.cairo.common.math_cmp import is_le_felt
 from starkware.cairo.common.uint256 import (
     Uint256,
     uint256_eq,
@@ -118,7 +118,7 @@ func is_lt{syscall_ptr: felt*, range_check_ptr}(lhs: felt, rhs: felt) -> (res: f
     if (rhs == 0) {
         return (0,);
     }
-    let res: felt = is_le(lhs, rhs - 1);
+    let res: felt = is_le_felt(lhs, rhs - 1);
     return (res,);
 }
 
