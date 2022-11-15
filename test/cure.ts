@@ -16,10 +16,10 @@ describe('cure', async function () {
   this.timeout(900_000);
   let admin: Account;
   let _admin: string;
-  let user1: any;
-  let _user1: string;
-  let user2: any;
-  let _user2: any;
+  let ali: any;
+  let _ali: string;
+  let bob: any;
+  let _bob: any;
   let cure: StarknetContract;
 
   before(async () => {
@@ -28,10 +28,10 @@ describe('cure', async function () {
 
     admin = await starknet.deployAccount('OpenZeppelin');
     _admin = admin.address;
-    user1 = await starknet.deployAccount('OpenZeppelin');
-    _user1 = user1.starknetContract.address;
-    user2 = await starknet.deployAccount('OpenZeppelin');
-    _user2 = user2.starknetContract.address;
+    ali = await starknet.deployAccount('OpenZeppelin');
+    _ali = ali.starknetContract.address;
+    bob = await starknet.deployAccount('OpenZeppelin');
+    _bob = bob.starknetContract.address;
     cure = await simpleDeployL2(
       'cure',
       {
