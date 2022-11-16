@@ -39,7 +39,7 @@ from contracts.starknet.safe_math import (
     add_signed,
     div,
     div_rem,
-    MASK128,
+    _felt_to_uint,
 )
 from contracts.starknet.assertions import (
     assert_either,
@@ -746,8 +746,9 @@ func skim{
 
     // require(wad <= 2**255 && art <= 2**255, "End/overflow");
     with_attr error_message("End/overflow") {
-        let (wad_overflow) = le(wad, Uint256(MASK128, MASK128));
-        let (art_overflow) = le(art, Uint256(MASK128, MASK128));
+        let (max) = _felt_to_uint(2 ** 255);
+        let (wad_overflow) = le(wad, max);
+        let (art_overflow) = le(art, max);
         assert_both(wad_overflow, art_overflow);
     }
 
@@ -779,7 +780,8 @@ func free{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(ilk: 
     }
     // require(ink <= 2**255, "End/overflow");
     with_attr error_message("End/overflow") {
-        assert_le(ink, Uint256(MASK128, MASK128));
+        let (max) = _felt_to_uint(2 ** 255);
+        assert_le(ink, max);
     }
     let (vow) = _vow.read();
     let (minus_ink) = uint256_neg(ink);
@@ -789,7 +791,6 @@ func free{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(ilk: 
     Free.emit(ilk, sender, ink);
     return ();
 }
-// }
 
 // function thaw() external {
 @external
