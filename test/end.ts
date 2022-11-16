@@ -488,7 +488,7 @@ describe('end', async function () {
   //   // -- Scenario where there is one over-collateralised CDP
   //   // -- and there is no Vow deficit or surplus
   //   function testCageCollateralised() public {
-  it('test cage collateralised', async () => {
+  it.only('test cage collateralised', async () => {
     // Ilk memory gold = init_collateral("gold");
     const gold = await init_collateral('gold');
     // Usr ali = new Usr(vat, end);
@@ -636,10 +636,10 @@ describe('end', async function () {
     // gold.pip.poke(bytes32(2 * WAD));
     // end.cage();
     // end.cage("gold");
-    // end.skim("gold", urn1);  // over-collateralised
     await invoke(admin, gold.pip, 'poke', { wut: wad(2n) });
     await invoke(admin, end, 'cage');
     await invoke(admin, end, 'cage_ilk', { ilk: l2String('gold') });
+    // end.skim("gold", urn1);  // over-collateralised
     await invoke(admin, end, 'skim', { ilk: l2String('gold'), urn: urn1 });
     // end.skim("gold", urn2);  // under-collateralised
     await invoke(admin, end, 'skim', { ilk: l2String('gold'), urn: urn2 });
@@ -673,7 +673,7 @@ describe('end', async function () {
     expect(await gem('gold', urn1)).to.deep.equal(uint(eth('2.5').toBigInt()));
     await invoke(ali, gold.gemA, 'exit', { user: _admin, wad: l2Eth(eth('2.5')).res });
     // vm.warp(block.timestamp + 1 hours);
-    await starknet.devnet.increaseTime( + 3600);
+    await starknet.devnet.increaseTime(+3600);
     await starknet.devnet.createBlock();
     // end.thaw();
     await invoke(admin, end, 'thaw');

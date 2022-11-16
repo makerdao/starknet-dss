@@ -1,16 +1,13 @@
 import { Account, StarknetContract } from 'hardhat/types';
 import { expect } from 'chai';
 import hre, { starknet } from 'hardhat';
+import fs from 'fs';
 
 import { l2Eth, simpleDeployL2, l2String, l2Address, invoke } from './utils';
 
 const TEST_ADDRESS = '9379074284324409537785911406195';
 
-function sleep(ms: number) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
+const dumpFile = 'unittest-dump.dmp';
 
 describe('cure', async function () {
   this.timeout(900_000);
@@ -40,12 +37,15 @@ describe('cure', async function () {
       hre
     );
 
-    await starknet.devnet.dump('unittest-dump.dmp');
-    await sleep(5000);
+    await starknet.devnet.dump(dumpFile);
   });
 
   beforeEach(async () => {
-    await starknet.devnet.load('unittest-dump.dmp');
+    await starknet.devnet.load(dumpFile);
+  });
+
+  after(async function () {
+    fs.unlink(dumpFile, () => {});
   });
 
   async function checkAuth(base: any, contractName: string) {

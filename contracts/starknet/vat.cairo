@@ -598,8 +598,8 @@ func slip{
 
     // gem[ilk][user] = _add(gem[ilk][usr], wad);
     let (gem) = _gem.read(ilk, usr);
-    let (gem_) = _add(gem, wad);
-    _gem.write(ilk, usr, gem_);
+    let (gem) = _add(gem, wad);
+    _gem.write(ilk, usr, gem);
 
     // emit Slip(ilk, usr, wad);
     Slip.emit(ilk, usr, wad);
@@ -719,6 +719,8 @@ func frob{
     // uint256 tab = ilk.rate * urn.art;
     let (dtab) = _mul(ilk.rate, dart);
     let (tab) = mul(ilk.rate, art);
+    // %{ print('rate', ids.ilk.rate.low, ids.ilk.rate.high, 'art', ids.art.low, ids.art.high) %}
+
     // debt     = _add(debt, dtab);
     let (debt) = _debt.read();
     let (debt) = _add(debt, dtab);

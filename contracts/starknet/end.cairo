@@ -37,13 +37,8 @@ from contracts.starknet.safe_math import (
     mul,
     _mul,
     add_signed,
+    div,
     div_rem,
-    Ray,
-    ray_mul_no_rounding,
-    Wad,
-    ray_to_wad_no_rounding,
-    wad_to_ray,
-    ray_div_no_rounding,
     MASK128,
 )
 from contracts.starknet.assertions import (
@@ -519,13 +514,17 @@ func vat{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     return (res,);
 }
 
-// // --- Math ---
-//     uint256 constant WAD = 10 ** 18;
-//     uint256 constant RAY = 10 ** 27;
-//     function min(uint256 x, uint256 y) internal pure returns (uint256 z) {
+// --- Math ---
+
+// uint256 constant WAD = 10 ** 18;
+const WAD = 10 ** 18;
+// uint256 constant RAY = 10 ** 27;
+const RAY = 10 ** 27;
+
+// function min(uint256 x, uint256 y) internal pure returns (uint256 z) {
 //         return x <= y ? x : y;
 //     }
-func _min{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+func min{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     x: Uint256, y: Uint256
 ) -> (z: Uint256) {
     let (x_le: felt) = uint256_le(x, y);
@@ -538,15 +537,28 @@ func _min{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 // function rmul(uint256 x, uint256 y) internal pure returns (uint256 z) {
 //         z = x * y / RAY;
 //     }
-//     function wdiv(uint256 x, uint256 y) internal pure returns (uint256 z) {
+func rmul{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    x: Uint256, y: Uint256
+) -> (z: Uint256) {
+    let (mul_) = mul(x, y);
+    let (z) = div(mul_, Uint256(RAY, 0));
+    return (z,);
+}
+
+// function wdiv(uint256 x, uint256 y) internal pure returns (uint256 z) {
 //         z = x * WAD / y;
 //     }
+func wdiv{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    x: Uint256, y: Uint256
+) -> (z: Uint256) {
+    let (mul_) = mul(x, Uint256(WAD, 0));
+    let (z) = div(mul_, y);
+    return (z,);
+}
 
-// // --- Administration ---
-//     function rely(address usr) external auth {
-//         wards[usr] = 1;
-//         emit Rely(usr);
-//     }
+// --- Administration ---
+
+// function rely(address usr) external auth {
 @external
 func rely{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: felt) {
     auth();
@@ -564,9 +576,6 @@ func rely{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: 
 }
 
 // function deny(address usr) external auth {
-//         wards[usr] = 0;
-//         emit Deny(usr);
-//     }
 @external
 func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: felt) {
     auth();
@@ -697,10 +706,9 @@ func cage_ilk{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(i
     // par is a ray, pip returns a wad
     let (par) = SpotLike.par(spot);
     let (pip_val) = PipLike.read(pip);
-    let (local pip_val_ray: Ray) = wad_to_ray(Wad(pip_val));
     // tag[ilk] = wdiv(spot.par(), uint256(pip.read()));
-    let (new_tag) = ray_div_no_rounding(Ray(par), pip_val_ray);
-    _tag.write(ilk, new_tag.ray);
+    let (new_tag) = wdiv(par, pip_val);
+    _tag.write(ilk, new_tag);
     // emit Cage(ilk);
     Cage_ilk.emit(ilk);
     // }
@@ -726,16 +734,13 @@ func skim{
     let (ink: Uint256, art: Uint256) = VatLike.urns(vat, ilk, urn);
 
     // uint256 owe = rmul(rmul(art, rate), tag[ilk]);
-    local art_: Ray = Ray(art);
-    local rate_: Ray = Ray(art);
-    let (mul: Ray) = ray_mul_no_rounding(art_, rate_);
-    local tag_: Ray = Ray(tag);
-    let (owe) = ray_mul_no_rounding(mul, tag_);
+    let (mul_) = rmul(art, rate);
+    let (owe) = rmul(mul_, tag);
     // uint256 wad = min(ink, owe);
-    let (wad) = _min(ink, owe.ray);
+    let (wad) = min(ink, owe);
     // gap[ilk] = gap[ilk] + (owe - wad);
     let (gap) = _gap.read(ilk);
-    let (sub_) = sub(owe.ray, wad);
+    let (sub_) = sub(owe, wad);
     let (new_gap) = add(gap, sub_);
     _gap.write(ilk, new_gap);
 
@@ -846,23 +851,21 @@ func flow{
     let (vat) = _vat.read();
     let (_, rate: Uint256, _, _, _) = VatLike.ilks(vat, ilk);
 
-    local rate_: Ray = Ray(rate);
     let (tag) = _tag.read(ilk);
     let (Art) = _Art.read(ilk);
-    local Art_: Ray = Ray(Art);
-    local tag_: Ray = Ray(tag);
 
     // uint256 wad = rmul(rmul(Art[ilk], rate), tag[ilk]);
-    let (mul_: Ray) = ray_mul_no_rounding(Art_, rate_);
-    let (ray: Ray) = ray_mul_no_rounding(mul_, tag_);
-    let (wad: Wad) = ray_to_wad_no_rounding(ray);
+    let (mul_) = rmul(Art, rate);
+    let (wad) = rmul(mul_, tag);
     // fix[ilk] = (wad - gap[ilk]) * RAY / (debt / RAY);
     let (gap) = _gap.read(ilk);
-    let (res) = sub(wad.wad, gap);
-    let (ray_sub) = mul(res, Uint256(10 ** 27, 0));
-    let (ray_debt, _) = div_rem(debt, Uint256(10 ** 27, 0));
-    let (new_fix, _) = div_rem(ray_sub, ray_debt);
+    let (res) = sub(wad, gap);
+    let (ray_sub) = mul(res, Uint256(RAY, 0));
+    let (ray_debt) = div(debt, Uint256(RAY, 0));
+
+    let (new_fix) = div(ray_sub, ray_debt);
     _fix.write(ilk, new_fix);
+
     // emit Flow(ilk);
     Flow.emit(ilk);
     return ();
@@ -913,11 +916,9 @@ func cash{
     let (vat) = _vat.read();
     let (self) = get_contract_address();
     let (sender) = get_caller_address();
-    local wad_: Ray = Ray(wad);
-    local fix_: Ray = Ray(fix);
-    let (new_fix) = ray_mul_no_rounding(wad_, fix_);
     // vat.flux(ilk, address(this), msg.sender, rmul(wad, fix[ilk]));
-    VatLike.flux(vat, ilk, self, sender, new_fix.ray);
+    let (new_fix) = rmul(wad, fix);
+    VatLike.flux(vat, ilk, self, sender, new_fix);
     // out[ilk][msg.sender] = out[ilk][msg.sender] + wad;
     let (out) = _out.read(ilk, sender);
     let (new_out) = add(out, wad);
@@ -931,4 +932,3 @@ func cash{
     Cash.emit(ilk, sender, wad);
     return ();
 }
-// }
