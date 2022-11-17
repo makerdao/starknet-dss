@@ -917,8 +917,8 @@ func cash{
     let (vat) = _vat.read();
     let (self) = get_contract_address();
     let (sender) = get_caller_address();
-    // vat.flux(ilk, address(this), msg.sender, rmul(wad, fix[ilk]));
     let (new_fix) = rmul(wad, fix);
+    // vat.flux(ilk, address(this), msg.sender, rmul(wad, fix[ilk]));
     VatLike.flux(vat, ilk, self, sender, new_fix);
     // out[ilk][msg.sender] = out[ilk][msg.sender] + wad;
     let (out) = _out.read(ilk, sender);

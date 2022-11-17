@@ -598,6 +598,7 @@ func slip{
 
     // gem[ilk][user] = _add(gem[ilk][usr], wad);
     let (gem) = _gem.read(ilk, usr);
+    // %{ print("DEBUG", ids.wad.low, ids.wad.high, ids.gem.low, ids.gem.high, "ILK", ids.ilk) %}
     let (gem) = _add(gem, wad);
     _gem.write(ilk, usr, gem);
 

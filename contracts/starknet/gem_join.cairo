@@ -228,12 +228,13 @@ func exit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         _ge_0(wad);
     }
 
-    // vat.slip(ilk, msg.sender, -int(wad));
     let (vat) = _vat.read();
     let (ilk) = _ilk.read();
     let (gem) = _gem.read();
     let (minus_wad) = uint256_neg(wad);
-    VatLike.slip(vat, ilk, user, minus_wad);
+    let (caller) = get_caller_address();
+    // vat.slip(ilk, msg.sender, -int(wad));
+    VatLike.slip(vat, ilk, caller, minus_wad);
 
     // require(gem.transfer(usr, wad), "GemJoin/failed-transfer");
     with_attr error_message("GemJoin/failed-transfer") {

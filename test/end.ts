@@ -215,14 +215,14 @@ describe('end', async function () {
   }
 
   async function heal(from: Account, rad: SplitUintType<bigint>) {
-    await invoke(from, vat, 'vow', { rad });
+    await invoke(from, vow, 'heal', { amount: rad });
   }
 
   //   function dai(address urn) internal view returns (uint) {
   //       return vat.dai(urn) / RAY;
   //   }
   async function dai(urn: string): Promise<SplitUintType<bigint>> {
-    const { res } = await vat.call('dai', { urn });
+    const { dai: res } = await vat.call('dai', { u: urn });
     const _res: SplitUint = new SplitUint(res);
     return uint(_res.toUint() / RAY);
   }
@@ -260,8 +260,8 @@ describe('end', async function () {
   //       rate_; spot_; line_; dust_;
   //       return Art_;
   //   }
-  async function Art(ilk_: string) {
-    const { ilk: _ilk } = await vat.call('ilks', { i: ilk_ });
+  async function Art(ilk: string) {
+    const { ilk: _ilk } = await vat.call('ilks', { i: l2String(ilk) });
     return _ilk['Art'];
   }
   //   function balanceOf(bytes32 ilk, address usr) internal view returns (uint) {
@@ -488,7 +488,7 @@ describe('end', async function () {
   //   // -- Scenario where there is one over-collateralised CDP
   //   // -- and there is no Vow deficit or surplus
   //   function testCageCollateralised() public {
-  it.only('test cage collateralised', async () => {
+  it('test cage collateralised', async () => {
     // Ilk memory gold = init_collateral("gold");
     const gold = await init_collateral('gold');
     // Usr ali = new Usr(vat, end);
@@ -582,7 +582,7 @@ describe('end', async function () {
       rad(eth('15').toBigInt())
     );
     expect(await claimToken.call('balanceOf', { user: vow.address })).to.deep.equal(
-      l2Eth(eth('15')).res
+      l2Eth(eth('15'))
     );
     // vm.expectEmit(true, true, true, true);
     // emit Cash("gold", address(ali), 15 ether);
@@ -673,7 +673,7 @@ describe('end', async function () {
     expect(await gem('gold', urn1)).to.deep.equal(uint(eth('2.5').toBigInt()));
     await invoke(ali, gold.gemA, 'exit', { user: _admin, wad: l2Eth(eth('2.5')).res });
     // vm.warp(block.timestamp + 1 hours);
-    await starknet.devnet.increaseTime(+3600);
+    await starknet.devnet.increaseTime(3600);
     await starknet.devnet.createBlock();
     // end.thaw();
     await invoke(admin, end, 'thaw');
@@ -703,7 +703,7 @@ describe('end', async function () {
       rad(eth('18').toBigInt())
     );
     expect(await claimToken.call('balanceOf', { user: vow.address })).to.deep.equal(
-      l2Eth(eth('15')).res
+      l2Eth(eth('15'))
     );
     // ali.cash("gold", 15 ether);
     await invoke(ali, end, 'cash', { ilk: l2String('gold'), wad: l2Eth(eth('15')).res });
@@ -742,7 +742,7 @@ describe('end', async function () {
       rad(eth('18').toBigInt())
     );
     expect(await claimToken.call('balanceOf', { user: vow.address })).to.deep.equal(
-      l2Eth(eth('18')).res
+      l2Eth(eth('18'))
     );
 
     // bob.cash("gold", 3 ether);
@@ -763,7 +763,7 @@ describe('end', async function () {
     // assertEq(gem("gold", address(end)), 1);
     // assertEq(balanceOf("gold", address(gold.gemA)), 1);
     expect(await gem('gold', end.address)).to.deep.equal(uint(1n));
-    expect(await balanceOf('gold', gold.gemA.address)).to.deep.equal(1n);
+    expect(await balanceOf('gold', gold.gemA.address)).to.deep.equal(uint(1n));
   });
 
   //   // -- Scenario where there is one over-collateralised CDP
@@ -855,23 +855,23 @@ describe('end', async function () {
       rad(eth('16').toBigInt())
     );
     expect(await claimToken.call('balanceOf', { user: vow.address })).to.deep.equal(
-      l2Eth(eth('16')).res
+      l2Eth(eth('16'))
     );
 
     // ali.cash("gold", 16 ether);
-    await invoke(ali, end, 'cash', { ilk: l2String('gold'), wad: l2Eth(eth('16')).res });
+    await invoke(ali, end, 'cash', { ilk: l2String('gold'), wad: wad(16n) });
     // // local checks:
     // assertEq(dai(urn1), 16 ether);
     expect(await dai(urn1)).to.deep.equal(uint(eth('16').toBigInt()));
     // assertEq(gem("gold", urn1), 3 ether);
     expect(await gem('gold', urn1)).to.deep.equal(uint(eth('3').toBigInt()));
     // ali.exit(gold.gemA, address(this), 3 ether);
-    await invoke(ali, gold.gemA, 'exit', { user: _admin, wad: l2Eth(eth('3')).res });
+    await invoke(ali, gold.gemA, 'exit', { user: _admin, wad: wad(3n) });
 
     // assertEq(gem("gold", address(end)), 0);
     expect(await gem('gold', end.address)).to.deep.equal(uint(0n));
     // assertEq(balanceOf("gold", address(gold.gemA)), 0);
-    expect(await balanceOf('gold', gold.gemA.address)).to.deep.equal(0n);
+    expect(await balanceOf('gold', gold.gemA.address)).to.deep.equal(uint(0n));
   });
 
   //   // -- Scenario where there is one over-collateralised CDP
@@ -1031,7 +1031,7 @@ describe('end', async function () {
     // assertEq(gem("gold", address(end)), 0);
     // assertEq(balanceOf("gold", address(gold.gemA)), 0);
     expect(await gem('gold', end.address)).to.deep.equal(uint(0n));
-    expect(await balanceOf('gold', gold.gemA.address)).to.deep.equal(0n);
+    expect(await balanceOf('gold', gold.gemA.address)).to.deep.equal(uint(0n));
   });
 
   //   // -- Scenario where there is one over-collateralised and one
