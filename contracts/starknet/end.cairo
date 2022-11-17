@@ -509,6 +509,14 @@ func gap{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(ilk: f
 }
 
 @view
+func Art{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(ilk: felt) -> (
+    res: Uint256
+) {
+    let (res) = _Art.read(ilk);
+    return (res,);
+}
+
+@view
 func vat{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
     let (res) = _vat.read();
     return (res,);

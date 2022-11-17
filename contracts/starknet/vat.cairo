@@ -150,10 +150,10 @@ func urns{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(i: fe
 
 @view
 func dai{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(u: felt) -> (
-    dai: Uint256
+    res: Uint256
 ) {
-    let (dai) = _dai.read(u);
-    return (dai,);
+    let (res) = _dai.read(u);
+    return (res,);
 }
 
 @view
@@ -598,7 +598,6 @@ func slip{
 
     // gem[ilk][user] = _add(gem[ilk][usr], wad);
     let (gem) = _gem.read(ilk, usr);
-    // %{ print("DEBUG", ids.wad.low, ids.wad.high, ids.gem.low, ids.gem.high, "ILK", ids.ilk) %}
     let (gem) = _add(gem, wad);
     _gem.write(ilk, usr, gem);
 
@@ -720,7 +719,6 @@ func frob{
     // uint256 tab = ilk.rate * urn.art;
     let (dtab) = _mul(ilk.rate, dart);
     let (tab) = mul(ilk.rate, art);
-    // %{ print('rate', ids.ilk.rate.low, ids.ilk.rate.high, 'art', ids.art.low, ids.art.high) %}
 
     // debt     = _add(debt, dtab);
     let (debt) = _debt.read();
@@ -740,7 +738,6 @@ func frob{
 
     // urn is either less risky than before, or it is safe
     // require(either(both(dart <= 0, dink >= 0), tab <= urn.ink * ilk.spot), "Vat/not-safe");
-    // %{ print('INK', ids.ink.low, ids.ink.high, 'SPOT', ids.ilk.spot.low, ids.ilk.spot.high, 'TAB', ids.tab.low, ids.tab.high) %}
     with_attr error_message("Vat/not-safe") {
         let (dart_le_0) = _le_0(dart);
         let (dink_ge_0) = _ge_0(dink);
@@ -789,19 +786,16 @@ func frob{
 
     // gem[i][v] = sub(gem[i][v], dink);
     let (gem) = _gem.read(i, v);
-    let (gem) = _sub(gem, dink);
+    let (gem) = sub(gem, dink);
     _gem.write(i, v, gem);
 
     // dai[w]    = add(dai[w],    dtab);
     let (dai) = _dai.read(w);
-    let (dai) = _add(dai, dtab);
+    let (dai) = add(dai, dtab);
     _dai.write(w, dai);
 
     // urns[i][u] = urn;
     _urns.write(i, u, Urn(ink, art));
-
-    // ilks[i]    = ilk;
-    _ilks.write(i, Ilk(Art=Art, rate=ilk.rate, spot=ilk.spot, line=ilk.line, dust=ilk.dust));
 
     // emit Frob(i, u, v, w, dink, dart);
     Frob.emit(i, u, v, w, dink, dart);
@@ -901,7 +895,7 @@ func fork{
 @external
 func grab{
     syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*
-}(i: felt, u: felt, v: felt, w: felt, dink: Uint256, dart: Uint256) {
+}(i: felt, u: felt, v: felt, w: felt, dink: Int256, dart: Int256) {
     alloc_locals;
 
     auth();
@@ -1026,15 +1020,10 @@ func suck{
 
 // // --- Bridged DAI ---
 // function swell(address u, int256 rad) external auth {
-//     dai[u] = _add(dai[u], rad);
-//     surf   = surf + rad;
-
-// emit Swell(u, rad);
-// }
 @external
 func swell{
     syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*
-}(u: felt, rad: Uint256) {
+}(u: felt, rad: Int256) {
     alloc_locals;
 
     auth();

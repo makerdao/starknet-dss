@@ -72,7 +72,7 @@ export class SplitUint {
 
   toUint(): bigint {
     const _a = this.toArray();
-    return BigInt(`0x${_a[1].toString(16)}${_a[0].toString(16)}`);
+    return _a[0] + 2n ** 128n * _a[1];
   }
 
   add(_a: SplitUint | numberish): SplitUint {

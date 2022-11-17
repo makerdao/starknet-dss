@@ -222,7 +222,7 @@ describe('end', async function () {
   //       return vat.dai(urn) / RAY;
   //   }
   async function dai(urn: string): Promise<SplitUintType<bigint>> {
-    const { dai: res } = await vat.call('dai', { u: urn });
+    const { res } = await vat.call('dai', { u: urn });
     const _res: SplitUint = new SplitUint(res);
     return uint(_res.toUint() / RAY);
   }
@@ -237,7 +237,7 @@ describe('end', async function () {
   //       (uint256 ink_, uint256 art_) = vat.urns(ilk, urn); art_;
   //       return ink_;
   //   }
-  async function ink(ilk: string, urn: string) {
+  async function ink(ilk: string, urn: string): Promise<SplitUintType<bigint>> {
     const { urn: _urn } = await vat.call('urns', {
       i: l2String(ilk),
       u: urn,
@@ -248,7 +248,7 @@ describe('end', async function () {
   //       (uint256 ink_, uint256 art_) = vat.urns(ilk, urn); ink_;
   //       return art_;
   //   }
-  async function art(ilk: string, urn: string) {
+  async function art(ilk: string, urn: string): Promise<SplitUintType<bigint>> {
     const { urn: _urn } = await vat.call('urns', {
       i: l2String(ilk),
       u: urn,
@@ -260,9 +260,9 @@ describe('end', async function () {
   //       rate_; spot_; line_; dust_;
   //       return Art_;
   //   }
-  async function Art(ilk: string) {
-    const { ilk: _ilk } = await vat.call('ilks', { i: l2String(ilk) });
-    return _ilk['Art'];
+  async function Art(ilk_: string): Promise<SplitUintType<bigint>> {
+    const { res } = await end.call('Art', { ilk: l2String(ilk_) });
+    return res;
   }
   //   function balanceOf(bytes32 ilk, address usr) internal view returns (uint) {
   //       return ilks[ilk].gem.balanceOf(usr);
@@ -773,24 +773,25 @@ describe('end', async function () {
     // Ilk memory gold = init_collateral("gold");
     const gold: Ilk = await init_collateral('gold');
     // Usr ali = new Usr(vat, end);
-    // // make a CDP:
+    // make a CDP:
     // address urn1 = address(ali);
     const urn1 = ali.address;
     // gold.gemA.join(urn1, 10 ether);
-    await invoke(admin, gold.gemA, 'join', { user: urn1, wad: l2Eth(eth('10')).res });
+    await invoke(admin, gold.gemA, 'join', { user: urn1, wad: wad(10n) });
     // ali.frob("gold", urn1, urn1, urn1, 10 ether, 15 ether);
     await frob(ali, 'gold', urn1, urn1, urn1, l2Eth(eth('10')).res, l2Eth(eth('15')).res);
 
-    // // ali's urn has 0 gem, 10 ink, 15 tab, 15 dai
-    // // suck 1 dai and give to ali
+    // ali's urn has 0 gem, 10 ink, 15 tab, 15 dai
+    // suck 1 dai and give to ali
     // vat.suck(address(vow), address(ali), rad(1 ether));
-    await suck(vow.address, ali.address, rad(eth('1').toBigInt()));
-    // // global checks:
+    await suck(vow.address, urn1, rad(eth('1').toBigInt()));
+
+    // global checks:
     // assertEq(vat.debt(), rad(16 ether));
     // assertEq(vat.vice(), rad(1 ether));
     expect((await vat.call('debt')).debt).to.deep.equal(rad(eth('16').toBigInt()));
     expect((await vat.call('vice')).vice).to.deep.equal(rad(eth('1').toBigInt()));
-    // // collateral price is 5
+    // collateral price is 5
     // gold.pip.poke(bytes32(5 * WAD));
     // end.cage();
     // end.cage("gold");
@@ -833,7 +834,7 @@ describe('end', async function () {
     // assertTrue(end.fix("gold") != 0);
     expect(await end.call('fix', { ilk: l2String('gold') })).to.not.be.deep.equal(l2Eth(0n));
 
-    // // dai redemption
+    // dai redemption
     // claimToken.mint(address(ali), 16 ether);
     // ali.approveClaim(address(end), 16 ether);
     // ali.pack(16 ether);
@@ -860,6 +861,7 @@ describe('end', async function () {
 
     // ali.cash("gold", 16 ether);
     await invoke(ali, end, 'cash', { ilk: l2String('gold'), wad: wad(16n) });
+
     // // local checks:
     // assertEq(dai(urn1), 16 ether);
     expect(await dai(urn1)).to.deep.equal(uint(eth('16').toBigInt()));
@@ -1045,35 +1047,40 @@ describe('end', async function () {
     const coal: Ilk = await init_collateral('coal');
     // Usr ali = new Usr(vat, end);
     // Usr bob = new Usr(vat, end);
-    // // make a CDP:
+
+    // make a CDP:
     // address urn1 = address(ali);
     const urn1 = ali.address;
     // gold.gemA.join(urn1, 10 ether);
-    await invoke(admin, gold.gemA, 'join', { user: urn1, wad: l2Eth(eth('10')).res });
+    await invoke(admin, gold.gemA, 'join', { user: urn1, wad: wad(10n) });
     // ali.frob("gold", urn1, urn1, urn1, 10 ether, 15 ether);
     await frob(ali, 'gold', urn1, urn1, urn1, l2Eth(eth('10')).res, l2Eth(eth('15')).res);
-    // // ali's urn has 0 gem, 10 ink, 15 tab
-    // // make a second CDP:
+    // ali's urn has 0 gem, 10 ink, 15 tab
+
+    // make a second CDP:
     // address urn2 = address(bob);
     const urn2 = bob.address;
     // coal.gemA.join(urn2, 1 ether);
-    await invoke(admin, coal.gemA, 'join', { user: urn2, wad: l2Eth(eth('1')).res });
+    await invoke(admin, coal.gemA, 'join', { user: urn2, wad: wad(1n) });
     // vat.file("coal", "spot", ray(5 ether));
     await invoke(admin, vat, 'file_ilk', {
       ilk: l2String('coal'),
       what: l2String('spot'),
       data: ray(eth('5').toBigInt()),
     });
+
     // bob.frob("coal", urn2, urn2, urn2, 1 ether, 5 ether);
     await frob(bob, 'coal', urn2, urn2, urn2, uint(eth('1').toBigInt()), uint(eth('5').toBigInt()));
-    // // bob's urn has 0 gem, 1 ink, 5 tab
+
+    // bob's urn has 0 gem, 1 ink, 5 tab
+
     // gold.pip.poke(bytes32(2 * WAD));
     await invoke(admin, gold.pip, 'poke', { wut: wad(2n) });
+    // urn1 has 20 dai of ink and 15 dai of tab
 
-    // // urn1 has 20 dai of ink and 15 dai of tab
     // coal.pip.poke(bytes32(2 * WAD));
     await invoke(admin, coal.pip, 'poke', { wut: wad(2n) });
-    // // urn2 has 2 dai of ink and 5 dai of tab
+    // urn2 has 2 dai of ink and 5 dai of tab
 
     // end.cage();
     // end.cage("gold");
@@ -1083,6 +1090,7 @@ describe('end', async function () {
     await invoke(admin, end, 'cage_ilk', { ilk: l2String('coal') });
     // end.skim("gold", urn1);  // over-collateralised
     await invoke(admin, end, 'skim', { ilk: l2String('gold'), urn: urn1 });
+
     // end.skim("coal", urn2);  // under-collateralised
     await invoke(admin, end, 'skim', { ilk: l2String('coal'), urn: urn2 });
     // vm.warp(block.timestamp + 1 hours);
@@ -1096,13 +1104,13 @@ describe('end', async function () {
     await invoke(admin, end, 'flow', { ilk: l2String('coal') });
     // claimToken.mint(address(ali), 1000 ether);
     // ali.approveClaim(address(end), type(uint256).max);
-    // claimToken.mint(address(bob), 1000 ether);
-    // bob.approveClaim(address(end), type(uint256).max);
     await invoke(admin, claimToken, 'mint', {
       account: ali.address,
       amount: l2Eth(eth('1000')).res,
     });
     await approveClaim(ali, end.address, MAX);
+    // claimToken.mint(address(bob), 1000 ether);
+    // bob.approveClaim(address(end), type(uint256).max);
     await invoke(admin, claimToken, 'mint', {
       account: bob.address,
       amount: l2Eth(eth('1000')).res,
@@ -1111,47 +1119,46 @@ describe('end', async function () {
 
     // assertEq(vat.debt(),             rad(20 ether));
     // assertEq(vat.vice(),             rad(20 ether));
+    // assertEq(vat.sin(address(vow)),  rad(20 ether));
     expect((await vat.call('debt')).debt).to.deep.equal(rad(eth('20').toBigInt()));
     expect((await vat.call('vice')).vice).to.deep.equal(rad(eth('20').toBigInt()));
-
-    // assertEq(vat.sin(address(vow)),  rad(20 ether));
     expect((await vat.call('sin', { u: vow.address })).sin).to.deep.equal(
       rad(eth('20').toBigInt())
     );
     // assertEq(end.Art("gold"), 15 ether);
     expect(await Art('gold')).to.deep.equal(uint(eth('15').toBigInt()));
     // assertEq(end.Art("coal"),  5 ether);
-    expect(await Art('coal')).to.deep.equal(uint(eth('15').toBigInt()));
+    expect(await Art('coal')).to.deep.equal(uint(eth('5').toBigInt()));
     // assertEq(end.gap("gold"),  0.0 ether);
     expect(await end.call('gap', { ilk: l2String('gold') })).to.deep.equal(l2Eth(0n));
     // assertEq(end.gap("coal"),  1.5 ether);
-    expect(await end.call('gap', { ilk: l2String('gold') })).to.deep.equal(l2Eth(eth('1.5')));
-    // // there are 7.5 gold and 1 coal
-    // // the gold is worth 15 dai and the coal is worth 2 dai
-    // // the total collateral pool is worth 17 dai
-    // // the total outstanding debt is 20 dai
-    // // each dai should get (15/2)/20 gold and (2/2)/20 coal
+    expect(await end.call('gap', { ilk: l2String('coal') })).to.deep.equal(l2Eth(eth('1.5')));
+    // there are 7.5 gold and 1 coal
+    // the gold is worth 15 dai and the coal is worth 2 dai
+    // the total collateral pool is worth 17 dai
+    // the total outstanding debt is 20 dai
+    // each dai should get (15/2)/20 gold and (2/2)/20 coal
 
     // assertEq(end.fix("gold"), ray(0.375 ether));
-    expect(await end.call('fix', { ilk: l2String('gold') })).to.be.deep.equal(
+    expect((await end.call('fix', { ilk: l2String('gold') })).res).to.be.deep.equal(
       ray(eth('0.375').toBigInt())
     );
     // assertEq(end.fix("coal"), ray(0.050 ether));
-    expect(await end.call('fix', { ilk: l2String('coal') })).to.be.deep.equal(
+    expect((await end.call('fix', { ilk: l2String('coal') })).res).to.be.deep.equal(
       ray(eth('0.050').toBigInt())
     );
     // assertEq(gem("gold", address(ali)), 0 ether);
     expect(await gem('gold', urn1)).to.deep.equal(uint(0n));
     // ali.pack(1 ether);
-    await invoke(ali, end, 'pack', { wad: l2Eth(eth('1')).res });
+    await invoke(ali, end, 'pack', { wad: wad(1n) });
     // ali.cash("gold", 1 ether);
-    await invoke(ali, end, 'cash', { ilk: l2String('gold'), wad: l2Eth(eth('1')).res });
+    await invoke(ali, end, 'cash', { ilk: l2String('gold'), wad: wad(1n) });
     // assertEq(gem("gold", address(ali)), 0.375 ether);
     expect(await gem('gold', urn1)).to.deep.equal(uint(eth('0.375').toBigInt()));
     // bob.pack(1 ether);
-    await invoke(bob, end, 'pack', { wad: l2Eth(eth('1')).res });
+    await invoke(bob, end, 'pack', { wad: wad(1n) });
     // bob.cash("coal", 1 ether);
-    await invoke(bob, end, 'cash', { ilk: l2String('coal'), wad: l2Eth(eth('1')).res });
+    await invoke(bob, end, 'cash', { ilk: l2String('coal'), wad: wad(1n) });
     // assertEq(gem("coal", address(bob)), 0.05 ether);
     expect(await gem('coal', urn2)).to.deep.equal(uint(eth('0.05').toBigInt()));
 
@@ -1161,7 +1168,7 @@ describe('end', async function () {
       user: urn1,
       wad: uint(eth('0.375').toBigInt()),
     });
-    await invoke(bob, gold.gemA, 'exit', { user: urn2, wad: uint(eth('0.05').toBigInt()) });
+    await invoke(bob, coal.gemA, 'exit', { user: urn2, wad: uint(eth('0.05').toBigInt()) });
 
     // ali.pack(1 ether);
     await invoke(ali, end, 'pack', { wad: l2Eth(eth('1')).res });
@@ -1211,7 +1218,7 @@ describe('end', async function () {
     expect(await gem('coal', urn1)).to.deep.equal(uint(eth('0.05').toBigInt()));
   });
 
-  //   // -- Scenario where flow() used to overflow
+  // -- Scenario where flow() used to overflow
   //   function testOverflow() public {
   it('test overflow', async () => {
     // Ilk memory gold = init_collateral("gold");
@@ -1224,7 +1231,7 @@ describe('end', async function () {
     // ali.frob("gold", urn1, urn1, urn1, 500_000 ether, 1_000_000 ether);
     await invoke(admin, gold.gemA, 'join', { user: urn1, wad: l2Eth(eth('500000')).res });
     await frob(ali, 'gold', urn1, urn1, urn1, l2Eth(eth('500000')).res, l2Eth(eth('1000000')).res);
-    // // ali's urn has 500_000 ink, 10^6 art (and 10^6 dai since rate == RAY)
+    // ali's urn has 500_000 ink, 10^6 art (and 10^6 dai since rate == RAY)
 
     // // global checks:
     // assertEq(vat.debt(), rad(1_000_000 ether));
