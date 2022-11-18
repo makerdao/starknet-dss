@@ -366,7 +366,7 @@ describe('teleport oracle auth', async function () {
       operator: _admin,
       amount: l2Eth(100).res,
       nonce: 5,
-      timestamp: new Date().getTime() / 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
     // bytes32 signHash = auth.getSignHash(guid);
     const signHash = getGUIDHash(guid);
@@ -396,7 +396,7 @@ describe('teleport oracle auth', async function () {
       operator: _admin,
       amount: l2Eth(100).res,
       nonce: 5,
-      timestamp: new Date().getTime() / 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
 
     // bytes32 signHash = auth.getSignHash(guid);
@@ -426,7 +426,7 @@ describe('teleport oracle auth', async function () {
       operator: '0',
       amount: l2Eth(100).res,
       nonce: 5,
-      timestamp: new Date().getTime() / 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
     // bytes32 signHash = auth.getSignHash(guid);
     const signHash = getGUIDHash(guid);
@@ -452,7 +452,7 @@ describe('teleport oracle auth', async function () {
       operator: TEST_OPERATOR_ADDRESS,
       amount: l2Eth(100).res,
       nonce: 5,
-      timestamp: new Date().getTime() / 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
     // TeleportGUID memory guid;
     // guid.operator = addressToBytes32(address(0x123));

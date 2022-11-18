@@ -786,12 +786,12 @@ func frob{
 
     // gem[i][v] = sub(gem[i][v], dink);
     let (gem) = _gem.read(i, v);
-    let (gem) = sub(gem, dink);
+    let (gem) = _sub(gem, dink);
     _gem.write(i, v, gem);
 
     // dai[w]    = add(dai[w],    dtab);
     let (dai) = _dai.read(w);
-    let (dai) = add(dai, dtab);
+    let (dai) = _add(dai, dtab);
     _dai.write(w, dai);
 
     // urns[i][u] = urn;

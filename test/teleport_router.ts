@@ -497,7 +497,7 @@ describe('teleport router', async function () {
       operator: 234n,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() / 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
 
     // router.file("gateway", "l2network", address(555));
@@ -529,7 +529,7 @@ describe('teleport router', async function () {
       operator: 234n,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() / 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
 
     // router.file("gateway", "l2network", address(this));
@@ -558,7 +558,7 @@ describe('teleport router', async function () {
       operator: 234n,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() / 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
 
     // router.file("gateway", "l2network", address(this));
@@ -588,7 +588,7 @@ describe('teleport router', async function () {
       operator: 234n,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() / 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
 
     // router.file("gateway", "l2network", address(this));
@@ -620,7 +620,7 @@ describe('teleport router', async function () {
       operator: 234n,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() / 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
 
     // router.file("gateway", parentDomain, address(this));
