@@ -3,6 +3,7 @@ import { BigNumber } from 'ethers';
 import { parseEther } from 'ethers/lib/utils';
 import { Account, StarknetContract } from 'hardhat/types';
 import isWsl from 'is-wsl';
+import { validateAndParseAddress } from 'starknet';
 
 export type SplitUintType<T> = { low: T; high: T };
 type numberish = string | number | bigint | BigNumber;
@@ -45,6 +46,10 @@ export function adaptUrl(url: string): string {
   return url;
 }
 
+export function l2Address(address: string | number | bigint | BigNumber) {
+  return validateAndParseAddress(`0x${asHex(address)}`);
+}
+
 export class SplitUint {
   res: SplitUintType<bigint>;
 
@@ -67,7 +72,7 @@ export class SplitUint {
 
   toUint(): bigint {
     const _a = this.toArray();
-    return BigInt(`0x${_a[1].toString(16)}${_a[0].toString(16)}`);
+    return _a[0] + 2n ** 128n * _a[1];
   }
 
   add(_a: SplitUint | numberish): SplitUint {
@@ -140,23 +145,23 @@ export async function checkAuth(base: any, contractName: string, admin: Account)
 
   expect((await base.call('wards', { user: TEST_ADDRESS })).res).to.equal(0n);
 
-  await invoke(admin, base, 'rely', { user: TEST_ADDRESS });
+  await invoke(admin, base, 'rely', { usr: TEST_ADDRESS });
 
   expect((await base.call('wards', { user: TEST_ADDRESS })).res).to.equal(1n);
 
-  await invoke(admin, base, 'deny', { user: TEST_ADDRESS });
+  await invoke(admin, base, 'deny', { usr: TEST_ADDRESS });
 
   expect((await base.call('wards', { user: TEST_ADDRESS })).res).to.equal(0n);
 
-  await invoke(admin, base, 'deny', { user: admin.starknetContract.address });
+  await invoke(admin, base, 'deny', { usr: admin.starknetContract.address });
 
   try {
-    await invoke(admin, base, 'rely', { user: TEST_ADDRESS });
+    await invoke(admin, base, 'rely', { usr: TEST_ADDRESS });
   } catch (err: any) {
     expect(err.message).to.contain(`${contractName}/not-authorized`);
   }
   try {
-    await invoke(admin, base, 'deny', { user: TEST_ADDRESS });
+    await invoke(admin, base, 'deny', { usr: TEST_ADDRESS });
   } catch (err: any) {
     expect(err.message).to.contain(`${contractName}/not-authorized`);
   }
@@ -169,13 +174,13 @@ export function wad(a: bigint): SplitUintType<bigint> {
   return { low: BigInt(_a.toDec()[0]), high: BigInt(_a.toDec()[1]) };
 }
 
-export function ray(a: bigint): SplitUintType<bigint> {
-  const _a = l2Eth(a * RAY);
+export function ray(wad: bigint): SplitUintType<bigint> {
+  const _a = l2Eth(wad * 10n ** 9n);
   return { low: BigInt(_a.toDec()[0]), high: BigInt(_a.toDec()[1]) };
 }
 
-export function rad(a: bigint): SplitUintType<bigint> {
-  const _a = l2Eth(a * RAD);
+export function rad(wad: bigint): SplitUintType<bigint> {
+  const _a = l2Eth(wad * RAY);
   return { low: BigInt(_a.toDec()[0]), high: BigInt(_a.toDec()[1]) };
 }
 
@@ -189,4 +194,9 @@ export const logGas = async (message: string, tx: Promise<any>, skip?: boolean):
     if (!skip) console.log('           Used', receipt.gasUsed.toNumber(), `gas for >${message}<`);
     return result;
   });
+};
+
+export const neg = (amount: bigint): bigint => {
+  const value = ~((amount - 1n) | ~((1n << 256n) - 1n));
+  return value;
 };

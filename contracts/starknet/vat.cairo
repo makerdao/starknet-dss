@@ -3,7 +3,17 @@
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.cairo.common.uint256 import Uint256, uint256_check, uint256_le
 from starkware.starknet.common.syscalls import get_caller_address
-from contracts.starknet.safe_math import Int256, add, _add, sub, _sub, mul, _mul, add_signed
+from contracts.starknet.safe_math import (
+    Int256,
+    add,
+    _add,
+    sub,
+    _sub,
+    mul,
+    _mul,
+    add_signed,
+    mul_signed256,
+)
 from contracts.starknet.assertions import (
     assert_either,
     either,
@@ -140,10 +150,10 @@ func urns{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(i: fe
 
 @view
 func dai{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(u: felt) -> (
-    dai: Uint256
+    res: Uint256
 ) {
-    let (dai) = _dai.read(u);
-    return (dai,);
+    let (res) = _dai.read(u);
+    return (res,);
 }
 
 @view
@@ -363,24 +373,24 @@ func require_live{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
 // // --- Administration ---
 // function rely(address usr) external auth {
 @external
-func rely{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user: felt) {
+func rely{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: felt) {
     auth();
 
     // require(live == 1, "Vat/not-live");
     require_live();
 
     // wards[usr] = 1;
-    _wards.write(user, 1);
+    _wards.write(usr, 1);
 
-    // emit Rely(user);
-    Rely.emit(user);
+    // emit Rely(usr);
+    Rely.emit(usr);
 
     return ();
 }
 
 // function deny(address usr) external auth {
 @external
-func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user: felt) {
+func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: felt) {
     auth();
 
     // require(live == 1, "Vat/not-live");
@@ -388,10 +398,10 @@ func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user:
     require_live();
 
     // wards[usr] = 0;
-    _wards.write(user, 0);
+    _wards.write(usr, 0);
 
     // emit Deny(usr);
-    Deny.emit(user);
+    Deny.emit(usr);
 
     return ();
 }
@@ -439,7 +449,6 @@ func file{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 
     _Line.write(data);
 
-    // TODO
     // emit File(what, data);
     File.emit(what, data);
 
@@ -484,7 +493,6 @@ func file_ilk{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         assert 1 = 0;
     }
 
-    // TODO
     // emit File(ilk, what, data);
     File_ilk.emit(ilk, what, data);
 
@@ -611,7 +619,9 @@ func flux{
     // require(wish(src, msg.sender), "Vat/not-allowed");
     let (caller) = get_caller_address();
     let (src_consents) = wish(src, caller);
-    assert src_consents = 1;
+    with_attr error_message("Vat/not-allowed") {
+        assert src_consents = 1;
+    }
 
     // gem[ilk][src] = gem[ilk][src] - wad;
     let (gem_src) = _gem.read(ilk, src);
@@ -675,13 +685,13 @@ func move{
 @external
 func frob{
     syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*
-}(i: felt, u: felt, v: felt, w: felt, dink: Uint256, dart: Uint256) {
+}(i: felt, u: felt, v: felt, w: felt, dink: Int256, dart: Int256) {
     alloc_locals;
 
     check(dink);
     check(dart);
 
-    // // system is live
+    // system is live
     // require(live == 1, "Vat/not-live");
     require_live();
 
@@ -690,7 +700,7 @@ func frob{
     let (urn) = _urns.read(i, u);
     let (local ilk) = _ilks.read(i);
 
-    // // ilk has been initialised
+    // ilk has been initialised
     // require(ilk.rate != 0, "Vat/ilk-not-init");
     with_attr error_message("Vat/ilk-not-init") {
         assert_not_0(ilk.rate);
@@ -698,23 +708,24 @@ func frob{
 
     // urn.ink = _add(urn.ink, dink);
     // urn.art = _add(urn.art, dart);
-    // ilk.Art = _add(ilk.Art, dart);
     let (ink) = _add(urn.ink, dink);
     let (art) = _add(urn.art, dart);
     _urns.write(i, u, Urn(ink, art));
+    // ilk.Art = _add(ilk.Art, dart);
     let (Art) = _add(ilk.Art, dart);
     _ilks.write(i, Ilk(Art, ilk.rate, ilk.spot, ilk.line, ilk.dust));
 
     // int256 dtab = _int256(ilk.rate) * dart;
     // uint256 tab = ilk.rate * urn.art;
-    // debt     = _add(debt, dtab);
     let (dtab) = _mul(ilk.rate, dart);
     let (tab) = mul(ilk.rate, art);
+
+    // debt     = _add(debt, dtab);
     let (debt) = _debt.read();
     let (debt) = _add(debt, dtab);
     _debt.write(debt);
 
-    // // either debt has decreased, or debt ceilings are not exceeded
+    // either debt has decreased, or debt ceilings are not exceeded
     // require(either(dart <= 0, both(ilk.Art * ilk.rate <= ilk.line, debt <= Line)), "Vat/ceiling-exceeded");
     with_attr error_message("Vat/ceiling-exceeded") {
         let (debt_decreased) = _le_0(dart);
@@ -725,7 +736,7 @@ func frob{
         assert_either(debt_decreased, lines_ok);
     }
 
-    // // urn is either less risky than before, or it is safe
+    // urn is either less risky than before, or it is safe
     // require(either(both(dart <= 0, dink >= 0), tab <= urn.ink * ilk.spot), "Vat/not-safe");
     with_attr error_message("Vat/not-safe") {
         let (dart_le_0) = _le_0(dart);
@@ -738,7 +749,7 @@ func frob{
 
     let (caller) = get_caller_address();
 
-    // // urn is either more safe, or the owner consents
+    // urn is either more safe, or the owner consents
     // require(either(both(dart <= 0, dink >= 0), wish(u, msg.sender)), "Vat/not-allowed-u");
     with_attr error_message("Vat/not-allowed-u") {
         let (dart_le_0) = _le_0(dart);
@@ -748,7 +759,7 @@ func frob{
         assert_either(less_risky, owner_consents);
     }
 
-    // // collateral src consents
+    // collateral src consents
     // require(either(dink <= 0, wish(v, msg.sender)), "Vat/not-allowed-v");
     with_attr error_message("Vat/not-allowed-v") {
         let (dink_le_0) = _le_0(dink);
@@ -756,7 +767,7 @@ func frob{
         assert_either(dink_le_0, src_consents);
     }
 
-    // // debt dst consents
+    // debt dst consents
     // require(either(dart >= 0, wish(w, msg.sender)), "Vat/not-allowed-w");
     with_attr error_message("Vat/not-allowed-w") {
         let (dart_ge_0) = _ge_0(dart);
@@ -764,7 +775,7 @@ func frob{
         assert_either(dart_ge_0, dst_consents);
     }
 
-    // // urn has no debt, or a non-dusty amount
+    // urn has no debt, or a non-dusty amount
     // require(either(urn.art == 0, tab >= ilk.dust), "Vat/dust");
     // TODO: how to manage underwater dusty vaults?
     with_attr error_message("Vat/dust") {
@@ -786,9 +797,6 @@ func frob{
     // urns[i][u] = urn;
     _urns.write(i, u, Urn(ink, art));
 
-    // ilks[i]    = ilk;
-    _ilks.write(i, Ilk(Art=Art, rate=ilk.rate, spot=ilk.spot, line=ilk.line, dust=ilk.dust));
-
     // emit Frob(i, u, v, w, dink, dart);
     Frob.emit(i, u, v, w, dink, dart);
 
@@ -800,7 +808,7 @@ func frob{
 @external
 func fork{
     syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*
-}(ilk: felt, src: felt, dst: felt, dink: Uint256, dart: Uint256) {
+}(ilk: felt, src: felt, dst: felt, dink: Int256, dart: Int256) {
     alloc_locals;
 
     check(dink);
@@ -822,8 +830,17 @@ func fork{
     let (v_ink) = _add(v.ink, dink);
     let (v_art) = _add(v.art, dart);
 
-    _urns.write(ilk, src, Urn(ink=u_ink, art=u_art));
-    _urns.write(ilk, dst, Urn(ink=v_ink, art=v_art));
+    if (src != dst) {
+        _urns.write(ilk, src, Urn(ink=u_ink, art=u_art));
+        _urns.write(ilk, dst, Urn(ink=v_ink, art=v_art));
+        tempvar pedersen_ptr: HashBuiltin* = pedersen_ptr;
+        tempvar syscall_ptr: felt* = syscall_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+    } else {
+        tempvar pedersen_ptr: HashBuiltin* = pedersen_ptr;
+        tempvar syscall_ptr: felt* = syscall_ptr;
+        tempvar range_check_ptr = range_check_ptr;
+    }
 
     // uint256 utab = u.art * i.rate;
     // uint256 vtab = v.art * i.rate;
@@ -878,7 +895,7 @@ func fork{
 @external
 func grab{
     syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*
-}(i: felt, u: felt, v: felt, w: felt, dink: Uint256, dart: Uint256) {
+}(i: felt, u: felt, v: felt, w: felt, dink: Int256, dart: Int256) {
     alloc_locals;
 
     auth();
@@ -1003,15 +1020,10 @@ func suck{
 
 // // --- Bridged DAI ---
 // function swell(address u, int256 rad) external auth {
-//     dai[u] = _add(dai[u], rad);
-//     surf   = surf + rad;
-
-// emit Swell(u, rad);
-// }
 @external
 func swell{
     syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*
-}(u: felt, rad: Uint256) {
+}(u: felt, rad: Int256) {
     alloc_locals;
 
     auth();

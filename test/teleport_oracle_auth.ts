@@ -6,11 +6,13 @@ import { KeyPair, validateAndParseAddress } from 'starknet';
 import { getKeyPair, getStarkKey, sign } from 'starknet/dist/utils/ellipticCurve';
 import { pedersen } from 'starknet/dist/utils/hash';
 import { BigNumberish, toBN, toFelt } from 'starknet/utils/number';
+import fs from 'fs';
 
 import { l2Eth, simpleDeployL2, l2String, invoke, SplitUintType } from './utils';
 
 // Cairo encoding of "valid_domains"
 const TEST_ADDRESS = '9379074284324409537785911406195';
+const dumpFile = 'unittest-dump.dmp';
 
 type TeleportGUID = {
   source_domain: string;
@@ -27,12 +29,6 @@ type Signature = {
   r: BigNumberish;
   s: BigNumberish;
 };
-
-function sleep(ms: number) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
 
 describe('teleport oracle auth', async function () {
   this.timeout(900_000);
@@ -63,12 +59,15 @@ describe('teleport oracle auth', async function () {
       hre
     );
 
-    await starknet.devnet.dump('unittest-dump.dmp');
-    await sleep(5000);
+    await starknet.devnet.dump(dumpFile);
   });
 
   beforeEach(async () => {
-    await starknet.devnet.load('unittest-dump.dmp');
+    await starknet.devnet.load(dumpFile);
+  });
+
+  after(async function () {
+    fs.unlink(dumpFile, () => {});
   });
 
   function getGUIDHash(guid: TeleportGUID): string {
@@ -116,6 +115,7 @@ describe('teleport oracle auth', async function () {
   async function getSignatures(
     signHash: string
   ): Promise<{ signatures: Signature[]; signers: string[] }> {
+    // seeds chosen s.t. corresponding addresses are in ascending order
     const seeds = [
       8, 10, 6, 2, 9, 15, 14, 20, 7, 29, 24, 13, 12, 25, 16, 26, 21, 22, 0, 18, 17, 27, 3, 28, 23,
       19, 4, 5, 1, 11,
@@ -292,12 +292,16 @@ describe('teleport oracle auth', async function () {
     // auth.addSigners(signers);
     await invoke(admin, auth, 'add_signers', { signers_: signers });
     // assertTrue(auth.isValid(signHash, signatures, signers.length));
-    await auth.call('validate', {
-      message: signHash,
-      signatures,
-      threshold_: signers.length,
-      previous: 0,
-    });
+    try {
+      await auth.call('validate', {
+        message: signHash,
+        signatures,
+        threshold_: signers.length,
+        previous: 0,
+      });
+    } catch (err: any) {
+      expect(err.message).to.contain('TeleportOracleAuth/not-enough-signatures');
+    }
   });
 
   // function testFail_isValid_notEnoughSig() public {
@@ -309,12 +313,16 @@ describe('teleport oracle auth', async function () {
     // auth.addSigners(signers);
     await invoke(admin, auth, 'add_signers', { signers_: signers });
     // assertTrue(auth.isValid(signHash, signatures, signers.length + 1));
-    await auth.call('validate', {
-      message: signHash,
-      signatures,
-      threshold_: signers.length + 1,
-      previous: 0,
-    });
+    try {
+      await auth.call('validate', {
+        message: signHash,
+        signatures,
+        threshold_: signers.length + 1,
+        previous: 0,
+      });
+    } catch (err: any) {
+      expect(err.message).to.contain('TeleportOracleAuth/not-enough-signatures');
+    }
   });
 
   // function testFail_isValid_badSig() public {
@@ -331,12 +339,16 @@ describe('teleport oracle auth', async function () {
     signatures[0].r = _r.toString();
 
     // assertTrue(auth.isValid(signHash, signatures, signers.length));
-    await auth.call('validate', {
-      message: signHash,
-      signatures,
-      threshold_: signers.length + 1,
-      previous: 0,
-    });
+    try {
+      await auth.call('validate', {
+        message: signHash,
+        signatures,
+        threshold_: signers.length + 1,
+        previous: 0,
+      });
+    } catch (err: any) {
+      expect(err.message).to.contain('TeleportOracleAuth/not-enough-signatures');
+    }
   });
 
   // function test_mintByOperator() public {
@@ -354,7 +366,7 @@ describe('teleport oracle auth', async function () {
       operator: _admin,
       amount: l2Eth(100).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
     // bytes32 signHash = auth.getSignHash(guid);
     const signHash = getGUIDHash(guid);
@@ -384,7 +396,7 @@ describe('teleport oracle auth', async function () {
       operator: _admin,
       amount: l2Eth(100).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
 
     // bytes32 signHash = auth.getSignHash(guid);
@@ -414,7 +426,7 @@ describe('teleport oracle auth', async function () {
       operator: '0',
       amount: l2Eth(100).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
     // bytes32 signHash = auth.getSignHash(guid);
     const signHash = getGUIDHash(guid);
@@ -440,7 +452,7 @@ describe('teleport oracle auth', async function () {
       operator: TEST_OPERATOR_ADDRESS,
       amount: l2Eth(100).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
     // TeleportGUID memory guid;
     // guid.operator = addressToBytes32(address(0x123));

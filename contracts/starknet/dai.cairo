@@ -203,18 +203,18 @@ func burn{
 }
 
 @external
-func rely{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user: felt) {
+func rely{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: felt) {
     auth();
-    _wards.write(user, 1);
-    Rely.emit(user);
+    _wards.write(usr, 1);
+    Rely.emit(usr);
     return ();
 }
 
 @external
-func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user: felt) {
+func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: felt) {
     auth();
-    _wards.write(user, 0);
-    Deny.emit(user);
+    _wards.write(usr, 0);
+    Deny.emit(usr);
     return ();
 }
 

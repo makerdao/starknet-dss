@@ -2,6 +2,8 @@ import { expect } from 'chai';
 import { writeFileSync } from 'fs';
 // import { BigNumber } from 'ethers';
 import hre, { starknet } from 'hardhat';
+import fs from 'fs';
+
 import { Account, StarknetContract } from 'hardhat/types';
 import { pedersen } from 'starknet/dist/utils/hash';
 
@@ -14,6 +16,8 @@ import {
   invoke,
   SplitUintType,
   adaptUrl,
+  neg,
+  uint,
 } from './utils';
 
 // Cairo encoding of "valid_domains"
@@ -28,6 +32,8 @@ const ILK = l2String('L2-DAI');
 
 const ttl = 60 * 60 * 24 * 8; // 8 days
 
+const dumpFile = 'unittest-dump.dmp';
+
 type TeleportGUID = {
   source_domain: string;
   target_domain: string;
@@ -37,12 +43,6 @@ type TeleportGUID = {
   nonce: number;
   timestamp: number;
 };
-
-function sleep(ms: number) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
 
 describe('teleport join', async function () {
   this.timeout(900_000);
@@ -126,12 +126,15 @@ describe('teleport join', async function () {
 
     await invoke(admin, vat, 'hope', { usr: daiJoin.address });
 
-    await starknet.devnet.dump('unittest-dump.dmp');
-    await sleep(5000);
+    await starknet.devnet.dump(dumpFile);
   });
 
   beforeEach(async () => {
-    await starknet.devnet.load('unittest-dump.dmp');
+    await starknet.devnet.load(dumpFile);
+  });
+
+  after(async function () {
+    fs.unlink(dumpFile, () => {});
   });
 
   function getGUIDHash(guid: TeleportGUID): string {
@@ -386,7 +389,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
 
     //  assertEq(dai.balanceOf(address(123)), 0);
@@ -433,7 +436,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
 
     // assertEq(dai.balanceOf(address(123)), 0);
@@ -488,7 +491,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
 
     // join.file("line", "l2network", 200_000 ether);
@@ -540,7 +543,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
 
     // join.file("line", "l2network", 0);
@@ -592,7 +595,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
 
     await requestMint(guid, 0, 0);
@@ -624,7 +627,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
 
     try {
@@ -654,12 +657,12 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
     //         assertEq(vat.dai(vow), 0);
     //         TeleportConstantFee fees = new TeleportConstantFee(100 ether, TTL);
     //         assertEq(fees.fee(), 100 ether);
-    expect((await vat.call('dai', { u: VOW_ADDRESS })).dai).to.deep.equal(l2Eth(0).res);
+    expect((await vat.call('dai', { u: VOW_ADDRESS })).res).to.deep.equal(l2Eth(0).res);
     const fees = await simpleDeployL2(
       'teleport_constant_fee',
       {
@@ -685,7 +688,7 @@ describe('teleport join', async function () {
     //     assertEq(join.cure(), 250_000 * RAD);
     // assertEq(daiSent, 249_900 * WAD);
     // assertEq(totalFee, 100 ether);
-    expect((await vat.call('dai', { u: VOW_ADDRESS })).dai).to.deep.equal(l2Eth(100n * RAD).res);
+    expect((await vat.call('dai', { u: VOW_ADDRESS })).res).to.deep.equal(l2Eth(100n * RAD).res);
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
       l2Eth(eth('249900'))
     );
@@ -716,7 +719,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
 
     // join.file("fees", "l2network", address(new TeleportConstantFee(100 ether, TTL)));
@@ -754,13 +757,13 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
     // assertEq(vat.dai(vow), 0);
     //     TeleportConstantFee fees = new TeleportConstantFee(100 ether, TTL);
     //     assertEq(fees.fee(), 100 ether);
 
-    expect((await vat.call('dai', { u: VOW_ADDRESS })).dai).to.deep.equal(l2Eth(0).res);
+    expect((await vat.call('dai', { u: VOW_ADDRESS })).res).to.deep.equal(l2Eth(0).res);
     //  join.file("fees", "l2network", address(fees));
 
     const fees = await simpleDeployL2(
@@ -781,7 +784,7 @@ describe('teleport join', async function () {
     // Over ttl - you don't pay fees
     //     hevm.warp(block.timestamp + TTL + 1 days);    // Over ttl - you don't pay fees
     //     join.requestMint(guid, 0, 0);
-    await starknet.devnet.increaseTime(new Date().getTime() * 1000 + ttl + 86400);
+    await starknet.devnet.increaseTime(ttl + 86400);
     await starknet.devnet.createBlock();
     await requestMint(guid, 0, 0);
     // assertEq(vat.dai(vow), 0);
@@ -790,7 +793,7 @@ describe('teleport join', async function () {
     //     assertEq(_ink(), 250_000 ether);
     //     assertEq(_art(), 250_000 ether);
     //     assertEq(join.cure(), 250_000 * RAD);
-    expect((await vat.call('dai', { u: VOW_ADDRESS })).dai).to.deep.equal(l2Eth(0).res);
+    expect((await vat.call('dai', { u: VOW_ADDRESS })).res).to.deep.equal(l2Eth(0).res);
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
       l2Eth(eth('250000'))
     );
@@ -811,10 +814,10 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
     // assertEq(vat.dai(vow), 0);
-    expect((await vat.call('dai', { u: VOW_ADDRESS })).dai).to.deep.equal(l2Eth(0).res);
+    expect((await vat.call('dai', { u: VOW_ADDRESS })).res).to.deep.equal(l2Eth(0).res);
     //     join.file("line", "l2network", 200_000 ether);
     // join.file("fees", "l2network", address(new TeleportConstantFee(100 ether, TTL)));
     await invoke(admin, join, 'file_line', {
@@ -844,7 +847,7 @@ describe('teleport join', async function () {
     //     assertEq(_ink(), 200_000 ether);
     //     assertEq(_art(), 200_000 ether);
     //     assertEq(join.cure(), 200_000 * RAD);
-    expect((await vat.call('dai', { u: VOW_ADDRESS })).dai).to.deep.equal(l2Eth(80n * RAD).res);
+    expect((await vat.call('dai', { u: VOW_ADDRESS })).res).to.deep.equal(l2Eth(80n * RAD).res);
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
       l2Eth(eth('199920'))
     );
@@ -868,7 +871,7 @@ describe('teleport join', async function () {
     //     assertEq(_ink(), 250_000 ether);
     //     assertEq(_art(), 250_000 ether);
     //     assertEq(join.cure(), 250_000 * RAD);
-    expect((await vat.call('dai', { u: VOW_ADDRESS })).dai).to.deep.equal(l2Eth(100n * RAD).res);
+    expect((await vat.call('dai', { u: VOW_ADDRESS })).res).to.deep.equal(l2Eth(100n * RAD).res);
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
       l2Eth(eth('249900'))
     );
@@ -889,11 +892,11 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
 
     // assertEq(vat.dai(vow), 0);
-    expect((await vat.call('dai', { u: VOW_ADDRESS })).dai).to.deep.equal(l2Eth(0).res);
+    expect((await vat.call('dai', { u: VOW_ADDRESS })).res).to.deep.equal(l2Eth(0).res);
     // join.file("line", "l2network", 200_000 ether);
     await invoke(admin, join, 'file_line', {
       what: l2String('line'),
@@ -933,10 +936,10 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
     // assertEq(vat.dai(vow), 0);
-    expect((await vat.call('dai', { u: VOW_ADDRESS })).dai).to.deep.equal(l2Eth(0).res);
+    expect((await vat.call('dai', { u: VOW_ADDRESS })).res).to.deep.equal(l2Eth(0).res);
     // join.file("line", "l2network", 200_000 ether);
     // join.file("fees", "l2network", address(new TeleportConstantFee(100 ether, TTL)));
     await invoke(admin, join, 'file_line', {
@@ -983,7 +986,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
     //  join.file("line", "l2network", 200_000 ether);
     // join.requestMint(guid, 0, 0);
@@ -1025,7 +1028,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
     // join.file("line", "l2network", 200_000 ether);
     await invoke(admin, join, 'file_line', {
@@ -1070,7 +1073,7 @@ describe('teleport join', async function () {
       operator: TEST_RECEIVER_ADDRESS,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
 
     // join.file("line", "l2network", 200_000 ether);
@@ -1123,7 +1126,7 @@ describe('teleport join', async function () {
       operator: TEST_OPERATOR_ADDRESS,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
     // join.file("line", "l2network", 200_000 ether);
     // join.requestMint(guid, 0, 0);
@@ -1168,12 +1171,7 @@ describe('teleport join', async function () {
 
     // assertEq(join.debt("l2network"), -100_000 ether);
     // assertEq(join.cure(), 0);
-    // const P = BigNumber.from('800000000000011000000000000000000000000000000000000000000000001');
-    // const N = eth('-100000');
-    // const NN = N.add(P);
-    // const _debt = SplitUint.fromUint(NN);
-    // console.log(_debt);
-    // expect(await debt(l2String('l2network'))).to.deep.equal(_debt);
+    expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(neg(eth('100000').toBigInt())));
     expect(await join.call('cure')).to.deep.equal(l2Eth(0));
   });
 
@@ -1193,8 +1191,7 @@ describe('teleport join', async function () {
 
     // assertEq(join.debt("l2network"), -100_000 ether);
     // assertEq(join.cure(), 0);
-    // TODO: handle negative numbers
-    // expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(eth('-100000')));
+    expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(neg(eth('100000').toBigInt())));
     expect(await join.call('cure')).to.deep.equal(l2Eth(0));
 
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
@@ -1215,7 +1212,7 @@ describe('teleport join', async function () {
       operator: TEST_OPERATOR_ADDRESS,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
     // join.requestMint(guid, 0, 0);
     await requestMint(guid, 0, 0);
@@ -1248,7 +1245,7 @@ describe('teleport join', async function () {
 
     // assertEq(join.debt("l2network"), -100_000 ether);
     // assertEq(join.cure(), 0);
-    // expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(eth('-100000')));
+    expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(neg(eth('100000').toBigInt())));
     expect(await join.call('cure')).to.deep.equal(l2Eth(0));
 
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
@@ -1269,7 +1266,7 @@ describe('teleport join', async function () {
       operator: TEST_OPERATOR_ADDRESS,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
 
     //  join.file("line", "l2network", 100_000 ether);
@@ -1310,7 +1307,7 @@ describe('teleport join', async function () {
     await settle(l2String('l2network'), VALID_DOMAINS, l2Eth(eth('100000')).res);
     // assertEq(join.debt("l2network"), -100_000 ether);
     // assertEq(join.cure(), 0);
-    // expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(eth('-100000')));
+    expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(neg(eth('100000').toBigInt())));
     expect(await join.call('cure')).to.deep.equal(l2Eth(0));
 
     const TEST_RECEIVER_ADDRESS = '9379024284324443537185931466192';
@@ -1331,7 +1328,7 @@ describe('teleport join', async function () {
       operator: TEST_OPERATOR_ADDRESS,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
     // vat.cage();
     // assertEq(vat.live(), 0);
@@ -1366,7 +1363,7 @@ describe('teleport join', async function () {
     expect(await _ink()).to.deep.equal(l2Eth(eth('0')).res);
     expect(await _art()).to.deep.equal(l2Eth(eth('0')).res);
     // No fees regardless the contract set
-    expect((await vat.call('dai', { u: VOW_ADDRESS })).dai).to.deep.equal(l2Eth(0).res);
+    expect((await vat.call('dai', { u: VOW_ADDRESS })).res).to.deep.equal(l2Eth(0).res);
     expect(await join.call('cure')).to.deep.equal(l2Eth(0));
   });
 
@@ -1390,7 +1387,7 @@ describe('teleport join', async function () {
       operator: TEST_OPERATOR_ADDRESS,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
 
     await requestMint(guid, 0, 0);
@@ -1444,7 +1441,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
     // assertEq(dai.balanceOf(address(this)), 0);
     // (uint256 daiSent, uint256 totalFee) = join.requestMint(guid, 0, 250 ether);
@@ -1488,7 +1485,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
 
     try {
@@ -1516,7 +1513,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
     // join.file("line", "l2network", 200_000 ether);
     await invoke(admin, join, 'file_line', {
@@ -1581,7 +1578,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
     // assertEq(dai.balanceOf(address(this)), 0);
     expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('0')));
@@ -1605,7 +1602,7 @@ describe('teleport join', async function () {
     // assertEq(dai.balanceOf(address(this)), 249 ether);
     expect(await dai.call('balanceOf', { user: _admin })).to.deep.equal(l2Eth(eth('249')));
     // assertEq(vat.dai(vow), 1000 * RAD);
-    expect((await vat.call('dai', { u: VOW_ADDRESS })).dai).to.deep.equal(l2Eth(1000n * RAD).res);
+    expect((await vat.call('dai', { u: VOW_ADDRESS })).res).to.deep.equal(l2Eth(1000n * RAD).res);
     // assertEq(dai.balanceOf(address(123)), 248_751 ether);
     expect(await dai.call('balanceOf', { user: TEST_RECEIVER_ADDRESS })).to.deep.equal(
       l2Eth(eth('248751'))
@@ -1629,7 +1626,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
 
     const fees = await simpleDeployL2(
@@ -1726,7 +1723,7 @@ describe('teleport join', async function () {
       operator: TEST_OPERATOR_ADDRESS,
       amount: l2Eth(eth('150000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
     await requestMint(guid, 0, 0);
     // guid = TeleportGUID({
@@ -1746,7 +1743,7 @@ describe('teleport join', async function () {
       operator: TEST_OPERATOR_ADDRESS,
       amount: l2Eth(eth('50000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
     // join.requestMint(guid, 0, 0);
     await requestMint(guid, 0, 0);
@@ -1755,7 +1752,7 @@ describe('teleport join', async function () {
     //     assertEq(join.debt("l2network_2"), 150_000 ether);
     //     assertEq(join.debt("l2network_3"), 50_000 ether);
     //     assertEq(join.cure(), 200_000 * RAD);
-    // expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(eth('-100000')));
+    expect(await debt(l2String('l2network'))).to.deep.equal(l2Eth(neg(eth('100000').toBigInt())));
     expect(await debt(l2String('l2network_2'))).to.deep.equal(l2Eth(eth('150000')));
     expect(await debt(l2String('l2network_3'))).to.deep.equal(l2Eth(eth('50000')));
     expect(await join.call('cure')).to.deep.equal(l2Eth(200000n * RAD));
@@ -1776,7 +1773,7 @@ describe('teleport join', async function () {
       operator: TEST_OPERATOR_ADDRESS,
       amount: l2Eth(eth('50000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
     await requestMint(guid, 0, 0);
 
@@ -1831,7 +1828,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('250000')).res,
       nonce: 5,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
     //     join.requestMint(guid, 0, 0);
     await requestMint(guid, 0, 0);
@@ -1873,7 +1870,7 @@ describe('teleport join', async function () {
       operator: _admin,
       amount: l2Eth(eth('100000')).res,
       nonce: 6,
-      timestamp: new Date().getTime() * 1000,
+      timestamp: Math.floor(new Date().getTime() / 1000),
     };
     // join.requestMint(guid, 0, 0);
     await requestMint(guid, 0, 0);

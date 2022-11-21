@@ -49,7 +49,7 @@ func urns{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(i: fe
 
 @view
 func dai{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(u: felt) -> (
-    dai: Uint256
+    res: Uint256
 ) {
     let (dai) = _dai.read(u);
     return (dai,);

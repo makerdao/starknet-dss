@@ -1,12 +1,12 @@
 from starkware.cairo.common.bitwise import bitwise_and
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.cairo.common.math import assert_not_zero
+from starkware.cairo.common.math_cmp import is_le_felt
 from starkware.cairo.common.uint256 import (
     Uint256,
     uint256_eq,
     uint256_lt,
     uint256_signed_le,
-    uint256_signed_lt,
     uint256_le,
     uint256_check,
 )
@@ -66,6 +66,17 @@ func _ge_0{range_check_ptr}(a: Int256) -> (res: felt) {
     return (res,);
 }
 
+func le{range_check_ptr}(a: Uint256, b: Uint256) -> (res: felt) {
+    alloc_locals;
+    let (local lt) = uint256_lt(a, b);
+    let (eq) = uint256_eq(a, b);
+    if (lt + eq == 0) {
+        return (0,);
+    } else {
+        return (1,);
+    }
+}
+
 func _le{range_check_ptr}(a: Int256, b: Int256) -> (res: felt) {
     alloc_locals;
     let (local lt) = uint256_signed_le(a, b);
@@ -103,10 +114,26 @@ func check{range_check_ptr}(a: Uint256) {
     return ();
 }
 
+func is_lt{syscall_ptr: felt*, range_check_ptr}(lhs: felt, rhs: felt) -> (res: felt) {
+    if (rhs == 0) {
+        return (0,);
+    }
+    let res: felt = is_le_felt(lhs, rhs - 1);
+    return (res,);
+}
+
 func is_eq(a: felt, b: felt) -> (res: felt) {
     if (a == b) {
         return (1,);
     } else {
         return (0,);
     }
+}
+
+func is_zero(value) -> (res: felt) {
+    if (value == 0) {
+        return (res=1);
+    }
+
+    return (res=0);
 }

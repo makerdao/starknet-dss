@@ -149,17 +149,17 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 //     _;
 // }
 @external
-func rely{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user: felt) {
+func rely{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: felt) {
     auth();
-    _wards.write(user, 1);
-    Rely.emit(user);
+    _wards.write(usr, 1);
+    Rely.emit(usr);
     return ();
 }
 @external
-func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user: felt) {
+func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: felt) {
     auth();
-    _wards.write(user, 0);
-    Deny.emit(user);
+    _wards.write(usr, 0);
+    Deny.emit(usr);
     return ();
 }
 
@@ -228,12 +228,13 @@ func exit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         _ge_0(wad);
     }
 
-    // vat.slip(ilk, msg.sender, -int(wad));
     let (vat) = _vat.read();
     let (ilk) = _ilk.read();
     let (gem) = _gem.read();
     let (minus_wad) = uint256_neg(wad);
-    VatLike.slip(vat, ilk, user, minus_wad);
+    let (caller) = get_caller_address();
+    // vat.slip(ilk, msg.sender, -int(wad));
+    VatLike.slip(vat, ilk, caller, minus_wad);
 
     // require(gem.transfer(usr, wad), "GemJoin/failed-transfer");
     with_attr error_message("GemJoin/failed-transfer") {

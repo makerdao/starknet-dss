@@ -6,6 +6,7 @@ build
 node_modules
 cache/
 starknet-artifacts/
+.vscode/
 .vscode
 *.suo
 *.ntvs*
