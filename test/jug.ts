@@ -17,6 +17,7 @@ import {
   SplitUint,
   WAD,
   SplitUintType,
+  eth,
 } from './utils';
 
 const TEST2_ADDRESS = '9379074284324409537785911406195';
@@ -144,7 +145,7 @@ describe('jug', async function () {
   //     }
   async function duty(ilk: string): Promise<SplitUintType<bigint>> {
     const { ilk: ilk_ } = await jug.call('ilks', {
-      i: l2String(ilk),
+      i: ilk,
     });
     return ilk_['duty'];
   }
@@ -154,7 +155,7 @@ describe('jug', async function () {
   //     }
   async function rho(ilk: string): Promise<SplitUintType<bigint>> {
     const { ilk: ilk_ } = await jug.call('ilks', {
-      i: l2String(ilk),
+      i: ilk,
     });
     return ilk_['rho'];
   }
@@ -180,143 +181,343 @@ describe('jug', async function () {
   it('test file', async () => {});
 
   //     function testFileIlk() public {
-  //         jug.init(ILK);
+  it('test file ilk', async () => {
+    // jug.init(ILK);
+    await invoke(admin, jug, 'init', { ilk: ILK });
+    // vm.expectEmit(true, true, true, true);
+    // emit File(ILK, "duty", 1);
+    // jug.file(ILK, "duty", 1);
+    await invoke(admin, jug, 'file_duty', { ilk: ILK, what: l2String('duty'), data: uint(1n) });
+    //         assertEq(duty(ILK), 1);
+    expect(await duty(ILK)).to.deep.equal(uint(1n));
+    // Cannot set duty if rho not up to date
+    // vm.warp(block.timestamp + 1);
+    await starknet.devnet.increaseTime(1);
+    await starknet.devnet.createBlock();
+    let timestamp = (await starknet.getBlock()).timestamp;
 
-  //         vm.expectEmit(true, true, true, true);
-  //         emit File(ILK, "duty", 1);
-  //         jug.file(ILK, "duty", 1);
-  //         assertEq(duty(ILK), 1);
+    try {
+      // jug.file(ILK, "duty", 1);
+      await invoke(admin, jug, 'file_duty', { ilk: ILK, what: l2String('duty'), data: uint(1n) });
+    } catch (err: any) {
+      // vm.expectRevert("Jug/rho-not-updated");
+      expect(err.message).to.contain('Jug/rho-not-updated');
+    }
+    // vm.warp(block.timestamp - 1);
+    await starknet.devnet.setTime(timestamp - 1);
+    await starknet.devnet.createBlock();
+    // Invalid name
+    try {
+      // jug.file(ILK, "badWhat", 1);
+      await invoke(admin, jug, 'file_duty', {
+        ilk: ILK,
+        what: l2String('badWhat'),
+        data: uint(1n),
+      });
+    } catch (err: any) {
+      // vm.expectRevert("Jug/file-unrecognized-param");
+      expect(err.message).to.contain('Jug/rho-not-updated');
+    }
+    // Not authed
+    try {
+      // jug.deny(address(this));
+      await invoke(admin, jug, 'deny', { usr: _admin });
+      // jug.file(ILK, "duty", 1);
+      await invoke(admin, jug, 'file_duty', {
+        ilk: ILK,
+        what: l2String('duty'),
+        data: uint(1n),
+      });
+    } catch (err: any) {
+      // vm.expectRevert("Jug/not-authorized");
+      expect(err.message).to.contain('Jug/not-authorized');
+    }
+  });
 
-  //         // Cannot set duty if rho not up to date
-  //         vm.warp(block.timestamp + 1);
-  //         vm.expectRevert("Jug/rho-not-updated");
-  //         jug.file(ILK, "duty", 1);
-  //         vm.warp(block.timestamp - 1);
+  // function testInit() public {
+  it('test init', async () => {
+    // assertEq(rho(ILK), 0);
+    // assertEq(duty(ILK), 0);
+    expect(await rho(ILK)).to.be.equal(0n);
+    expect(await duty(ILK)).to.deep.equal(uint(0n));
+    // vm.expectEmit(true, true, true, true);
+    // emit Init(ILK);
+    // jug.init(ILK);
+    await invoke(admin, jug, 'init', { ilk: ILK });
+    // assertEq(rho(ILK), block.timestamp);
+    // assertEq(duty(ILK), RAY);
+    let timestamp = (await starknet.getBlock()).timestamp;
+    expect(await rho(ILK)).to.be.equal(BigInt(timestamp));
+    expect(await duty(ILK)).to.deep.equal(uint(RAY));
+  });
 
-  //         // Invalid name
-  //         vm.expectRevert("Jug/file-unrecognized-param");
-  //         jug.file(ILK, "badWhat", 1);
+  // function testDripUpdatesRho() public {
+  it('test drip updates rho', async () => {
+    // jug.init(ILK);
+    await invoke(admin, jug, 'init', { ilk: ILK });
+    // jug.file(ILK, "duty", 10 ** 27);
+    await invoke(admin, jug, 'file_duty', {
+      ilk: ILK,
+      what: l2String('duty'),
+      data: uint(RAY),
+    });
+    // jug.drip(ILK);
+    await invoke(admin, jug, 'drip', { ilk: ILK });
+    // assertEq(rho(ILK), block.timestamp);
+    let timestamp = (await starknet.getBlock()).timestamp;
+    expect(await rho(ILK)).to.be.equal(BigInt(timestamp));
+    // vm.warp(block.timestamp + 1);
+    await starknet.devnet.increaseTime(1);
+    await starknet.devnet.createBlock();
+    // assertEq(rho(ILK), block.timestamp - 1);
+    timestamp = (await starknet.getBlock()).timestamp;
+    expect(await rho(ILK)).to.be.equal(BigInt(timestamp - 1));
+    // jug.drip(ILK);
+    await invoke(admin, jug, 'drip', { ilk: ILK });
+    // assertEq(rho(ILK), block.timestamp);
+    timestamp = (await starknet.getBlock()).timestamp;
+    expect(await rho(ILK)).to.be.equal(BigInt(timestamp));
+    // vm.warp(block.timestamp + 1 days);
+    await starknet.devnet.increaseTime(86400);
+    await starknet.devnet.createBlock();
+    // jug.drip(ILK);
+    await invoke(admin, jug, 'drip', { ilk: ILK });
+    // assertEq(rho(ILK), block.timestamp);
+    timestamp = (await starknet.getBlock({ blockNumber: 'latest' })).timestamp;
+    expect(await rho(ILK)).to.be.equal(BigInt(timestamp));
+  });
 
-  //         // Not authed
-  //         jug.deny(address(this));
-  //         vm.expectRevert("Jug/not-authorized");
-  //         jug.file(ILK, "duty", 1);
-  //     }
+  // function testDripFile() public {
+  it('test drip file', async () => {
+    // jug.init(ILK);
+    await invoke(admin, jug, 'init', { ilk: ILK });
+    // jug.file(ILK, "duty", RAY);
+    await invoke(admin, jug, 'file_duty', {
+      ilk: ILK,
+      what: l2String('duty'),
+      data: uint(RAY),
+    });
+    // jug.drip(ILK);
+    await invoke(admin, jug, 'drip', { ilk: ILK });
+    // jug.file(ILK, "duty", 1000000564701133626865910626);  // 5% / day
+    await invoke(admin, jug, 'file_duty', {
+      ilk: ILK,
+      what: l2String('duty'),
+      data: uint(1000000564701133626865910626n),
+    });
+  });
 
-  //     function testInit() public {
-  //         assertEq(rho(ILK), 0);
-  //         assertEq(duty(ILK), 0);
+  // function testDrip0d() public {
+  it('test drip0d', async () => {
+    //     jug.init(ILK);
+    await invoke(admin, jug, 'init', { ilk: ILK });
+    //     jug.file(ILK, "duty", 1000000564701133626865910626);  // 5% / day
+    await invoke(admin, jug, 'file_duty', {
+      ilk: ILK,
+      what: l2String('duty'),
+      data: uint(1000000564701133626865910626n),
+    });
+    //     assertEq(vat.dai(TEST_ADDRESS), 0);
+    expect((await vat.call('dai', { u: TEST_ADDRESS })).res).to.deep.equal(uint(0n));
+    //     jug.drip(ILK);
+    await invoke(admin, jug, 'drip', { ilk: ILK });
+    //     assertEq(vat.dai(TEST_ADDRESS), 0);
+    expect((await vat.call('dai', { u: TEST_ADDRESS })).res).to.deep.equal(uint(0n));
+  });
 
-  //         vm.expectEmit(true, true, true, true);
-  //         emit Init(ILK);
-  //         jug.init(ILK);
+  // function testDrip1d() public {
+  it('test drip1d', async () => {
+    // jug.init(ILK);
+    // jug.file("vow", TEST_ADDRESS);
+    // jug.file(ILK, "duty", 1000000564701133626865910626);  // 5% / day
+    await invoke(admin, jug, 'init', { ilk: ILK });
+    await invoke(admin, jug, 'file', {
+      what: l2String('vow'),
+      data: TEST_ADDRESS,
+    });
+    await invoke(admin, jug, 'file_duty', {
+      ilk: ILK,
+      what: l2String('duty'),
+      data: uint(1000000564701133626865910626n),
+    });
+    // vm.warp(block.timestamp + 1 days);
+    await starknet.devnet.increaseTime(86400);
+    await starknet.devnet.createBlock();
+    // assertEq(vat.dai(TEST_ADDRESS), 0 ether);
+    // jug.drip(ILK);
+    // assertEq(vat.dai(TEST_ADDRESS), 5000000000000000000001603800000000000000000000);
+    expect((await vat.call('dai', { u: TEST_ADDRESS })).res).to.deep.equal(uint(0n));
+    await invoke(admin, jug, 'drip', { ilk: ILK });
+    expect((await vat.call('dai', { u: TEST_ADDRESS })).res).to.deep.equal(
+      uint(5000000000000000000001603800000000000000000000n)
+    );
+  });
 
-  //         assertEq(rho(ILK), block.timestamp);
-  //         assertEq(duty(ILK), RAY);
-  //     }
+  // function testDrip2d() public {
+  it('test drip2d', async () => {
+    // jug.init(ILK);
+    // jug.file("vow", TEST_ADDRESS);
+    // jug.file(ILK, "duty", 1000000564701133626865910626);  // 5% / day
+    await invoke(admin, jug, 'init', { ilk: ILK });
+    await invoke(admin, jug, 'file', {
+      what: l2String('vow'),
+      data: TEST_ADDRESS,
+    });
+    await invoke(admin, jug, 'file_duty', {
+      ilk: ILK,
+      what: l2String('duty'),
+      data: uint(1000000564701133626865910626n),
+    });
+    // vm.warp(block.timestamp + 2 days);
+    await starknet.devnet.increaseTime(86400 * 2);
+    await starknet.devnet.createBlock();
+    // assertEq(vat.dai(TEST_ADDRESS), 0 ether);
+    // jug.drip(ILK);
+    // assertEq(vat.dai(TEST_ADDRESS), 10250000000000000000003367800000000000000000000);
+    expect((await vat.call('dai', { u: TEST_ADDRESS })).res).to.deep.equal(uint(0n));
+    await invoke(admin, jug, 'drip', { ilk: ILK });
+    expect((await vat.call('dai', { u: TEST_ADDRESS })).res).to.deep.equal(
+      uint(10250000000000000000003367800000000000000000000n)
+    );
+  });
 
-  //     function testDripUpdatesRho() public {
-  //         jug.init(ILK);
+  // function testDrip3d() public {
+  it('test drip3d', async () => {
+    // jug.init(ILK);
+    // jug.file("vow", TEST_ADDRESS);
+    // jug.file(ILK, "duty", 1000000564701133626865910626);  // 5% / day
+    await invoke(admin, jug, 'init', { ilk: ILK });
+    await invoke(admin, jug, 'file', {
+      what: l2String('vow'),
+      data: TEST_ADDRESS,
+    });
+    await invoke(admin, jug, 'file_duty', {
+      ilk: ILK,
+      what: l2String('duty'),
+      data: uint(1000000564701133626865910626n),
+    });
+    // vm.warp(block.timestamp + 3 days);
+    await starknet.devnet.increaseTime(86400 * 3);
+    await starknet.devnet.createBlock();
+    // assertEq(vat.dai(TEST_ADDRESS), 0 ether);
+    // jug.drip(ILK);
+    // assertEq(vat.dai(TEST_ADDRESS), 15762500000000000000005304200000000000000000000);
+    expect((await vat.call('dai', { u: TEST_ADDRESS })).res).to.deep.equal(uint(0n));
+    await invoke(admin, jug, 'drip', { ilk: ILK });
+    expect((await vat.call('dai', { u: TEST_ADDRESS })).res).to.deep.equal(
+      uint(15762500000000000000005304200000000000000000000n)
+    );
+  });
 
-  //         jug.file(ILK, "duty", 10 ** 27);
-  //         jug.drip(ILK);
-  //         assertEq(rho(ILK), block.timestamp);
-  //         vm.warp(block.timestamp + 1);
-  //         assertEq(rho(ILK), block.timestamp - 1);
-  //         jug.drip(ILK);
-  //         assertEq(rho(ILK), block.timestamp);
-  //         vm.warp(block.timestamp + 1 days);
-  //         jug.drip(ILK);
-  //         assertEq(rho(ILK), block.timestamp);
-  //     }
+  // function testDripNegative3d() public {
+  it('test drip negative 3d', async () => {
+    // jug.init(ILK);
+    // jug.file("vow", TEST_ADDRESS);
+    // jug.file(ILK, "duty", 999999706969857929985428567);  // -2.5% / day
+    await invoke(admin, jug, 'init', { ilk: ILK });
+    await invoke(admin, jug, 'file', {
+      what: l2String('vow'),
+      data: TEST_ADDRESS,
+    });
+    await invoke(admin, jug, 'file_duty', {
+      ilk: ILK,
+      what: l2String('duty'),
+      data: uint(999999706969857929985428567n),
+    });
+    // vm.warp(block.timestamp + 3 days);
+    await starknet.devnet.increaseTime(86400 * 3);
+    await starknet.devnet.createBlock();
+    // assertEq(vat.dai(address(this)), 100 * RAD);
+    expect((await vat.call('dai', { u: _admin })).res).to.deep.equal(uint(100n * RAD));
+    // vat.move(address(this), TEST_ADDRESS, 100 * RAD);
+    invoke(admin, vat, 'move', {
+      src: _admin,
+      dst: TEST_ADDRESS,
+      rad: uint(100n * RAD),
+    });
+    // assertEq(vat.dai(TEST_ADDRESS), 100 * RAD);
+    expect((await vat.call('dai', { u: TEST_ADDRESS })).res).to.deep.equal(uint(100n * RAD));
+    // jug.drip(ILK);
+    await invoke(admin, jug, 'drip', { ilk: ILK });
+    // assertEq(vat.dai(TEST_ADDRESS), 92685937500000000000002288500000000000000000000);
+    expect((await vat.call('dai', { u: TEST_ADDRESS })).res).to.deep.equal(
+      uint(92685937500000000000002288500000000000000000000n)
+    );
+  });
 
-  //     function testDripFile() public {
-  //         jug.init(ILK);
-  //         jug.file(ILK, "duty", RAY);
-  //         jug.drip(ILK);
-  //         jug.file(ILK, "duty", 1000000564701133626865910626);  // 5% / day
-  //     }
+  // function testDripMulti() public {
+  it('test drip multi', async () => {
+    // jug.init(ILK);
+    // jug.file("vow", TEST_ADDRESS);
+    // jug.file(ILK, "duty", 1000000564701133626865910626);  // 5% / day
+    await invoke(admin, jug, 'init', { ilk: ILK });
+    await invoke(admin, jug, 'file', {
+      what: l2String('vow'),
+      data: TEST_ADDRESS,
+    });
+    await invoke(admin, jug, 'file_duty', {
+      ilk: ILK,
+      what: l2String('duty'),
+      data: uint(1000000564701133626865910626n),
+    });
+    // vm.warp(block.timestamp + 1 days);
+    await starknet.devnet.increaseTime(86400);
+    await starknet.devnet.createBlock();
+    // jug.drip(ILK);
+    await invoke(admin, jug, 'drip', { ilk: ILK });
+    // assertEq(vat.dai(TEST_ADDRESS), 5000000000000000000001603800000000000000000000);
+    expect((await vat.call('dai', { u: TEST_ADDRESS })).res).to.deep.equal(
+      uint(5000000000000000000001603800000000000000000000n)
+    );
+    // jug.file(ILK, "duty", 1000001103127689513476993127);  // 10% / day
+    await invoke(admin, jug, 'file_duty', {
+      ilk: ILK,
+      what: l2String('duty'),
+      data: uint(1000000564701133626865910626n),
+    });
+    // vm.warp(block.timestamp + 1 days);
+    await starknet.devnet.increaseTime(86400);
+    await starknet.devnet.createBlock();
+    // jug.drip(ILK);
+    await invoke(admin, jug, 'drip', { ilk: ILK });
+    // assertEq(vat.dai(TEST_ADDRESS), 15500000000000000000006151700000000000000000000);
+    expect((await vat.call('dai', { u: TEST_ADDRESS })).res).to.deep.equal(
+      uint(15500000000000000000006151700000000000000000000n)
+    );
+    // assertEq(vat.debt(), 115500000000000000000006151700000000000000000000);
+    expect((await vat.call('debt')).debt).to.deep.equal(
+      uint(115500000000000000000006151700000000000000000000n)
+    );
+    // assertEq(vat.rate(ILK) / 10 ** 9, 1.155 ether);
+    let { ilk } = await vat.call('ilks', { i: ILK });
+    let rate = new SplitUint(ilk.rate).toUint() / 10n ** 9n;
+    expect(rate).to.equal(eth('1.155').toBigInt());
+  });
 
-  //     function testDrip0d() public {
-  //         jug.init(ILK);
-  //         jug.file(ILK, "duty", 1000000564701133626865910626);  // 5% / day
-  //         assertEq(vat.dai(TEST_ADDRESS), 0);
-  //         jug.drip(ILK);
-  //         assertEq(vat.dai(TEST_ADDRESS), 0);
-  //     }
-
-  //     function testDrip1d() public {
-  //         jug.init(ILK);
-  //         jug.file("vow", TEST_ADDRESS);
-
-  //         jug.file(ILK, "duty", 1000000564701133626865910626);  // 5% / day
-  //         vm.warp(block.timestamp + 1 days);
-  //         assertEq(vat.dai(TEST_ADDRESS), 0 ether);
-  //         jug.drip(ILK);
-  //         assertEq(vat.dai(TEST_ADDRESS), 5000000000000000000001603800000000000000000000);
-  //     }
-
-  //     function testDrip2d() public {
-  //         jug.init(ILK);
-  //         jug.file("vow", TEST_ADDRESS);
-  //         jug.file(ILK, "duty", 1000000564701133626865910626);  // 5% / day
-
-  //         vm.warp(block.timestamp + 2 days);
-  //         assertEq(vat.dai(TEST_ADDRESS), 0 ether);
-  //         jug.drip(ILK);
-  //         assertEq(vat.dai(TEST_ADDRESS), 10250000000000000000003367800000000000000000000);
-  //     }
-
-  //     function testDrip3d() public {
-  //         jug.init(ILK);
-  //         jug.file("vow", TEST_ADDRESS);
-
-  //         jug.file(ILK, "duty", 1000000564701133626865910626);  // 5% / day
-  //         vm.warp(block.timestamp + 3 days);
-  //         assertEq(vat.dai(TEST_ADDRESS), 0 ether);
-  //         jug.drip(ILK);
-  //         assertEq(vat.dai(TEST_ADDRESS), 15762500000000000000005304200000000000000000000);
-  //     }
-
-  //     function testDripNegative3d() public {
-  //         jug.init(ILK);
-  //         jug.file("vow", TEST_ADDRESS);
-
-  //         jug.file(ILK, "duty", 999999706969857929985428567);  // -2.5% / day
-  //         vm.warp(block.timestamp + 3 days);
-  //         assertEq(vat.dai(address(this)), 100 * RAD);
-  //         vat.move(address(this), TEST_ADDRESS, 100 * RAD);
-  //         assertEq(vat.dai(TEST_ADDRESS), 100 * RAD);
-  //         jug.drip(ILK);
-  //         assertEq(vat.dai(TEST_ADDRESS), 92685937500000000000002288500000000000000000000);
-  //     }
-
-  //     function testDripMulti() public {
-  //         jug.init(ILK);
-  //         jug.file("vow", TEST_ADDRESS);
-
-  //         jug.file(ILK, "duty", 1000000564701133626865910626);  // 5% / day
-  //         vm.warp(block.timestamp + 1 days);
-  //         jug.drip(ILK);
-  //         assertEq(vat.dai(TEST_ADDRESS), 5000000000000000000001603800000000000000000000);
-  //         jug.file(ILK, "duty", 1000001103127689513476993127);  // 10% / day
-  //         vm.warp(block.timestamp + 1 days);
-  //         jug.drip(ILK);
-  //         assertEq(vat.dai(TEST_ADDRESS), 15500000000000000000006151700000000000000000000);
-  //         assertEq(vat.debt(), 115500000000000000000006151700000000000000000000);
-  //         assertEq(vat.rate(ILK) / 10 ** 9, 1.155 ether);
-  //     }
-
-  //     function testDripBase() public {
-  //         jug.init(ILK);
-  //         jug.file("vow", TEST_ADDRESS);
-
-  //         jug.file(ILK, "duty", 1050000000000000000000000000);  // 5% / second
-  //         jug.file("base", uint256(50000000000000000000000000)); // 5% / second
-  //         vm.warp(block.timestamp + 1);
-  //         jug.drip(ILK);
-  //         assertEq(vat.dai(TEST_ADDRESS), 10 * RAD);
-  //     }
+  // function testDripBase() public {
+  it('test drip base', async () => {
+    // jug.init(ILK);
+    // jug.file("vow", TEST_ADDRESS);
+    // jug.file(ILK, "duty", 1050000000000000000000000000);  // 5% / second
+    await invoke(admin, jug, 'init', { ilk: ILK });
+    await invoke(admin, jug, 'file', {
+      what: l2String('vow'),
+      data: TEST_ADDRESS,
+    });
+    await invoke(admin, jug, 'file_duty', {
+      ilk: ILK,
+      what: l2String('duty'),
+      data: uint(1050000000000000000000000000n),
+    });
+    // jug.file("base", uint256(50000000000000000000000000)); // 5% / second
+    await invoke(admin, jug, 'file_base', {
+      what: l2String('base'),
+      data: uint(50000000000000000000000000n),
+    });
+    // vm.warp(block.timestamp + 1);
+    // jug.drip(ILK);
+    // assertEq(vat.dai(TEST_ADDRESS), 10 * RAD);
+  });
 
   //     function testRpow() public {
   //         Rpow r = new Rpow(address(vat));
