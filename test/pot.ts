@@ -33,6 +33,7 @@ describe('pot', async function () {
   let _bob: any;
   let pot: StarknetContract;
   let vat: StarknetContract;
+  let deployTimestamp: BigInt;
 
   before(async () => {
     // vm.expectEmit(true, true, true, true);
@@ -53,6 +54,9 @@ describe('pot', async function () {
       },
       hre
     );
+
+    deployTimestamp = BigInt((await starknet.getBlock()).timestamp);
+
     //     pot = new Pot(address(vat));
     pot = await simpleDeployL2(
       'pot',
@@ -62,6 +66,7 @@ describe('pot', async function () {
       },
       hre
     );
+
     //     vat.rely(address(pot));
     await invoke(admin, vat, 'rely', { usr: pot.address });
     //     pot.file("vow", TEST_ADDRESS);
@@ -142,7 +147,7 @@ describe('pot', async function () {
   }
 
   // function testConstructor() public {
-  it('test constructor', async () => {
+  it.only('test constructor', async () => {
     //     assertEq(address(pot.vat()), address(vat));
     expect(l2Address((await pot.call('vat')).res)).to.be.equal(vat.address);
     //     assertEq(pot.wards(address(this)), 1);
@@ -152,9 +157,7 @@ describe('pot', async function () {
     //     assertEq(pot.chi(), RAY);
     expect((await pot.call('chi')).res).to.deep.equal(uint(RAY));
     //     assertEq(pot.rho(), block.timestamp);
-    expect((await pot.call('rho')).res).to.be.equal(
-      Math.floor(Math.floor(new Date().getTime() / 1000))
-    );
+    expect((await pot.call('rho')).res).to.be.equal(deployTimestamp);
     //     assertEq(pot.live(), 1);
     expect((await pot.call('live')).res).to.be.equal(1n);
   });
@@ -235,7 +238,8 @@ describe('pot', async function () {
     //     assertEq(pot.chi(), RAY);
     expect((await pot.call('chi')).res).to.deep.equal(uint(RAY));
     //     assertEq(pot.rho(), block.timestamp);
-    expect((await pot.call('rho')).res).to.be.equal(Math.floor(new Date().getTime() / 1000));
+    let timestamp = (await starknet.getBlock()).timestamp;
+    expect((await pot.call('rho')).res).to.be.equal(BigInt(timestamp));
     //     assertEq(vat.sin(TEST_ADDRESS), 0);
     //     assertEq(vat.dai(address(pot)), 100 * RAD);
     expect((await vat.call('sin', { u: TEST_ADDRESS })).sin).to.deep.equal(uint(0n));
@@ -252,7 +256,8 @@ describe('pot', async function () {
     //     assertEq(pot.chi(), chi_);
     expect((await pot.call('chi')).res).to.deep.equal(chi_);
     //     assertEq(pot.rho(), block.timestamp);
-    expect((await pot.call('rho')).res).to.be.equal(Math.floor(new Date().getTime() / 1000));
+    timestamp = (await starknet.getBlock()).timestamp;
+    expect((await pot.call('rho')).res).to.be.equal(BigInt(timestamp));
     //     assertEq(vat.sin(TEST_ADDRESS), 5000000000000000000001603800000000000000000000);
     //     assertEq(vat.dai(address(pot)), 105000000000000000000001603800000000000000000000);
     expect((await vat.call('sin', { u: TEST_ADDRESS })).sin).to.deep.equal(
@@ -414,26 +419,30 @@ describe('pot', async function () {
     //     uint256 rho = pot.rho();
     let { res: rho } = await pot.call('rho');
     //     assertEq(rho, block.timestamp);
-    expect(rho).to.equal(Math.floor(new Date().getTime() / 1000));
+    let timestamp = (await starknet.getBlock()).timestamp;
+    expect(rho).to.equal(BigInt(timestamp));
     //     vm.warp(block.timestamp + 1 days);
     await starknet.devnet.increaseTime(86400);
     await starknet.devnet.createBlock();
     //     rho = pot.rho();
     rho = (await pot.call('rho')).res;
     //     assertEq(rho, block.timestamp - 1 days);
-    expect(rho).to.equal(Math.floor(new Date().getTime() / 1000) - 86400);
+    timestamp = (await starknet.getBlock()).timestamp;
+    expect(rho).to.equal(BigInt(timestamp) - 86400n);
     //     pot.drip();
     await drip();
     //     rho = pot.rho();
     rho = (await pot.call('rho')).res;
     //     assertEq(rho, block.timestamp);
-    expect(rho).to.equal(Math.floor(new Date().getTime() / 1000));
+    timestamp = (await starknet.getBlock()).timestamp;
+    expect(rho).to.equal(BigInt(timestamp));
     //     pot.drip();
     await drip();
     //     rho = pot.rho();
     rho = (await pot.call('rho')).res;
     //     assertEq(rho, block.timestamp);
-    expect(rho).to.equal(Math.floor(new Date().getTime() / 1000));
+    timestamp = (await starknet.getBlock()).timestamp;
+    expect(rho).to.equal(BigInt(timestamp));
   });
 
   // function testSaveMulti() public {
@@ -484,7 +493,8 @@ describe('pot', async function () {
     //     uint256 rho = pot.rho();
     let { res: rho } = await pot.call('rho');
     //     assertEq(rho, block.timestamp);
-    expect(Number(rho)).to.equal(Math.floor(new Date().getTime() / 1000));
+    let timestamp = (await starknet.getBlock()).timestamp;
+    expect(Number(rho)).to.equal(BigInt(timestamp));
     //     vm.warp(block.timestamp + 1 days);
     //     assertEq(rho, block.timestamp - 1 days);
     await starknet.devnet.increaseTime(86400);

@@ -131,6 +131,26 @@ func auth{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     return ();
 }
 
+@view
+func ilks{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(i: felt) -> (ilk: Ilk) {
+    let (res) = _ilks.read(i);
+    return (res,);
+}
+
+@view
+func wards{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user: felt) -> (
+    res: felt
+) {
+    let (res) = _wards.read(user);
+    return (res,);
+}
+
+@view
+func vat{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _vat.read();
+    return (res,);
+}
+
 // // --- Init ---
 //     constructor(address vat_) {
 //         wards[msg.sender] = 1;
