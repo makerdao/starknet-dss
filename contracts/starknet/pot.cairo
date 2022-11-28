@@ -369,6 +369,7 @@ func drip{
     // chi = tmp;
     _chi.write(__tmp);
     // rho = block.timestamp;
+    _rho.write(timestamp);
     // vat.suck(address(vow), address(this), Pie * chi_);
     let (vat) = _vat.read();
     let (vow) = _vow.read();

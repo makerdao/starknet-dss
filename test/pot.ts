@@ -144,7 +144,7 @@ describe('pot', async function () {
   // function testConstructor() public {
   it('test constructor', async () => {
     //     assertEq(address(pot.vat()), address(vat));
-    expect((await pot.call('vat')).res).to.be.equal(vat.address);
+    expect(l2Address((await pot.call('vat')).res)).to.be.equal(vat.address);
     //     assertEq(pot.wards(address(this)), 1);
     expect((await pot.call('wards', { user: _admin })).res).to.be.equal(1n);
     //     assertEq(pot.dsr(), RAY);
@@ -162,7 +162,7 @@ describe('pot', async function () {
   // function testAuth() public {
   it('test auth', async () => {
     //     checkAuth(address(pot), "Pot");
-    await checkAuth(pot, 'pot');
+    await checkAuth(pot, 'Pot');
   });
 
   // function testFile() public {
@@ -484,7 +484,7 @@ describe('pot', async function () {
     //     uint256 rho = pot.rho();
     let { res: rho } = await pot.call('rho');
     //     assertEq(rho, block.timestamp);
-    expect(rho).to.equal(Math.floor(new Date().getTime() / 1000));
+    expect(Number(rho)).to.equal(Math.floor(new Date().getTime() / 1000));
     //     vm.warp(block.timestamp + 1 days);
     //     assertEq(rho, block.timestamp - 1 days);
     await starknet.devnet.increaseTime(86400);
