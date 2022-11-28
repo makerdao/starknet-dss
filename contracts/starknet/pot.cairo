@@ -144,6 +144,52 @@ func live{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> 
     return (res,);
 }
 
+@view
+func vat{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _vat.read();
+    return (res,);
+}
+
+@view
+func wards{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(user: felt) -> (
+    res: felt
+) {
+    let (res) = _wards.read(user);
+    return (res,);
+}
+
+@view
+func dsr{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: Uint256) {
+    let (res) = _dsr.read();
+    return (res,);
+}
+
+@view
+func chi{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: Uint256) {
+    let (res) = _chi.read();
+    return (res,);
+}
+
+@view
+func rho{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _rho.read();
+    return (res,);
+}
+
+@view
+func Pie{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: Uint256) {
+    let (res) = _Pie.read();
+    return (res,);
+}
+
+@view
+func pie{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(u: felt) -> (
+    res: Uint256
+) {
+    let (res) = _pie.read(u);
+    return (res,);
+}
+
 // // --- Init ---
 //     constructor(address vat_) {
 //         wards[msg.sender] = 1;
@@ -157,7 +203,7 @@ func live{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> 
 
 @constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    vat: felt, vow: felt, ward: felt
+    vat: felt, ward: felt
 ) {
     _wards.write(ward, 1);
     _vat.write(vat);

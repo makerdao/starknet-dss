@@ -10,9 +10,9 @@ type numberish = string | number | bigint | BigNumber;
 
 const TEST_ADDRESS = '9379074284324409537785911406195';
 
-const WAD = 10n ** 18n;
-const RAY = 10n ** 27n;
-const RAD = 10n ** 45n;
+export const RAY = 10n ** 27n;
+export const WAD = 10n ** 18n;
+export const RAD = 10n ** 45n;
 
 export const MAX_UINT = { low: 2n ** 128n - 1n, high: 2n ** 128n - 1n };
 
