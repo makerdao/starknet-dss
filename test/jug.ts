@@ -18,7 +18,11 @@ import {
   WAD,
   SplitUintType,
   eth,
+  blockTimestamp,
+  DAY,
 } from './utils';
+
+// https://github.com/makerdao/xdomain-dss/blob/add-end/src/test/Jug.t.sol
 
 const TEST2_ADDRESS = '9379074284324409537785911406195';
 const TEST_ADDRESS = '9379074284321109537785911406195';
@@ -113,7 +117,6 @@ describe('jug', async function () {
     const { res: ward } = await base.call('wards', { user: _admin });
 
     // await GodMode.setWard(base.address, this, 1);
-
     expect((await base.call('wards', { user: TEST2_ADDRESS })).res).to.equal(0n);
 
     await invoke(admin, base, 'rely', { usr: TEST2_ADDRESS });
@@ -194,7 +197,7 @@ describe('jug', async function () {
     // vm.warp(block.timestamp + 1);
     await starknet.devnet.increaseTime(1);
     await starknet.devnet.createBlock();
-    let timestamp = (await starknet.getBlock()).timestamp;
+    let timestamp = await blockTimestamp();
 
     try {
       // jug.file(ILK, "duty", 1);
@@ -246,7 +249,7 @@ describe('jug', async function () {
     await invoke(admin, jug, 'init', { ilk: ILK });
     // assertEq(rho(ILK), block.timestamp);
     // assertEq(duty(ILK), RAY);
-    let timestamp = (await starknet.getBlock()).timestamp;
+    let timestamp = await blockTimestamp();
     expect(await rho(ILK)).to.be.equal(BigInt(timestamp));
     expect(await duty(ILK)).to.deep.equal(uint(RAY));
   });
@@ -264,26 +267,26 @@ describe('jug', async function () {
     // jug.drip(ILK);
     await invoke(admin, jug, 'drip', { ilk: ILK });
     // assertEq(rho(ILK), block.timestamp);
-    let timestamp = (await starknet.getBlock()).timestamp;
+    let timestamp = await blockTimestamp();
     expect(await rho(ILK)).to.be.equal(BigInt(timestamp));
     // vm.warp(block.timestamp + 1);
     await starknet.devnet.increaseTime(1);
     await starknet.devnet.createBlock();
     // assertEq(rho(ILK), block.timestamp - 1);
-    timestamp = (await starknet.getBlock()).timestamp;
+    timestamp = await blockTimestamp();
     expect(await rho(ILK)).to.be.equal(BigInt(timestamp - 1));
     // jug.drip(ILK);
     await invoke(admin, jug, 'drip', { ilk: ILK });
     // assertEq(rho(ILK), block.timestamp);
-    timestamp = (await starknet.getBlock()).timestamp;
+    timestamp = await blockTimestamp();
     expect(await rho(ILK)).to.be.equal(BigInt(timestamp));
     // vm.warp(block.timestamp + 1 days);
-    await starknet.devnet.increaseTime(86400);
+    await starknet.devnet.increaseTime(DAY);
     await starknet.devnet.createBlock();
     // jug.drip(ILK);
     await invoke(admin, jug, 'drip', { ilk: ILK });
     // assertEq(rho(ILK), block.timestamp);
-    timestamp = (await starknet.getBlock({ blockNumber: 'latest' })).timestamp;
+    timestamp = await blockTimestamp();
     expect(await rho(ILK)).to.be.equal(BigInt(timestamp));
   });
 
@@ -341,7 +344,7 @@ describe('jug', async function () {
       data: uint(1000000564701133626865910626n),
     });
     // vm.warp(block.timestamp + 1 days);
-    await starknet.devnet.increaseTime(86400);
+    await starknet.devnet.increaseTime(DAY);
     await starknet.devnet.createBlock();
     // assertEq(vat.dai(TEST_ADDRESS), 0 ether);
     // jug.drip(ILK);
@@ -369,7 +372,7 @@ describe('jug', async function () {
       data: uint(1000000564701133626865910626n),
     });
     // vm.warp(block.timestamp + 2 days);
-    await starknet.devnet.increaseTime(86400 * 2);
+    await starknet.devnet.increaseTime(DAY * 2);
     await starknet.devnet.createBlock();
     // assertEq(vat.dai(TEST_ADDRESS), 0 ether);
     // jug.drip(ILK);
@@ -397,7 +400,7 @@ describe('jug', async function () {
       data: uint(1000000564701133626865910626n),
     });
     // vm.warp(block.timestamp + 3 days);
-    await starknet.devnet.increaseTime(86400 * 3);
+    await starknet.devnet.increaseTime(DAY * 3);
     await starknet.devnet.createBlock();
     // assertEq(vat.dai(TEST_ADDRESS), 0 ether);
     // jug.drip(ILK);
@@ -425,7 +428,7 @@ describe('jug', async function () {
       data: uint(999999706969857929985428567n),
     });
     // vm.warp(block.timestamp + 3 days);
-    await starknet.devnet.increaseTime(86400 * 3);
+    await starknet.devnet.increaseTime(DAY * 3);
     await starknet.devnet.createBlock();
     // assertEq(vat.dai(address(this)), 100 * RAD);
     expect((await vat.call('dai', { u: _admin })).res).to.deep.equal(uint(100n * RAD));
@@ -461,7 +464,7 @@ describe('jug', async function () {
       data: uint(1000000564701133626865910626n),
     });
     // vm.warp(block.timestamp + 1 days);
-    await starknet.devnet.increaseTime(86400);
+    await starknet.devnet.increaseTime(DAY);
     await starknet.devnet.createBlock();
     // jug.drip(ILK);
     await invoke(admin, jug, 'drip', { ilk: ILK });
@@ -476,7 +479,7 @@ describe('jug', async function () {
       data: uint(1000000564701133626865910626n),
     });
     // vm.warp(block.timestamp + 1 days);
-    await starknet.devnet.increaseTime(86400);
+    await starknet.devnet.increaseTime(DAY);
     await starknet.devnet.createBlock();
     // jug.drip(ILK);
     await invoke(admin, jug, 'drip', { ilk: ILK });

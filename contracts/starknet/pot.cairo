@@ -9,6 +9,8 @@ from starkware.starknet.common.syscalls import (
 )
 from contracts.starknet.safe_math import add, mul, div, sub, _felt_to_uint
 
+// https://github.com/makerdao/xdomain-dss/blob/add-end/src/Pot.sol
+
 // /*
 //    "Savings Dai" is obtained when Dai is deposited into
 //    this contract. Each "Savings Dai" accrues Dai interest
@@ -253,7 +255,7 @@ func _rpow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 func rely{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: felt) {
     auth();
 
-    // require(live == 1, "Cure/not-live");
+    // require(live == 1, "Pot/not-live");
     require_live();
 
     // wards[usr] = 1;
@@ -270,7 +272,7 @@ func rely{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: 
 func deny{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(usr: felt) {
     auth();
 
-    // require(live == 1, "Cure/not-live");
+    // require(live == 1, "Pot/not-live");
     require_live();
 
     // wards[usr] = 0;
@@ -363,11 +365,11 @@ func drip{
     let (_pow) = _rpow(dsr, n, Uint256(RAY, 0));
     let (chi) = _chi.read();
     let (_tmp) = mul(_pow, chi);
-    let (__tmp) = div(_tmp, Uint256(RAY, 0));
+    let (_tmp) = div(_tmp, Uint256(RAY, 0));
     // uint256 chi_ = tmp - chi;
-    let (chi_) = sub(__tmp, chi);
+    let (chi_) = sub(_tmp, chi);
     // chi = tmp;
-    _chi.write(__tmp);
+    _chi.write(_tmp);
     // rho = block.timestamp;
     _rho.write(timestamp);
     // vat.suck(address(vow), address(this), Pie * chi_);
@@ -379,7 +381,7 @@ func drip{
     VatLike.suck(vat, vow, this, value);
     // emit Drip();
     Drip.emit();
-    return (tmp=__tmp);
+    return (tmp=_tmp);
 }
 
 // // --- Savings Dai Management ---
@@ -388,24 +390,24 @@ func drip{
 func join{
     syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*
 }(wad: Uint256) {
-    let (timestamp) = get_block_timestamp();
-    let (rho) = _rho.read();
-    let (timestamp) = get_block_timestamp();
+    alloc_locals;
     // require(block.timestamp == rho, "Pot/rho-not-updated");
     with_attr error_message("Pot/rho-not-updated") {
+        let (rho) = _rho.read();
+        let (timestamp) = get_block_timestamp();
         assert timestamp = rho;
     }
 
     // pie[msg.sender] = pie[msg.sender] + wad;
     let (caller) = get_caller_address();
     let (pie) = _pie.read(caller);
-    let (new_pie) = add(pie, wad);
-    _pie.write(caller, new_pie);
+    let (pie) = add(pie, wad);
+    _pie.write(caller, pie);
 
     // Pie             = Pie             + wad;
     let (Pie) = _Pie.read();
-    let (new_Pie) = add(Pie, wad);
-    _Pie.write(new_Pie);
+    let (Pie) = sub(Pie, wad);
+    _Pie.write(Pie);
 
     // vat.move(msg.sender, address(this), chi * wad);
     let (chi) = _chi.read();

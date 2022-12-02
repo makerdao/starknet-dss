@@ -2,7 +2,7 @@
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.cairo.common.uint256 import Uint256
-from contracts.starknet.safe_math import mul, div_rem
+from contracts.starknet.safe_math import mul, div
 from starkware.starknet.common.syscalls import get_caller_address
 
 // interface VatLike {
@@ -249,9 +249,9 @@ func poke{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(ilk: 
     let (par) = _par.read();
 
     let (inter) = mul(val, Uint256(10 ** 9 * RAY, 0));
-    let (inter2, _) = div_rem(inter, par);
+    let (inter2) = div(inter, par);
     let (inter3) = mul(inter2, Uint256(RAY, 0));
-    let (spot, _) = div_rem(inter3, _ilk.mat);
+    let (spot) = div(inter3, _ilk.mat);
 
     let (vat) = _vat.read();
     VatLike.file_ilk(vat, ilk, 'spot', spot);

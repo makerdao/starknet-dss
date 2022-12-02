@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import { BigNumber } from 'ethers';
 import { parseEther } from 'ethers/lib/utils';
+import { starknet } from 'hardhat';
 import { Account, StarknetContract } from 'hardhat/types';
 import isWsl from 'is-wsl';
 import { validateAndParseAddress } from 'starknet';
@@ -10,11 +11,13 @@ type numberish = string | number | bigint | BigNumber;
 
 const TEST_ADDRESS = '9379074284324409537785911406195';
 
-export const RAY = 10n ** 27n;
 export const WAD = 10n ** 18n;
+export const RAY = 10n ** 27n;
 export const RAD = 10n ** 45n;
 
 export const MAX_UINT = { low: 2n ** 128n - 1n, high: 2n ** 128n - 1n };
+
+export const DAY = 86400;
 
 export function l2String(str: string): string {
   return `0x${Buffer.from(str, 'utf8').toString('hex')}`;
@@ -200,3 +203,5 @@ export const neg = (amount: bigint): bigint => {
   const value = ~((amount - 1n) | ~((1n << 256n) - 1n));
   return value;
 };
+
+export const blockTimestamp = async () => (await starknet.getBlock()).timestamp;

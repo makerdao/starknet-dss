@@ -1,6 +1,6 @@
 // // SPDX-License-Identifier: AGPL-3.0-or-later
 
-// /// Jug.sol -- Dai Lending Rate
+// /// Jug.cairo -- Dai Lending Rate
 
 // // Copyright (C) 2018 Rain <rainbreak@riseup.net>
 // // Copyright (C) 2022 Dai Foundation
@@ -31,6 +31,8 @@ from starkware.starknet.common.syscalls import (
 )
 
 from starkware.cairo.common.uint256 import Uint256, uint256_le, uint256_neg, uint256_eq
+
+// https://github.com/makerdao/xdomain-dss/blob/add-end/src/Jug.sol
 
 // interface VatLike {
 //     function ilks(bytes32) external returns (
@@ -292,12 +294,12 @@ func file_duty{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     let (i) = _ilks.read(ilk);
 
     // require(block.timestamp == ilks[ilk].rho, "Jug/rho-not-updated");
-    with_attr error_message("End/file-unrecognized-param") {
+    with_attr error_message("Jug/file-unrecognized-param") {
         assert timestamp = i.rho;
     }
 
     // else revert("Jug/file-unrecognized-param");
-    with_attr error_message("End/file-unrecognized-param") {
+    with_attr error_message("Jug/file-unrecognized-param") {
         assert what = 'duty';
     }
 
@@ -319,7 +321,7 @@ func file_base{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     let (timestamp) = get_block_timestamp();
 
     // else revert("Jug/file-unrecognized-param");
-    with_attr error_message("End/file-unrecognized-param") {
+    with_attr error_message("Jug/file-unrecognized-param") {
         assert what = 'base';
     }
 
@@ -337,7 +339,7 @@ func file{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(what:
     auth();
 
     // else revert("Jug/file-unrecognized-param");
-    with_attr error_message("End/file-unrecognized-param") {
+    with_attr error_message("Jug/file-unrecognized-param") {
         assert what = 'vow';
     }
 
