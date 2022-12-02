@@ -8,6 +8,7 @@ from starkware.starknet.common.syscalls import (
     get_contract_address,
 )
 from contracts.starknet.safe_math import add, mul, div, sub, _felt_to_uint
+from contracts.starknet.rpow import _rpow
 
 // https://github.com/makerdao/xdomain-dss/blob/add-end/src/Pot.sol
 
@@ -242,13 +243,6 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 //             }
 //         }
 //     }
-@external
-func _rpow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    x: Uint256, n: Uint256, base: Uint256
-) -> (z: Uint256) {
-    return (z=Uint256(0, 0));
-}
-
 // // --- Administration ---
 // function rely(address usr) external auth {
 @external
