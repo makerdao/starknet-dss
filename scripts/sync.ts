@@ -70,9 +70,10 @@ async function checkForOutdatedCommits() {
           const file = filePath.substring(filePath.indexOf('/'));
           const isLatest = await isLatestCommit(repoUrl, commitHash, branch, file);
           if (!isLatest) {
-            throw new Error(
+            console.error(
               'ALERT: The commit referenced in the comment is not the latest commit on the repository!'
             );
+            process.exit(1);
           }
           currentComment = ''; // Reset the current comment for the next iteration
         }
