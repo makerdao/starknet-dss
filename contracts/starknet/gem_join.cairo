@@ -13,6 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// https://github.com/makerdao/xdomain-dss/blob/add-end/src/GemJoin.sol
+// #commit#1f34bf2ae4914356b926a24462aa9a643b4a10d6
+
 %lang starknet
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin

@@ -22,7 +22,8 @@
     "check-format:ts": "eslint . --ext .ts",
     "format:json": "json-format ./deployments/*.json",
     "format": "yarn format:l1 && yarn format:l2 && yarn format:ts && yarn format:json",
-    "check-format": "yarn check-format:l1 && yarn check-format:l2 && yarn check-format:ts"
+    "check-format": "yarn check-format:l1 && yarn check-format:l2 && yarn check-format:ts",
+    "check-sync": "ts-node ./scripts/sync.ts"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.7.2",

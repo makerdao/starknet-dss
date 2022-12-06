@@ -15,6 +15,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// https://github.com/makerdao/xdomain-dss/blob/add-end/src/Dai.sol
+// #commit#b5f56c56f10a3931e716fb8b90e6cf75f4d91301
+
 %lang starknet
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
