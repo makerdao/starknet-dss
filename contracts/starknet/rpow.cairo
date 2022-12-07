@@ -28,33 +28,33 @@ from contracts.starknet.safe_math import Int256, add, _felt_to_uint, div_rem, mu
 //     }
 func _rpow{
     syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*
-}(x: Uint256, n: Uint256, base: Uint256) -> (z: Uint256) {
+}(x: Uint256, n: Uint256, b: Uint256) -> (z: Uint256) {
     alloc_locals;
     let (is_x_null) = eq_0(x);
     let (is_n_null) = eq_0(n);
 
     if (is_x_null == 1) {
         if (is_n_null == 1) {
-            return (z=base);
+            return (z=b);
         } else {
             return (z=Uint256(0, 0));
         }
     } else {
         let (_, mod_2_n) = div_rem(n, Uint256(2, 0));
         let (is_mod_null) = eq_0(mod_2_n);
-        let (_z) = get_z(base, x, is_mod_null);
-        let (half, _) = div_rem(base, Uint256(2, 0));
+        let (_z) = get_z(b, x, is_mod_null);
+        let (half, _) = div_rem(b, Uint256(2, 0));
         let (init_n, _) = div_rem(n, Uint256(2, 0));
-        let (end_z) = _loop(x, init_n, half, _z, base);
+        let (end_z) = _loop(x, init_n, half, _z, b);
         return (z=end_z,);
     }
 }
 
 func get_z{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    base: Uint256, x: Uint256, condition
+    b: Uint256, x: Uint256, condition
 ) -> (z: Uint256) {
     if (condition == 1) {
-        return (z=base);
+        return (z=b);
     } else {
         return (z=x);
     }

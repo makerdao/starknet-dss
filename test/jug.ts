@@ -20,7 +20,11 @@ import {
   eth,
   blockTimestamp,
   DAY,
+  IEventDataEntry,
+  assertEvent,
 } from './utils';
+import { ethers } from 'ethers';
+import { toFelt } from 'starknet/utils/number';
 
 // https://github.com/makerdao/xdomain-dss/blob/add-end/src/test/Jug.t.sol
 
@@ -43,9 +47,6 @@ describe('jug', async function () {
   let vat: StarknetContract;
 
   before(async () => {
-    // vm.expectEmit(true, true, true, true);
-    // emit Rely(address(this));
-
     admin = await starknet.deployAccount('OpenZeppelin');
     _admin = admin.address;
     ali = await starknet.deployAccount('OpenZeppelin');
@@ -190,8 +191,20 @@ describe('jug', async function () {
     // vm.expectEmit(true, true, true, true);
     // emit File(ILK, "duty", 1);
     // jug.file(ILK, "duty", 1);
-    await invoke(admin, jug, 'file_duty', { ilk: ILK, what: l2String('duty'), data: uint(1n) });
-    //         assertEq(duty(ILK), 1);
+    let txHash = await invoke(admin, jug, 'file_duty', {
+      ilk: ILK,
+      what: l2String('duty'),
+      data: uint(1n),
+    });
+    const fileReceipt = await starknet.getTransactionReceipt(txHash);
+    const eventDataFile: IEventDataEntry[] = [
+      { data: toFelt(ILK) },
+      { data: l2String('duty') },
+      { data: uint(1n) },
+    ];
+    assertEvent(fileReceipt, 'File_duty', eventDataFile);
+
+    // assertEq(duty(ILK), 1);
     expect(await duty(ILK)).to.deep.equal(uint(1n));
     // Cannot set duty if rho not up to date
     // vm.warp(block.timestamp + 1);
@@ -246,7 +259,10 @@ describe('jug', async function () {
     // vm.expectEmit(true, true, true, true);
     // emit Init(ILK);
     // jug.init(ILK);
-    await invoke(admin, jug, 'init', { ilk: ILK });
+    let txHash = await invoke(admin, jug, 'init', { ilk: ILK });
+    const initReceipt = await starknet.getTransactionReceipt(txHash);
+    const eventDataInit: IEventDataEntry[] = [{ data: toFelt(ILK) }];
+    assertEvent(initReceipt, 'Init', eventDataInit);
     // assertEq(rho(ILK), block.timestamp);
     // assertEq(duty(ILK), RAY);
     let timestamp = await blockTimestamp();
@@ -518,8 +534,11 @@ describe('jug', async function () {
       data: uint(50000000000000000000000000n),
     });
     // vm.warp(block.timestamp + 1);
+    await starknet.devnet.increaseTime(1);
     // jug.drip(ILK);
+    await invoke(admin, jug, 'drip', { ilk: ILK });
     // assertEq(vat.dai(TEST_ADDRESS), 10 * RAD);
+    expect((await vat.call('dai', { u: TEST_ADDRESS })).res).to.deep.equal(uint(10n * RAD));
   });
 
   //     function testRpow() public {

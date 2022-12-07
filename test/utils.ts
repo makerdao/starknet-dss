@@ -1,10 +1,11 @@
 import { expect } from 'chai';
-import { BigNumber } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 import { parseEther } from 'ethers/lib/utils';
 import { starknet } from 'hardhat';
-import { Account, StarknetContract } from 'hardhat/types';
+import { Account, StarknetContract, TransactionReceipt } from 'hardhat/types';
 import isWsl from 'is-wsl';
 import { validateAndParseAddress } from 'starknet';
+import { getSelectorFromName } from 'starknet/dist/utils/hash';
 
 export type SplitUintType<T> = { low: T; high: T };
 type numberish = string | number | bigint | BigNumber;
@@ -205,3 +206,33 @@ export const neg = (amount: bigint): bigint => {
 };
 
 export const blockTimestamp = async () => (await starknet.getBlock()).timestamp;
+
+export interface IEventDataEntry {
+  data: any;
+  isAddress?: boolean;
+}
+
+// Asserts that the given event exists in the given receipt, with the correct event data
+export const assertEvent = (
+  receipt: TransactionReceipt,
+  eventName: string,
+  eventData: IEventDataEntry[]
+) => {
+  const eventKey = getSelectorFromName(eventName);
+  const foundEvent = receipt.events.filter((e) => e.keys.some((a) => a == eventKey));
+  if (!foundEvent || foundEvent.length != 1 || foundEvent[0].keys.length != 1) {
+    expect.fail('No event ' + eventName + ' found');
+  }
+
+  expect(foundEvent[0].data.length).to.equal(eventData.length);
+  for (let i = 0; i < eventData.length; i++) {
+    if (eventData[i].isAddress) {
+      // Addresses in events are not padded to 32 bytes by default, for some reason
+      expect(ethers.utils.hexZeroPad(eventData[i].data, 32)).to.equal(
+        ethers.utils.hexZeroPad(foundEvent[0].data[i], 32)
+      );
+    } else {
+      expect(eventData[i].data).to.equal(foundEvent[0].data[i]);
+    }
+  }
+};
