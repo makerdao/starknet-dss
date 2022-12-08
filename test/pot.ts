@@ -18,6 +18,8 @@ import {
   WAD,
   DAY,
   blockTimestamp,
+  IEventDataEntry,
+  assertEvent,
 } from './utils';
 
 // https://github.com/makerdao/xdomain-dss/blob/add-end/src/test/Pot.t.sol
@@ -98,6 +100,11 @@ describe('pot', async function () {
     //   operator_fee: l2Eth(operatorFee).res,
     // });
     const txHash = await invoke(admin, pot, 'drip');
+
+    // Check event
+    const dripReceipt = await starknet.getTransactionReceipt(txHash);
+    assertEvent(dripReceipt, 'Drip', []);
+
     const hre: any = (starknet.devnet as any).hre;
     const options = {
       feederGatewayUrl: adaptUrl(hre.config.starknet.networkUrl),
@@ -221,7 +228,9 @@ describe('pot', async function () {
     //     vm.expectEmit(true, true, true, true);
     //     emit Cage();
     //     pot.cage();
-    await invoke(admin, pot, 'cage');
+    let txHash = await invoke(admin, pot, 'cage');
+    const cageReceipt = await starknet.getTransactionReceipt(txHash);
+    assertEvent(cageReceipt, 'Cage', []);
 
     //     assertEq(pot.live(), 0);
     expect((await pot.call('live')).res).to.be.equal(0n);
@@ -283,7 +292,13 @@ describe('pot', async function () {
     //     vm.expectEmit(true, true, true, true);
     //     emit Join(address(this), 100 * WAD);
     //     pot.join(100 * WAD);
-    await invoke(admin, pot, 'join', { wad: wad(100n) });
+    let txHash = await invoke(admin, pot, 'join', { wad: wad(100n) });
+    const joinReceipt = await starknet.getTransactionReceipt(txHash);
+    const eventDataJoin: IEventDataEntry[] = [
+      { data: _admin, isAddress: true },
+      { data: uint(100n * WAD) },
+    ];
+    assertEvent(joinReceipt, 'Join', eventDataJoin);
     //     assertEq(vat.dai(address(this)), 0);
     //     assertEq(pot.pie(address(this)), 100 * WAD);
     //     assertEq(pot.Pie(), 100 * WAD);
@@ -322,8 +337,13 @@ describe('pot', async function () {
     //     vm.expectEmit(true, true, true, true);
     //     emit Exit(address(this), 100 * WAD);
     //     pot.exit(100 * WAD);
-    await invoke(admin, pot, 'exit', { wad: wad(100n) });
-
+    let txHash = await invoke(admin, pot, 'exit', { wad: wad(100n) });
+    const exitReceipt = await starknet.getTransactionReceipt(txHash);
+    const eventDataExit: IEventDataEntry[] = [
+      { data: _admin, isAddress: true },
+      { data: uint(100n * WAD) },
+    ];
+    assertEvent(exitReceipt, 'Exit', eventDataExit);
     //     assertEq(vat.dai(address(this)), 100 * RAD);
     //     assertEq(pot.pie(address(this)), 0);
     //     assertEq(pot.Pie(), 0);
