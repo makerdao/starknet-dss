@@ -19,6 +19,9 @@ import {
 } from './utils';
 import fs from 'fs';
 
+// https://github.com/makerdao/xdomain-dss/blob/add-end/src/test/End.t.sol
+// #commit#3557124529762fe76b0a0c839fdb378ee0e4c90e
+
 const ILK = l2String('SOME-ILK-A');
 
 const MAX = 2n ** 256n - 1n;

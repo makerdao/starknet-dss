@@ -5,6 +5,7 @@ import * as path from 'path';
 const GITHUB_URL_PREFIX = '// https://github.com/';
 const GITHUB_COMMIT_HASH_PREFIX = '// #commit#';
 const PROJECT_ROOT = './contracts/starknet';
+const TEST_ROOT = './test';
 
 // Helper function to extract the repository URL and commit hash from the comment
 function parseComment(comment: string): { repoUrl: string; commitHash: string; filePath: string } {
@@ -32,7 +33,6 @@ async function isLatestCommit(
   params.append('per_page', '1');
 
   const apiUrl = `https://api.github.com/repos/${repoUrl}/commits?` + params;
-  // console.log(apiUrl);
   const apiToken = process.env.GITHUB_API_TOKEN;
   const response = await fetch(apiUrl, {
     headers: {
@@ -48,15 +48,15 @@ async function isLatestCommit(
   return latestCommitHash === commitHash;
 }
 
-// Function to check all files with the .cairo extension in the project for comments like the example
-async function checkForOutdatedCommits() {
-  // Traverse all files with the .cairo extension in the project
-  const cairoFiles = await fs.promises.readdir(PROJECT_ROOT, { withFileTypes: true });
-  for (const file of cairoFiles) {
-    if (file.isFile() && file.name.endsWith('.cairo')) {
+// Function to check all files with the extension in the project for comments like the example
+async function checkForOutdatedCommits(extension: string, root: string) {
+  // Traverse all files with the extension in the project
+  const files = await fs.promises.readdir(root, { withFileTypes: true });
+  for (const file of files) {
+    if (file.isFile() && file.name.endsWith(extension)) {
       // console.info(`Checking file ${file.name}`);
       // Check the file for comments like the example
-      const filePath = path.join(PROJECT_ROOT, file.name);
+      const filePath = path.join(root, file.name);
       const fileContents = await fs.promises.readFile(filePath, 'utf8');
       const lines = fileContents.split('\n');
       let currentComment = '';
@@ -83,4 +83,5 @@ async function checkForOutdatedCommits() {
 }
 
 // Run the check
-void checkForOutdatedCommits();
+void checkForOutdatedCommits('.cairo', PROJECT_ROOT);
+void checkForOutdatedCommits('.ts', TEST_ROOT);
