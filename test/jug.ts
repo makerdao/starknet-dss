@@ -22,8 +22,9 @@ import {
   DAY,
   IEventDataEntry,
   assertEvent,
+  checkFileUint,
+  checkFileAddress,
 } from './utils';
-import { ethers } from 'ethers';
 import { toFelt } from 'starknet/utils/number';
 
 // https://github.com/makerdao/xdomain-dss/blob/add-end/src/test/Jug.t.sol
@@ -39,10 +40,10 @@ describe('jug', async function () {
   this.timeout(900_000);
   let admin: Account;
   let _admin: string;
-  let ali: any;
+  let ali: Account;
   let _ali: string;
-  let bob: any;
-  let _bob: any;
+  let bob: Account;
+  let _bob: string;
   let jug: StarknetContract;
   let vat: StarknetContract;
 
@@ -182,7 +183,10 @@ describe('jug', async function () {
   //         checkFileUint(address(jug), "Jug", ["base"]);
   //         checkFileAddress(address(jug), "Jug", ["vow"]);
   //     }
-  it('test file', async () => {});
+  it.only('test file', async () => {
+    await checkFileUint(jug, 'Jug', 'file_base', ['base'], admin, ali);
+    await checkFileAddress(jug, 'Jug', 'file', ['vow'], admin, ali);
+  });
 
   //     function testFileIlk() public {
   it('test file ilk', async () => {

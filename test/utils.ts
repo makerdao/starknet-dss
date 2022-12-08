@@ -236,3 +236,147 @@ export const assertEvent = (
     }
   }
 };
+
+export async function checkFileUint(
+  base: any,
+  contractName: string,
+  fileFunctionName: string,
+  values: string[],
+  admin: Account,
+  notAdmin: Account
+) {
+  // const { res: ward } = await base.call('wards', { user: admin.address });
+
+  // Ensure we have admin access
+  // await GodMode.setWard(base, admin.address, 1);
+
+  // First check an invalid value
+  try {
+    await invoke(admin, base, fileFunctionName, {
+      what: l2String('an invalid value'),
+      data: {
+        low: 1,
+        high: 0,
+      },
+    });
+  } catch (err: any) {
+    expect(err.message).to.contain(`${contractName}/file-unrecognized-param`);
+  }
+
+  // Next check each value is valid and updates the target storage slot
+  for (let i = 0; i < values.length; i++) {
+    // Read original value
+    const { res: _origData } = await base.call(values[i]);
+    const origData = new SplitUint(_origData);
+    const newData = origData.add(1);
+
+    // Update value
+    // vm.expectEmit(true, false, false, true);
+    // emit File(valueB32, newData);
+    await invoke(admin, base, fileFunctionName, {
+      what: l2String(values[i]),
+      data: {
+        low: newData.toDec()[0],
+        high: newData.toDec()[1],
+      },
+    });
+
+    // Confirm it was updated successfully
+    const { res: _data } = await base.call(values[i]);
+    const data = new SplitUint(_data);
+    expect(data).to.deep.equal(newData);
+
+    // Reset value to original
+    // vm.expectEmit(true, false, false, true);
+    // emit File(valueB32, origData);
+    await invoke(admin, base, fileFunctionName, {
+      what: l2String(values[i]),
+      data: {
+        low: origData.toDec()[0],
+        high: origData.toDec()[0],
+      },
+    });
+  }
+
+  // Finally check that file is authed
+  // await invoke(admin, base, 'deny', { usr: admin.address });
+  try {
+    await invoke(notAdmin, base, fileFunctionName, {
+      what: l2String('some value'),
+      data: {
+        low: 1,
+        high: 0,
+      },
+    });
+  } catch (err: any) {
+    expect(err.message).to.contain(`${contractName}/not-authorized`);
+  }
+
+  // Reset admin access to what it was
+  // GodMode.setWard(base.address, this, ward);
+}
+
+export async function checkFileAddress(
+  base: any,
+  contractName: string,
+  fileFunctionName: string,
+  values: string[],
+  admin: Account,
+  notAdmin: Account
+) {
+  // const { res: ward } = await base.call('wards', { user: admin.address });
+
+  // Ensure we have admin access
+  // await GodMode.setWard(base, admin.address, 1);
+
+  // First check an invalid value
+  try {
+    await invoke(admin, base, fileFunctionName, {
+      what: l2String('an invalid value'),
+      data: 1n,
+    });
+  } catch (err: any) {
+    expect(err.message).to.contain(`${contractName}/file-unrecognized-param`);
+  }
+
+  // Next check each value is valid and updates the target storage slot
+  for (let i = 0; i < values.length; i++) {
+    // Read original value
+    const { res: _origData } = await base.call(values[i]);
+
+    // Update value
+    const newData = 123456789n;
+    // vm.expectEmit(true, false, false, true);
+    // emit File(valueB32, newData);
+    await invoke(admin, base, fileFunctionName, {
+      what: l2String(values[i]),
+      data: newData,
+    });
+
+    // Confirm it was updated successfully
+    const { res: _data } = await base.call(values[i]);
+    expect(_data).to.equal(newData);
+
+    // Reset value to original
+    // vm.expectEmit(true, false, false, true);
+    // emit File(valueB32, origData);
+    await invoke(admin, base, fileFunctionName, {
+      what: l2String(values[i]),
+      data: _origData,
+    });
+  }
+
+  // Finally check that file is authed
+  // await invoke(admin, base, 'deny', { usr: admin.address });
+  try {
+    await invoke(notAdmin, base, fileFunctionName, {
+      what: l2String('some value'),
+      data: 1n,
+    });
+  } catch (err: any) {
+    expect(err.message).to.contain(`${contractName}/not-authorized`);
+  }
+
+  // Reset admin access to what it was
+  // GodMode.setWard(base.address, this, ward);
+}

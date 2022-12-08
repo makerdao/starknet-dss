@@ -154,6 +154,18 @@ func vat{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     return (res,);
 }
 
+@view
+func vow{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _vow.read();
+    return (res,);
+}
+
+@view
+func base{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: Uint256) {
+    let (res) = _base.read();
+    return (res,);
+}
+
 // // --- Init ---
 //     constructor(address vat_) {
 //         wards[msg.sender] = 1;
