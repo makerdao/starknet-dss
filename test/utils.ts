@@ -1,20 +1,24 @@
 import { expect } from 'chai';
-import { BigNumber } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 import { parseEther } from 'ethers/lib/utils';
-import { Account, StarknetContract } from 'hardhat/types';
+import { starknet } from 'hardhat';
+import { Account, StarknetContract, TransactionReceipt } from 'hardhat/types';
 import isWsl from 'is-wsl';
 import { validateAndParseAddress } from 'starknet';
+import { getSelectorFromName } from 'starknet/dist/utils/hash';
 
 export type SplitUintType<T> = { low: T; high: T };
 type numberish = string | number | bigint | BigNumber;
 
 const TEST_ADDRESS = '9379074284324409537785911406195';
 
-const WAD = 10n ** 18n;
-const RAY = 10n ** 27n;
-const RAD = 10n ** 45n;
+export const WAD = 10n ** 18n;
+export const RAY = 10n ** 27n;
+export const RAD = 10n ** 45n;
 
 export const MAX_UINT = { low: 2n ** 128n - 1n, high: 2n ** 128n - 1n };
+
+export const DAY = 86400;
 
 export function l2String(str: string): string {
   return `0x${Buffer.from(str, 'utf8').toString('hex')}`;
@@ -200,3 +204,179 @@ export const neg = (amount: bigint): bigint => {
   const value = ~((amount - 1n) | ~((1n << 256n) - 1n));
   return value;
 };
+
+export const blockTimestamp = async () => (await starknet.getBlock()).timestamp;
+
+export interface IEventDataEntry {
+  data: any;
+  isAddress?: boolean;
+}
+
+// Asserts that the given event exists in the given receipt, with the correct event data
+export const assertEvent = (
+  receipt: TransactionReceipt,
+  eventName: string,
+  eventData: IEventDataEntry[]
+) => {
+  const eventKey = getSelectorFromName(eventName);
+  const foundEvent = receipt.events.filter((e) => e.keys.some((a) => a == eventKey));
+  if (!foundEvent || foundEvent.length != 1 || foundEvent[0].keys.length != 1) {
+    expect.fail('No event ' + eventName + ' found');
+  }
+
+  expect(foundEvent[0].data.length).to.equal(eventData.length);
+  for (let i = 0; i < eventData.length; i++) {
+    if (eventData[i].isAddress) {
+      // Addresses in events are not padded to 32 bytes by default, for some reason
+      expect(ethers.utils.hexZeroPad(eventData[i].data, 32)).to.equal(
+        ethers.utils.hexZeroPad(foundEvent[0].data[i], 32)
+      );
+    } else {
+      expect(eventData[i].data).to.equal(foundEvent[0].data[i]);
+    }
+  }
+};
+
+export async function checkFileUint(
+  base: any,
+  contractName: string,
+  fileFunctionName: string,
+  values: string[],
+  admin: Account,
+  notAdmin: Account
+) {
+  // const { res: ward } = await base.call('wards', { user: admin.address });
+
+  // Ensure we have admin access
+  // await GodMode.setWard(base, admin.address, 1);
+
+  // First check an invalid value
+  try {
+    await invoke(admin, base, fileFunctionName, {
+      what: l2String('an invalid value'),
+      data: {
+        low: 1,
+        high: 0,
+      },
+    });
+  } catch (err: any) {
+    expect(err.message).to.contain(`${contractName}/file-unrecognized-param`);
+  }
+
+  // Next check each value is valid and updates the target storage slot
+  for (let i = 0; i < values.length; i++) {
+    // Read original value
+    const { res: _origData } = await base.call(values[i]);
+    const origData = new SplitUint(_origData);
+    const newData = origData.add(1);
+
+    // Update value
+    // vm.expectEmit(true, false, false, true);
+    // emit File(valueB32, newData);
+    await invoke(admin, base, fileFunctionName, {
+      what: l2String(values[i]),
+      data: {
+        low: newData.toDec()[0],
+        high: newData.toDec()[1],
+      },
+    });
+
+    // Confirm it was updated successfully
+    const { res: _data } = await base.call(values[i]);
+    const data = new SplitUint(_data);
+    expect(data).to.deep.equal(newData);
+
+    // Reset value to original
+    // vm.expectEmit(true, false, false, true);
+    // emit File(valueB32, origData);
+    await invoke(admin, base, fileFunctionName, {
+      what: l2String(values[i]),
+      data: {
+        low: origData.toDec()[0],
+        high: origData.toDec()[0],
+      },
+    });
+  }
+
+  // Finally check that file is authed
+  // await invoke(admin, base, 'deny', { usr: admin.address });
+  try {
+    await invoke(notAdmin, base, fileFunctionName, {
+      what: l2String('some value'),
+      data: {
+        low: 1,
+        high: 0,
+      },
+    });
+  } catch (err: any) {
+    expect(err.message).to.contain(`${contractName}/not-authorized`);
+  }
+
+  // Reset admin access to what it was
+  // GodMode.setWard(base.address, this, ward);
+}
+
+export async function checkFileAddress(
+  base: any,
+  contractName: string,
+  fileFunctionName: string,
+  values: string[],
+  admin: Account,
+  notAdmin: Account
+) {
+  // const { res: ward } = await base.call('wards', { user: admin.address });
+
+  // Ensure we have admin access
+  // await GodMode.setWard(base, admin.address, 1);
+
+  // First check an invalid value
+  try {
+    await invoke(admin, base, fileFunctionName, {
+      what: l2String('an invalid value'),
+      data: 1n,
+    });
+  } catch (err: any) {
+    expect(err.message).to.contain(`${contractName}/file-unrecognized-param`);
+  }
+
+  // Next check each value is valid and updates the target storage slot
+  for (let i = 0; i < values.length; i++) {
+    // Read original value
+    const { res: _origData } = await base.call(values[i]);
+
+    // Update value
+    const newData = 123456789n;
+    // vm.expectEmit(true, false, false, true);
+    // emit File(valueB32, newData);
+    await invoke(admin, base, fileFunctionName, {
+      what: l2String(values[i]),
+      data: newData,
+    });
+
+    // Confirm it was updated successfully
+    const { res: _data } = await base.call(values[i]);
+    expect(_data).to.equal(newData);
+
+    // Reset value to original
+    // vm.expectEmit(true, false, false, true);
+    // emit File(valueB32, origData);
+    await invoke(admin, base, fileFunctionName, {
+      what: l2String(values[i]),
+      data: _origData,
+    });
+  }
+
+  // Finally check that file is authed
+  // await invoke(admin, base, 'deny', { usr: admin.address });
+  try {
+    await invoke(notAdmin, base, fileFunctionName, {
+      what: l2String('some value'),
+      data: 1n,
+    });
+  } catch (err: any) {
+    expect(err.message).to.contain(`${contractName}/not-authorized`);
+  }
+
+  // Reset admin access to what it was
+  // GodMode.setWard(base.address, this, ward);
+}
