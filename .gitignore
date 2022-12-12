@@ -15,6 +15,7 @@ starknet-artifacts/
 *.sw?
 
 # Local deployments
+.env
 deployed_contracts/local.json
 
 *.DS_Store

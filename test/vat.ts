@@ -21,6 +21,9 @@ import {
 } from './utils';
 import fs from 'fs';
 
+// https://github.com/makerdao/xdomain-dss/blob/add-end/src/test/Vat.t.sol
+// #commit#6fbce437c29c003584ef549fe8e8545f3d7f678f
+
 // Cairo encoding of "valid_domains"
 const VALID_DOMAINS = '9379074284324409537785911406195';
 

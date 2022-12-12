@@ -4,6 +4,9 @@ import fs from 'fs';
 
 import { l2Eth, simpleDeployL2, SplitUint } from './utils';
 
+// https://github.com/makerdao/dss/blob/master/src/test/dai.t.sol
+// #commit#17187f7d47be2f4c71d218785e1155474bbafe8a
+
 const initialBalanceThis = l2Eth(1000n);
 const initialBalanceCal = l2Eth(100n);
 
