@@ -18,6 +18,7 @@ import {
   uint,
   SplitUintType,
   neg,
+  deployAccount,
 } from './utils';
 import fs from 'fs';
 
@@ -56,13 +57,14 @@ describe('vat', async function () {
     // vm.expectEmit(true, true, true, true);
     // emit Rely(address(this));
 
-    admin = await starknet.deployAccount('OpenZeppelin');
+    admin = await deployAccount(0);
     _admin = admin.starknetContract.address;
-    user1 = await starknet.deployAccount('OpenZeppelin');
+    user1 = await deployAccount(1);
     _user1 = user1.starknetContract.address;
-    user2 = await starknet.deployAccount('OpenZeppelin');
+    user2 = await deployAccount(2);
     _user2 = user2.starknetContract.address;
     vat = await simpleDeployL2(
+      admin,
       'vat',
       {
         ward: _admin,

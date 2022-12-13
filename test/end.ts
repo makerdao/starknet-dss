@@ -16,6 +16,7 @@ import {
   ray,
   wad,
   rad,
+  deployAccount,
 } from './utils';
 import fs from 'fs';
 
@@ -62,15 +63,16 @@ describe('end', async function () {
     // vm.expectEmit(true, true, true, true);
     // emit Rely(address(this));
 
-    admin = await starknet.deployAccount('OpenZeppelin');
+    admin = await deployAccount(0);
     _admin = admin.starknetContract.address;
-    ali = await starknet.deployAccount('OpenZeppelin');
+    ali = await deployAccount(1);
     _ali = ali.starknetContract.address;
-    bob = await starknet.deployAccount('OpenZeppelin');
+    bob = await deployAccount(2);
     _bob = bob.starknetContract.address;
     // vat = new Vat();
 
     vat = await simpleDeployL2(
+      admin,
       'vat',
       {
         ward: _admin,
@@ -78,9 +80,10 @@ describe('end', async function () {
       hre
     );
     // claimToken = new MockToken('CLAIM');
-    claimToken = await simpleDeployL2('mock_token', { ward: _admin }, hre);
+    claimToken = await simpleDeployL2(admin, 'mock_token', { ward: _admin }, hre);
     // vow = new MockVow(vat);
     vow = await simpleDeployL2(
+      admin,
       'mock_vow',
       {
         vat_: vat.address,
@@ -88,13 +91,13 @@ describe('end', async function () {
       hre
     );
     // pot = new Pot(address(vat));
-    pot = await simpleDeployL2('mock_pot', { vat: vat.address, vow: vow.address }, hre);
+    pot = await simpleDeployL2(admin, 'mock_pot', { vat: vat.address, vow: vow.address }, hre);
     // vat.rely(address(pot));
     await invoke(admin, vat, 'rely', { usr: pot.address });
     // pot.file("vow", address(vow));
     // await invoke(admin, pot, 'file', { what: l2String('vow'), data: vow.address });
     // spot = new Spotter(address(vat));
-    spot = await simpleDeployL2('mock_spot', { vat: vat.address }, hre);
+    spot = await simpleDeployL2(admin, 'mock_spot', { vat: vat.address }, hre);
     // vat.file("Line",         rad(1_000_000 ether));
     await invoke(admin, vat, 'file', {
       what: l2String('Line'),
@@ -104,6 +107,7 @@ describe('end', async function () {
     await invoke(admin, vat, 'rely', { usr: spot.address });
     // cure = new Cure();
     cure = await simpleDeployL2(
+      admin,
       'cure',
       {
         ward: _admin,
@@ -112,6 +116,7 @@ describe('end', async function () {
     );
     // end = new End(address(vat));
     end = await simpleDeployL2(
+      admin,
       'end',
       {
         ward: _admin,
@@ -301,11 +306,11 @@ describe('end', async function () {
   async function init_collateral(name: string): Promise<Ilk> {
     const _name = l2String(name);
     // MockToken coin = new MockToken("");
-    const coin = await simpleDeployL2('mock_token', { ward: _admin }, hre);
+    const coin = await simpleDeployL2(admin, 'mock_token', { ward: _admin }, hre);
     // coin.mint(500_000 ether);
     await invoke(admin, coin, 'mint', { account: _admin, amount: l2Eth(eth('500000')).res });
     // DSValue pip = new DSValue();
-    const pip = await simpleDeployL2('ds_value', {}, hre);
+    const pip = await simpleDeployL2(admin, 'ds_value', {}, hre);
     // spot.file(name, "pip", address(pip));
     await invoke(admin, spot, 'file_pip', {
       ilk: _name,
@@ -333,6 +338,7 @@ describe('end', async function () {
     });
     // GemJoin gemA = new GemJoin(address(vat), name, address(coin));
     const gemA = await simpleDeployL2(
+      admin,
       'gem_join',
       { vat: vat.address, ilk: _name, gem: coin.address, ward: _admin },
       hre
