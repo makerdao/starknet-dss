@@ -3,7 +3,15 @@ import { expect } from 'chai';
 import hre, { starknet } from 'hardhat';
 import fs from 'fs';
 
-import { l2Eth, simpleDeployL2, l2String, l2Address, invoke } from './utils';
+import {
+  l2Eth,
+  simpleDeployL2,
+  l2String,
+  l2Address,
+  invoke,
+  IEventDataEntry,
+  assertEvent,
+} from './utils';
 
 // https://github.com/makerdao/xdomain-dss/blob/add-end/src/test/Cure.t.sol
 // #commit#9e7834c57918bfaa23522d8402c78e21a920a00a
@@ -175,7 +183,10 @@ describe('cure', async function () {
       },
       hre
     );
-    await invoke(admin, cure, 'lift', { src: addr1 });
+    let txHash = await invoke(admin, cure, 'lift', { src: addr1 });
+    let liftReceipt = await starknet.getTransactionReceipt(txHash);
+    let liftReceiptData: IEventDataEntry[] = [{ data: addr1, isAddress: true }];
+    assertEvent(liftReceipt, 'Lift', liftReceiptData);
     expect((await cure.call('tCount')).res).to.equal(1n);
     // address addr2 = address(new SourceMock(0));
     // vm.expectEmit(true, true, true, true);
@@ -189,7 +200,10 @@ describe('cure', async function () {
       },
       hre
     );
-    await invoke(admin, cure, 'lift', { src: addr2 });
+    txHash = await invoke(admin, cure, 'lift', { src: addr2 });
+    liftReceipt = await starknet.getTransactionReceipt(txHash);
+    liftReceiptData = [{ data: addr2, isAddress: true }];
+    assertEvent(liftReceipt, 'Lift', liftReceiptData);
     expect((await cure.call('tCount')).res).to.equal(2n);
 
     // address addr3 = address(new SourceMock(0));
@@ -224,7 +238,10 @@ describe('cure', async function () {
     // assertEq(cure.pos(addr1), 1);
     // assertEq(cure.srcs(1), addr2);
     // assertEq(cure.pos(addr2), 2);
-    await invoke(admin, cure, 'drop', { src: addr3 });
+    txHash = await invoke(admin, cure, 'drop', { src: addr3 });
+    let dropReceipt = await starknet.getTransactionReceipt(txHash);
+    let dropReceiptData: IEventDataEntry[] = [{ data: addr3, isAddress: true }];
+    assertEvent(dropReceipt, 'Drop', dropReceiptData);
     expect((await cure.call('tCount')).res).to.equal(2n);
     expect(l2Address((await cure.call('srcs', { index: 0n })).res)).to.equal(addr1);
     expect((await cure.call('pos', { src: addr1 })).res).to.equal(1n);
@@ -240,7 +257,10 @@ describe('cure', async function () {
     // assertEq(cure.pos(addr2), 2);
     // assertEq(cure.srcs(2), addr3);
     // assertEq(cure.pos(addr3), 3);
-    await invoke(admin, cure, 'lift', { src: addr3 });
+    txHash = await invoke(admin, cure, 'lift', { src: addr3 });
+    liftReceipt = await starknet.getTransactionReceipt(txHash);
+    liftReceiptData = [{ data: addr3, isAddress: true }];
+    assertEvent(liftReceipt, 'Lift', liftReceiptData);
     expect((await cure.call('tCount')).res).to.equal(3n);
 
     expect(l2Address((await cure.call('srcs', { index: 0n })).res)).to.equal(addr1);
@@ -257,7 +277,10 @@ describe('cure', async function () {
     // assertEq(cure.pos(addr3), 1);
     // assertEq(cure.srcs(1), addr2);
     // assertEq(cure.pos(addr2), 2);
-    await invoke(admin, cure, 'drop', { src: addr1 });
+    txHash = await invoke(admin, cure, 'drop', { src: addr1 });
+    dropReceipt = await starknet.getTransactionReceipt(txHash);
+    dropReceiptData = [{ data: addr1, isAddress: true }];
+    assertEvent(dropReceipt, 'Drop', dropReceiptData);
     expect((await cure.call('tCount')).res).to.equal(2n);
     expect(l2Address((await cure.call('srcs', { index: 0n })).res)).to.equal(addr3);
     expect((await cure.call('pos', { src: addr3 })).res).to.equal(1n);
@@ -266,7 +289,10 @@ describe('cure', async function () {
     // vm.expectEmit(true, true, true, true);
     // emit Lift(addr1);
     // cure.lift(addr1);
-    await invoke(admin, cure, 'lift', { src: addr1 });
+    txHash = await invoke(admin, cure, 'lift', { src: addr1 });
+    liftReceipt = await starknet.getTransactionReceipt(txHash);
+    liftReceiptData = [{ data: addr1, isAddress: true }];
+    assertEvent(liftReceipt, 'Lift', liftReceiptData);
     expect((await cure.call('tCount')).res).to.equal(3n);
     // assertEq(cure.tCount(), 3);
     // assertEq(cure.srcs(0), addr3);
@@ -292,7 +318,10 @@ describe('cure', async function () {
     // vm.expectEmit(true, true, true, true);
     // emit Lift(addr4);
     // cure.lift(addr4);
-    await invoke(admin, cure, 'lift', { src: addr4 });
+    txHash = await invoke(admin, cure, 'lift', { src: addr4 });
+    liftReceipt = await starknet.getTransactionReceipt(txHash);
+    liftReceiptData = [{ data: addr4, isAddress: true }];
+    assertEvent(liftReceipt, 'Lift', liftReceiptData);
     // assertEq(cure.tCount(), 4);
     expect((await cure.call('tCount')).res).to.equal(4n);
     // assertEq(cure.srcs(0), addr3);
@@ -314,7 +343,10 @@ describe('cure', async function () {
     // vm.expectEmit(true, true, true, true);
     // emit Drop(addr2);
     // cure.drop(addr2);
-    await invoke(admin, cure, 'drop', { src: addr2 });
+    txHash = await invoke(admin, cure, 'drop', { src: addr2 });
+    dropReceipt = await starknet.getTransactionReceipt(txHash);
+    dropReceiptData = [{ data: addr2, isAddress: true }];
+    assertEvent(dropReceipt, 'Drop', dropReceiptData);
     expect((await cure.call('tCount')).res).to.equal(3n);
     // assertEq(cure.tCount(), 3);
     // assertEq(cure.srcs(0), addr3);
@@ -401,9 +433,10 @@ describe('cure', async function () {
     // vm.expectEmit(true, true, true, true);
     // emit Cage();
     // cure.cage();
-    await invoke(admin, cure, 'cage');
+    let txHash = await invoke(admin, cure, 'cage');
+    const cageReceipt = await starknet.getTransactionReceipt(txHash);
+    assertEvent(cageReceipt, 'Cage', []);
     // assertEq(cure.live(), 0);
-
     expect((await cure.call('live')).res).to.equal(0n);
   });
 
@@ -665,7 +698,11 @@ describe('cure', async function () {
     // cure.load(source2);
     // assertEq(cure.lCount(), 2);
     // assertEq(cure.tell(), 5_000);
-    await invoke(admin, cure, 'load', { src: source1.address });
+    let txHash = await invoke(admin, cure, 'load', { src: source1.address });
+    let loadReceipt = await starknet.getTransactionReceipt(txHash);
+    let loadReceiptData: IEventDataEntry[] = [{ data: source1.address, isAddress: true }];
+    assertEvent(loadReceipt, 'Load', loadReceiptData);
+
     expect((await cure.call('lCount')).res).to.equal(1n);
     await invoke(admin, cure, 'load', { src: source2.address });
     expect((await cure.call('lCount')).res).to.equal(2n);

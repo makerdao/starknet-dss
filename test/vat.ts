@@ -18,6 +18,7 @@ import {
   uint,
   SplitUintType,
   neg,
+  assertEvent,
 } from './utils';
 import fs from 'fs';
 
@@ -102,13 +103,15 @@ describe('vat', async function () {
       // Update value
       // vm.expectEmit(true, false, false, true);
       // emit File(valueB32, newData);
-      await invoke(admin, base, 'file', {
+      let txHash = await invoke(admin, base, 'file', {
         what: l2String(values[i]),
         data: {
           low: newData.toDec()[0],
           high: newData.toDec()[1],
         },
       });
+      let fileReceipt = await starknet.getTransactionReceipt(txHash);
+      assertEvent(fileReceipt, 'File', [{ data: l2String(values[i]) }, { data: newData.res }]);
 
       // Confirm it was updated successfully
       const { [values[i]]: _data } = await base.call(values[i]);
@@ -118,13 +121,15 @@ describe('vat', async function () {
       // Reset value to original
       // vm.expectEmit(true, false, false, true);
       // emit File(valueB32, origData);
-      await invoke(admin, base, 'file', {
+      txHash = await invoke(admin, base, 'file', {
         what: l2String(values[i]),
         data: {
           low: origData.toDec()[0],
           high: origData.toDec()[0],
         },
       });
+      fileReceipt = await starknet.getTransactionReceipt(txHash);
+      assertEvent(fileReceipt, 'File', [{ data: l2String(values[i]) }, { data: origData.res }]);
     }
 
     // Finally check that file is authed
@@ -204,7 +209,16 @@ describe('vat', async function () {
     dink: SplitUintType<bigint>,
     dart: SplitUintType<bigint>
   ) {
-    await invoke(user, vat, 'frob', { i, u, v, w, dink, dart });
+    let txHash = await invoke(user, vat, 'frob', { i, u, v, w, dink, dart });
+    const frobReceipt = await starknet.getTransactionReceipt(txHash);
+    assertEvent(frobReceipt, 'Frob', [
+      { data: ILK },
+      { data: u, isAddress: true },
+      { data: v, isAddress: true },
+      { data: w, isAddress: true },
+      { data: dink },
+      { data: dart },
+    ]);
   }
 
   async function fork(
@@ -215,7 +229,15 @@ describe('vat', async function () {
     dink: SplitUintType<bigint>,
     dart: SplitUintType<bigint>
   ) {
-    await invoke(user, vat, 'fork', { ilk, src, dst, dink, dart });
+    let txHash = await invoke(user, vat, 'fork', { ilk, src, dst, dink, dart });
+    const forkReceipt = await starknet.getTransactionReceipt(txHash);
+    assertEvent(forkReceipt, 'Fork', [
+      { data: ilk },
+      { data: src, isAddress: true },
+      { data: dst, isAddress: true },
+      { data: dink },
+      { data: dart },
+    ]);
   }
 
   async function grab(
@@ -227,23 +249,47 @@ describe('vat', async function () {
     dink: SplitUintType<bigint>,
     dart: SplitUintType<bigint>
   ) {
-    await invoke(admin, vat, 'grab', { i, u, v, w, dink, dart });
+    let txHash = await invoke(admin, vat, 'grab', { i, u, v, w, dink, dart });
+    const grabReceipt = await starknet.getTransactionReceipt(txHash);
+    assertEvent(grabReceipt, 'Grab', [
+      { data: i },
+      { data: u, isAddress: true },
+      { data: v, isAddress: true },
+      { data: w, isAddress: true },
+      { data: dink },
+      { data: dart },
+    ]);
   }
 
   async function suck(u: any, v: any, rad: SplitUintType<bigint>) {
-    await invoke(admin, vat, 'suck', { u, v, rad });
+    let txHash = await invoke(admin, vat, 'suck', { u, v, rad });
+    const suckReceipt = await starknet.getTransactionReceipt(txHash);
+    assertEvent(suckReceipt, 'Fork', [
+      { data: u, isAddress: true },
+      { data: v, isAddress: true },
+      { data: rad },
+    ]);
   }
 
   async function fold(i: any, u: any, rate: SplitUintType<bigint>) {
-    await invoke(admin, vat, 'fold', { i, u, rate });
+    let txHash = await invoke(admin, vat, 'fold', { i, u, rate });
+    const foldReceipt = await starknet.getTransactionReceipt(txHash);
+    assertEvent(foldReceipt, 'Fold', [{ data: i }, { data: u, isAddress: true }, { data: rate }]);
   }
 
   async function hope(from: Account, to: string) {
-    await invoke(from, vat, 'hope', { user: to });
+    let txHash = await invoke(from, vat, 'hope', { user: to });
+    const hopeReceipt = await starknet.getTransactionReceipt(txHash);
+    assertEvent(hopeReceipt, 'Hope', [
+      { data: from.address, isAddress: true },
+      { data: to, isAddress: true },
+    ]);
   }
 
   async function heal(from: Account, rad: SplitUintType<bigint>) {
-    await invoke(from, vat, 'heal', { rad });
+    let txHash = await invoke(from, vat, 'heal', { rad });
+    const healReceipt = await starknet.getTransactionReceipt(txHash);
+    assertEvent(healReceipt, 'Fork', [{ data: from.address, isAddress: true }, { data: rad }]);
   }
 
   it('test constructor', async () => {
@@ -262,11 +308,13 @@ describe('vat', async function () {
   it('test file ilk', async () => {
     // vm.expectEmit(true, true, true, true);
     // emit File(ILK, "spot", 1);
-    await invoke(admin, vat, 'file_ilk', {
+    let txHash = await invoke(admin, vat, 'file_ilk', {
       ilk: ILK,
       what: spot,
       data: uint(1n),
     });
+    const fileReceipt = await starknet.getTransactionReceipt(txHash);
+    assertEvent(fileReceipt, 'File_ilk', [{ data: ILK }, { data: spot }, { data: uint(1n) }]);
     expect((await vat.call('ilks', { i: ILK })).ilk.spot).to.deep.equal(uint(1n));
     await invoke(admin, vat, 'file_ilk', {
       ilk: ILK,
@@ -370,7 +418,9 @@ describe('vat', async function () {
 
     // vm.expectEmit(true, true, true, true);
     // emit Init(ILK);
-    await invoke(admin, vat, 'init', { ilk: ILK });
+    let txHash = await invoke(admin, vat, 'init', { ilk: ILK });
+    let initReceipt = await starknet.getTransactionReceipt(txHash);
+    assertEvent(initReceipt, 'Init', [{ data: ILK }]);
 
     // console.log(RAY);
     // console.log(SplitUint.fromUint(RAY).res);
@@ -390,7 +440,9 @@ describe('vat', async function () {
 
     // vm.expectEmit(true, true, true, true);
     // emit Cage();
-    await invoke(admin, vat, 'cage');
+    let txHash = await invoke(admin, vat, 'cage');
+    const cageReceipt = await starknet.getTransactionReceipt(txHash);
+    assertEvent(cageReceipt, 'Cage', []);
 
     expect((await vat.call('live')).live).to.equal(0n);
   });
@@ -407,7 +459,12 @@ describe('vat', async function () {
 
     // vm.expectEmit(true, true, true, true);
     // emit Hope(address(this), TEST_ADDRESS);
-    await vat.call('hope', { user: TEST_ADDRESS });
+    let txHash = await vat.call('hope', { user: TEST_ADDRESS });
+    const hopeReceipt = await starknet.getTransactionReceipt(txHash);
+    assertEvent(hopeReceipt, 'Hope', [
+      { data: _admin, isAddress: true },
+      { data: TEST_ADDRESS, isAddress: true },
+    ]);
 
     expect(
       (
@@ -433,7 +490,12 @@ describe('vat', async function () {
 
     // vm.expectEmit(true, true, true, true);
     // emit Nope(address(this), TEST_ADDRESS);
-    await invoke(admin, vat, 'nope', { user: TEST_ADDRESS });
+    let txHash = await invoke(admin, vat, 'nope', { user: TEST_ADDRESS });
+    const nopeReceipt = await starknet.getTransactionReceipt(txHash);
+    assertEvent(nopeReceipt, 'Nope', [
+      { data: _admin, isAddress: true },
+      { data: TEST_ADDRESS, isAddress: true },
+    ]);
 
     expect(
       (
@@ -451,11 +513,17 @@ describe('vat', async function () {
 
       // vm.expectEmit(true, true, true, true);
       // emit Slip(ILK, TEST_ADDRESS, int256(100 * WAD));
-      await invoke(admin, vat, 'slip', {
+      let txHash = await invoke(admin, vat, 'slip', {
         ilk: ILK,
         usr: TEST_ADDRESS,
         wad: wad(100n),
       });
+      const slipReceipt = await starknet.getTransactionReceipt(txHash);
+      assertEvent(slipReceipt, 'Slip', [
+        { data: ILK },
+        { data: TEST_ADDRESS, isAddress: true },
+        { data: wad(100n) },
+      ]);
 
       expect((await vat.call('gem', { i: ILK, u: TEST_ADDRESS })).gem).to.deep.equal(wad(100n));
     });
@@ -472,11 +540,17 @@ describe('vat', async function () {
       // vm.expectEmit(true, true, true, true);
       // emit Slip(ILK, TEST_ADDRESS, -int256(50 * WAD));
       // vat.slip(ILK, TEST_ADDRESS, -int256(50 * WAD));
-      await invoke(admin, vat, 'slip', {
+      let txHash = await invoke(admin, vat, 'slip', {
         ilk: ILK,
         usr: TEST_ADDRESS,
         wad: SplitUint.fromUint(neg(50n * WAD)).res,
       });
+      const slipReceipt = await starknet.getTransactionReceipt(txHash);
+      assertEvent(slipReceipt, 'Slip', [
+        { data: ILK },
+        { data: TEST_ADDRESS, isAddress: true },
+        { data: SplitUint.fromUint(neg(50n * WAD)).res },
+      ]);
 
       // assertEq(vat.gem(ILK, TEST_ADDRESS), 50 * WAD);
       expect((await vat.call('gem', { i: ILK, u: TEST_ADDRESS })).gem).to.deep.equal(
@@ -512,12 +586,19 @@ describe('vat', async function () {
 
       // vm.expectEmit(true, true, true, true);
       // emit Flux(ILK, ausr1, ausr2, 100 * WAD);
-      await invoke(user1, vat, 'flux', {
+      let txHash = await invoke(user1, vat, 'flux', {
         ilk: ILK,
         src: _user1,
         dst: _user2,
         wad: wad(100n),
       });
+      const fluxReceipt = await starknet.getTransactionReceipt(txHash);
+      assertEvent(fluxReceipt, 'Flux', [
+        { data: ILK },
+        { data: _user1, isAddress: true },
+        { data: _user2, isAddress: true },
+        { data: wad(100n) },
+      ]);
 
       expect((await vat.call('gem', { i: ILK, u: _user1 })).gem).to.deep.equal(uint(0n));
       expect((await vat.call('gem', { i: ILK, u: _user2 })).gem).to.deep.equal(wad(100n));
@@ -606,7 +687,17 @@ describe('vat', async function () {
       // vm.expectEmit(true, true, true, true);
       // emit Move(ausr1, ausr2, 100 * RAD);
       // usr1.move(ausr1, ausr2, 100 * RAD);
-      await invoke(user1, vat, 'move', { src: _user1, dst: _user2, rad: uint(100n * RAD) });
+      let txHash = await invoke(user1, vat, 'move', {
+        src: _user1,
+        dst: _user2,
+        rad: uint(100n * RAD),
+      });
+      const moveReceipt = await starknet.getTransactionReceipt(txHash);
+      assertEvent(moveReceipt, 'Move', [
+        { data: _user1, isAddress: true },
+        { data: _user2, isAddress: true },
+        { data: uint(100n * RAD) },
+      ]);
       // assertEq(vat.dai(ausr1), 0);
       expect((await vat.call('dai', { u: _user1 })).res).to.deep.equal(uint(0n));
       // assertEq(vat.dai(ausr2), 100 * RAD);
