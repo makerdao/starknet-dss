@@ -158,7 +158,7 @@ describe('pot', async function () {
   }
 
   // function testConstructor() public {
-  it.only('test constructor', async () => {
+  it('test constructor', async () => {
     //     assertEq(address(pot.vat()), address(vat));
     expect(l2Address((await pot.call('vat')).res)).to.be.equal(vat.address);
     //     assertEq(pot.wards(address(this)), 1);

@@ -183,7 +183,7 @@ describe('jug', async function () {
   //         checkFileUint(address(jug), "Jug", ["base"]);
   //         checkFileAddress(address(jug), "Jug", ["vow"]);
   //     }
-  it.only('test file', async () => {
+  it('test file', async () => {
     await checkFileUint(jug, 'Jug', 'file_base', ['base'], admin, ali);
     await checkFileAddress(jug, 'Jug', 'file', ['vow'], admin, ali);
   });
