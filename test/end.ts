@@ -467,7 +467,9 @@ describe('end', async function () {
     // vm.expectEmit(true, true, true, true);
     // emit Cage();
     // end.cage();
-    await invoke(admin, end, 'cage');
+    let txHash = await invoke(admin, end, 'cage');
+    const cageReceipt = await starknet.getTransactionReceipt(txHash);
+    assertEvent(cageReceipt, 'Cage', []);
     // assertEq(end.live(), 0);
     // assertEq(vat.live(), 0);
     // assertEq(pot.live(), 0);
@@ -523,12 +525,20 @@ describe('end', async function () {
     // vm.expectEmit(true, true, true, true);
     // emit Cage("gold");
     // end.cage("gold");
-    await invoke(admin, end, 'cage_ilk', { ilk: l2String('gold') });
+    let txHash = await invoke(admin, end, 'cage_ilk', { ilk: l2String('gold') });
+    let cageReceipt = await starknet.getTransactionReceipt(txHash);
+    assertEvent(cageReceipt, 'Cage_ilk', [{ data: l2String('gold') }]);
     // vm.expectEmit(true, true, true, true);
     // emit Skim("gold", urn1, 3 ether, 15 ether);
     // end.skim("gold", urn1);
-    await invoke(admin, end, 'skim', { ilk: l2String('gold'), urn: urn1 });
-
+    txHash = await invoke(admin, end, 'skim', { ilk: l2String('gold'), urn: urn1 });
+    let skimReceipt = await starknet.getTransactionReceipt(txHash);
+    assertEvent(skimReceipt, 'Skim', [
+      { data: l2String('gold') },
+      { data: urn1, isAddress: true },
+      { data: eth('3').toBigInt() },
+      { data: eth('15').toBigInt() },
+    ]);
     // // local checks:
     // assertEq(art("gold", urn1), 0);
     // assertEq(ink("gold", urn1), 7 ether);
@@ -551,7 +561,13 @@ describe('end', async function () {
     // assertEq(ink("gold", urn1), 0);
     // assertEq(gem("gold", urn1), 7 ether);
     // ali.exit(gold.gemA, address(this), 7 ether);
-    await invoke(ali, end, 'free', { ilk: l2String('gold') });
+    txHash = await invoke(ali, end, 'free', { ilk: l2String('gold') });
+    let freeReceipt = await starknet.getTransactionReceipt(txHash);
+    assertEvent(freeReceipt, 'Free', [
+      { data: l2String('gold') },
+      { data: ali.address, isAddress: true },
+      { data: eth('7').toBigInt() },
+    ]);
     expect(await ink('gold', urn1)).to.deep.equal(rad(0n));
     expect(await gem('gold', urn1)).to.deep.equal(uint(eth('7').toBigInt()));
     await invoke(ali, gold.gemA, 'exit', { user: _admin, wad: l2Eth(eth('7')).res });
@@ -561,11 +577,15 @@ describe('end', async function () {
     // vm.expectEmit(true, true, true, true);
     // emit Thaw();
     // end.thaw();
-    await invoke(admin, end, 'thaw');
+    txHash = await invoke(admin, end, 'thaw');
+    let thawReceipt = await starknet.getTransactionReceipt(txHash);
+    assertEvent(thawReceipt, 'Thaw', []);
     // vm.expectEmit(true, true, true, true);
     // emit Flow("gold");
     // end.flow("gold");
-    await invoke(admin, end, 'flow', { ilk: l2String('gold') });
+    txHash = await invoke(admin, end, 'flow', { ilk: l2String('gold') });
+    let flowReceipt = await starknet.getTransactionReceipt(txHash);
+    assertEvent(flowReceipt, 'Flow', [{ data: l2String('gold') }]);
     // assertTrue(end.fix("gold") != 0);
     expect(await end.call('fix', { ilk: l2String('gold') })).to.not.be.deep.equal(l2Eth(0n));
     // // dai redemption
@@ -579,7 +599,12 @@ describe('end', async function () {
       amount: l2Eth(eth('15')).res,
     });
     await approveClaim(ali, end.address, eth('15'));
-    await invoke(ali, end, 'pack', { wad: l2Eth(eth('15')).res });
+    txHash = await invoke(ali, end, 'pack', { wad: l2Eth(eth('15')).res });
+    let packReceipt = await starknet.getTransactionReceipt(txHash);
+    assertEvent(packReceipt, 'Pack', [
+      { data: ali.address, isAddress: true },
+      { data: eth('15').toBigInt() },
+    ]);
     // // global checks:
     // assertEq(vat.debt(), rad(15 ether));
     // assertEq(vat.vice(), rad(15 ether));
@@ -596,8 +621,13 @@ describe('end', async function () {
     // vm.expectEmit(true, true, true, true);
     // emit Cash("gold", address(ali), 15 ether);
     // ali.cash("gold", 15 ether);
-    await invoke(ali, end, 'cash', { ilk: l2String('gold'), wad: l2Eth(eth('15')).res });
-
+    txHash = await invoke(ali, end, 'cash', { ilk: l2String('gold'), wad: l2Eth(eth('15')).res });
+    let cashReceipt = await starknet.getTransactionReceipt(txHash);
+    assertEvent(cashReceipt, 'Cash', [
+      { data: l2String('gold') },
+      { data: ali.address, isAddress: true },
+      { data: eth('15').toBigInt() },
+    ]);
     // // local checks:
     // assertEq(dai(urn1), 15 ether);
     // assertEq(gem("gold", urn1), 3 ether);
