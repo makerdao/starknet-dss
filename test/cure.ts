@@ -3,6 +3,7 @@ import { expect } from 'chai';
 import hre, { starknet } from 'hardhat';
 import fs from 'fs';
 
+
 import {
   l2Eth,
   simpleDeployL2,
@@ -11,7 +12,9 @@ import {
   invoke,
   IEventDataEntry,
   assertEvent,
+  useDevnetAccount
 } from './utils';
+
 
 // https://github.com/makerdao/xdomain-dss/blob/add-end/src/test/Cure.t.sol
 // #commit#9e7834c57918bfaa23522d8402c78e21a920a00a
@@ -34,13 +37,14 @@ describe('cure', async function () {
     // vm.expectEmit(true, true, true, true);
     // emit Rely(address(this));
 
-    admin = await starknet.deployAccount('OpenZeppelin');
+    admin = await useDevnetAccount(0);
     _admin = admin.address;
-    ali = await starknet.deployAccount('OpenZeppelin');
+    ali = await useDevnetAccount(1);
     _ali = ali.starknetContract.address;
-    bob = await starknet.deployAccount('OpenZeppelin');
+    bob = await useDevnetAccount(2);
     _bob = bob.starknetContract.address;
     cure = await simpleDeployL2(
+      admin,
       'cure',
       {
         ward: _admin,
@@ -177,6 +181,7 @@ describe('cure', async function () {
     // cure.lift(addr1);
     // assertEq(cure.tCount(), 1);
     const { address: addr1 } = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(0n).res,
@@ -194,6 +199,7 @@ describe('cure', async function () {
     // cure.lift(addr2);
     // assertEq(cure.tCount(), 2);
     const { address: addr2 } = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(0n).res,
@@ -208,6 +214,7 @@ describe('cure', async function () {
 
     // address addr3 = address(new SourceMock(0));
     const { address: addr3 } = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(0n).res,
@@ -309,6 +316,7 @@ describe('cure', async function () {
     expect((await cure.call('pos', { src: addr1 })).res).to.equal(3n);
     // address addr4 = address(new SourceMock(0));
     const { address: addr4 } = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(0n).res,
@@ -366,6 +374,7 @@ describe('cure', async function () {
   xit('test fail add source auth', async () => {
     await invoke(admin, cure, 'deny', { usr: _admin });
     const { address: addr } = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(0n).res,
@@ -381,6 +390,7 @@ describe('cure', async function () {
 
   xit('test fail del source auth', async () => {
     const { address: addr } = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(0n).res,
@@ -400,6 +410,7 @@ describe('cure', async function () {
   it('test fail del source non existing', async () => {
     // address addr1 = address(new SourceMock(0));
     const { address: addr1 } = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(0n).res,
@@ -411,6 +422,7 @@ describe('cure', async function () {
     // address addr2 = address(new SourceMock(0));
 
     const { address: addr2 } = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(0n).res,
@@ -446,6 +458,7 @@ describe('cure', async function () {
     // address source2 = address(new SourceMock(30_000));
     // address source3 = address(new SourceMock(50_000));
     const { address: source1 } = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(15000n).res,
@@ -453,6 +466,7 @@ describe('cure', async function () {
       hre
     );
     const { address: source2 } = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(30000n).res,
@@ -460,6 +474,7 @@ describe('cure', async function () {
       hre
     );
     const { address: source3 } = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(50000n).res,
@@ -500,6 +515,7 @@ describe('cure', async function () {
     // address source2 = address(new SourceMock(30_000));
     // address source3 = address(new SourceMock(50_000));
     const { address: source1 } = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(15000n).res,
@@ -507,6 +523,7 @@ describe('cure', async function () {
       hre
     );
     const { address: source2 } = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(30000n).res,
@@ -514,6 +531,7 @@ describe('cure', async function () {
       hre
     );
     const { address: source3 } = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(50000n).res,
@@ -567,6 +585,7 @@ describe('cure', async function () {
     // address source2 = address(new SourceMock(30_000));
     // address source3 = address(new SourceMock(50_000));
     const { address: source1 } = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(15000n).res,
@@ -574,6 +593,7 @@ describe('cure', async function () {
       hre
     );
     const { address: source2 } = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(30000n).res,
@@ -581,6 +601,7 @@ describe('cure', async function () {
       hre
     );
     const { address: source3 } = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(50000n).res,
@@ -618,6 +639,7 @@ describe('cure', async function () {
     // address source3 = address(new SourceMock(50_000));
 
     const { address: source1 } = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(15000n).res,
@@ -625,6 +647,7 @@ describe('cure', async function () {
       hre
     );
     const { address: source2 } = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(30000n).res,
@@ -632,6 +655,7 @@ describe('cure', async function () {
       hre
     );
     const { address: source3 } = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(50000n).res,
@@ -672,6 +696,7 @@ describe('cure', async function () {
     // address source1 = address(new SourceMock(2_000));
     // address source2 = address(new SourceMock(3_000));
     const source1 = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(2000n).res,
@@ -679,6 +704,7 @@ describe('cure', async function () {
       hre
     );
     const source2 = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(3000n).res,
@@ -737,6 +763,7 @@ describe('cure', async function () {
   it('test load no change', async () => {
     // address source = address(new SourceMock(2_000));
     const { address: source } = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(2000n).res,
@@ -761,6 +788,7 @@ describe('cure', async function () {
   it('test load not caged', async () => {
     // address source = address(new SourceMock(2_000));
     const { address: source } = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(2000n).res,
@@ -782,6 +810,7 @@ describe('cure', async function () {
   it('test fail load not added', async () => {
     // address source = address(new SourceMock(2_000));
     const { address: source } = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(2000n).res,
@@ -822,6 +851,7 @@ describe('cure', async function () {
     await invoke(admin, cure, 'cage');
 
     const { address: source } = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(0n).res,
@@ -838,6 +868,7 @@ describe('cure', async function () {
 
   xit('test fail caged del source', async () => {
     const { address: source } = await simpleDeployL2(
+      admin,
       'mock_source',
       {
         cure_: l2Eth(0n).res,
