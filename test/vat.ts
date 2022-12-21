@@ -18,7 +18,7 @@ import {
   uint,
   SplitUintType,
   neg,
-  deployAccount,
+  useDevnetAccount,
 } from './utils';
 import fs from 'fs';
 
@@ -57,11 +57,11 @@ describe('vat', async function () {
     // vm.expectEmit(true, true, true, true);
     // emit Rely(address(this));
 
-    admin = await deployAccount(0);
+    admin = await useDevnetAccount(0);
     _admin = admin.starknetContract.address;
-    user1 = await deployAccount(1);
+    user1 = await useDevnetAccount(1);
     _user1 = user1.starknetContract.address;
-    user2 = await deployAccount(2);
+    user2 = await useDevnetAccount(2);
     _user2 = user2.starknetContract.address;
     vat = await simpleDeployL2(
       admin,

@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import hre, { starknet } from 'hardhat';
 import fs from 'fs';
 
-import { l2Eth, simpleDeployL2, l2String, l2Address, invoke, deployAccount } from './utils';
+import { l2Eth, simpleDeployL2, l2String, l2Address, invoke, useDevnetAccount } from './utils';
 
 // https://github.com/makerdao/xdomain-dss/blob/add-end/src/test/Cure.t.sol
 // #commit#9e7834c57918bfaa23522d8402c78e21a920a00a
@@ -26,11 +26,11 @@ describe('cure', async function () {
     // vm.expectEmit(true, true, true, true);
     // emit Rely(address(this));
 
-    admin = await deployAccount(0);
+    admin = await useDevnetAccount(0);
     _admin = admin.address;
-    ali = await deployAccount(1);
+    ali = await useDevnetAccount(1);
     _ali = ali.starknetContract.address;
-    bob = await deployAccount(2);
+    bob = await useDevnetAccount(2);
     _bob = bob.starknetContract.address;
     cure = await simpleDeployL2(
       admin,

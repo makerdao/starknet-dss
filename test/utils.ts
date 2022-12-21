@@ -136,7 +136,7 @@ export async function simpleDeployL2(
   return await account.deploy(factory, { args });
 }
 
-export async function deployAccount(index: number): Promise<Account> {
+export async function useDevnetAccount(index: number): Promise<Account> {
   const devnetAccounts: PredeployedAccount[] = await starknet.devnet.getPredeployedAccounts();
   const address = devnetAccounts[index].address;
   const private_key = devnetAccounts[index].private_key;

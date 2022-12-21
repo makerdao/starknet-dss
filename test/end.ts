@@ -16,7 +16,7 @@ import {
   ray,
   wad,
   rad,
-  deployAccount,
+  useDevnetAccount,
 } from './utils';
 import fs from 'fs';
 
@@ -63,11 +63,11 @@ describe('end', async function () {
     // vm.expectEmit(true, true, true, true);
     // emit Rely(address(this));
 
-    admin = await deployAccount(0);
+    admin = await useDevnetAccount(0);
     _admin = admin.starknetContract.address;
-    ali = await deployAccount(1);
+    ali = await useDevnetAccount(1);
     _ali = ali.starknetContract.address;
-    bob = await deployAccount(2);
+    bob = await useDevnetAccount(2);
     _bob = bob.starknetContract.address;
     // vat = new Vat();
 
