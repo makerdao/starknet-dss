@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import hre, { starknet } from 'hardhat';
 import fs from 'fs';
 
-import { l2Eth, simpleDeployL2, SplitUint } from './utils';
+import { l2Eth, simpleDeployL2, SplitUint, useDevnetAccount } from './utils';
 
 // https://github.com/makerdao/dss/blob/master/src/test/dai.t.sol
 // #commit#17187f7d47be2f4c71d218785e1155474bbafe8a
@@ -25,13 +25,14 @@ describe('dai', async function () {
   let dai: any;
 
   before(async () => {
-    admin = await starknet.deployAccount('OpenZeppelin');
+    admin = await useDevnetAccount(0);
     _admin = admin.starknetContract.address;
-    user1 = await starknet.deployAccount('OpenZeppelin');
+    user1 = await useDevnetAccount(1);
     _user1 = user1.starknetContract.address;
-    user2 = await starknet.deployAccount('OpenZeppelin');
+    user2 = await useDevnetAccount(2);
     _user2 = user2.starknetContract.address;
     dai = await simpleDeployL2(
+      admin,
       'dai',
       {
         ward: _admin,

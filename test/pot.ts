@@ -20,6 +20,7 @@ import {
   blockTimestamp,
   IEventDataEntry,
   assertEvent,
+  useDevnetAccount,
 } from './utils';
 
 // https://github.com/makerdao/xdomain-dss/blob/add-end/src/test/Pot.t.sol
@@ -45,15 +46,16 @@ describe('pot', async function () {
     // vm.expectEmit(true, true, true, true);
     // emit Rely(address(this));
 
-    admin = await starknet.deployAccount('OpenZeppelin');
+    admin = await useDevnetAccount(0);
     _admin = admin.address;
-    ali = await starknet.deployAccount('OpenZeppelin');
+    ali = await useDevnetAccount(1);
     _ali = ali.starknetContract.address;
-    bob = await starknet.deployAccount('OpenZeppelin');
+    bob = await useDevnetAccount(2);
     _bob = bob.starknetContract.address;
 
     //     vat = new Vat();
     vat = await simpleDeployL2(
+      admin,
       'vat',
       {
         ward: _admin,
@@ -65,6 +67,7 @@ describe('pot', async function () {
 
     //     pot = new Pot(address(vat));
     pot = await simpleDeployL2(
+      admin,
       'pot',
       {
         vat: vat.address,

@@ -24,6 +24,7 @@ import {
   assertEvent,
   checkFileUint,
   checkFileAddress,
+  useDevnetAccount,
 } from './utils';
 import { toFelt } from 'starknet/utils/number';
 
@@ -48,15 +49,16 @@ describe('jug', async function () {
   let vat: StarknetContract;
 
   before(async () => {
-    admin = await starknet.deployAccount('OpenZeppelin');
+    admin = await useDevnetAccount(0);
     _admin = admin.address;
-    ali = await starknet.deployAccount('OpenZeppelin');
+    ali = await useDevnetAccount(1);
     _ali = ali.starknetContract.address;
-    bob = await starknet.deployAccount('OpenZeppelin');
+    bob = await useDevnetAccount(2);
     _bob = bob.starknetContract.address;
 
     //         vat  = new Vat();
     vat = await simpleDeployL2(
+      admin,
       'vat',
       {
         ward: _admin,
@@ -66,7 +68,7 @@ describe('jug', async function () {
     //         vm.expectEmit(true, true, true, true);
     //         emit Rely(address(this));
     //         jug = new Jug(address(vat));
-    jug = await simpleDeployL2('jug', { vat_: vat.address, ward_: _admin }, hre);
+    jug = await simpleDeployL2(admin, 'jug', { vat_: vat.address, ward_: _admin }, hre);
     //         vat.rely(address(jug));
     await invoke(admin, vat, 'rely', { usr: jug.address });
     //         vat.init(ILK);
