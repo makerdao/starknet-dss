@@ -17,6 +17,7 @@ import {
   wad,
   rad,
   useDevnetAccount,
+  assertEvent,
 } from './utils';
 import fs from 'fs';
 
