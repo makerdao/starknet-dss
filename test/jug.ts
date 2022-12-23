@@ -37,7 +37,7 @@ const dumpFile = 'unittest-dump.dmp';
 
 const ILK = l2String('SOME-ILK-A');
 
-describe('jug', async function () {
+xdescribe('jug', async function () {
   this.timeout(900_000);
   let admin: Account;
   let _admin: string;

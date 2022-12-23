@@ -30,7 +30,7 @@ const TEST_ADDRESS = '9379074284321109537785911406195';
 
 const dumpFile = 'unittest-dump.dmp';
 
-describe('pot', async function () {
+xdescribe('pot', async function () {
   this.timeout(900_000);
   let admin: Account;
   let _admin: string;
