@@ -1,3 +1,4 @@
+import { OpenZeppelinAccount } from '@shardlabs/starknet-hardhat-plugin/dist/src/account';
 import { PredeployedAccount } from '@shardlabs/starknet-hardhat-plugin/dist/src/devnet-utils';
 import { expect } from 'chai';
 import { BigNumber, ethers } from 'ethers';
@@ -133,15 +134,17 @@ export async function simpleDeployL2(
 ): Promise<StarknetContract> {
   const factory = await hre.starknet.getContractFactory(name);
   await account.declare(factory);
-  return await account.deploy(factory, { args });
+  return await account.deploy(factory, args);
 }
 
-export async function useDevnetAccount(index: number): Promise<Account> {
+export async function useDevnetAccount(
+  index: number
+): Promise<{ account: OpenZeppelinAccount; address: string }> {
   const devnetAccounts: PredeployedAccount[] = await starknet.devnet.getPredeployedAccounts();
   const address = devnetAccounts[index].address;
   const private_key = devnetAccounts[index].private_key;
   const account = await starknet.OpenZeppelinAccount.getAccountFromAddress(address, private_key);
-  return account;
+  return { account, address };
 }
 
 export async function invoke(

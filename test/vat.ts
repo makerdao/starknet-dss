@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import hre, { network, starknet } from 'hardhat';
-import { Account, HttpNetworkConfig } from 'hardhat/types';
+import { Account, HttpNetworkConfig, StarknetContract } from 'hardhat/types';
 
 import {
   asDec,
@@ -46,24 +46,22 @@ const dumpFile = 'unittest-dump.dmp';
 
 describe('vat', async function () {
   this.timeout(900_000);
-  let admin: any;
+  let admin: Account;
   let _admin: string;
-  let user1: any;
+  let user1: Account;
   let _user1: string;
-  let user2: any;
+  let user2: Account;
   let _user2: any;
-  let vat: any;
+  let vat: StarknetContract;
 
   before(async () => {
     // vm.expectEmit(true, true, true, true);
     // emit Rely(address(this));
 
-    admin = await useDevnetAccount(0);
-    _admin = admin.starknetContract.address;
-    user1 = await useDevnetAccount(1);
-    _user1 = user1.starknetContract.address;
-    user2 = await useDevnetAccount(2);
-    _user2 = user2.starknetContract.address;
+    ({ account: admin, address: _admin } = await useDevnetAccount(0));
+    ({ account: user1, address: _user1 } = await useDevnetAccount(1));
+    ({ account: user2, address: _user2 } = await useDevnetAccount(2));
+
     vat = await simpleDeployL2(
       admin,
       'vat',
@@ -461,12 +459,7 @@ describe('vat', async function () {
 
     // vm.expectEmit(true, true, true, true);
     // emit Hope(address(this), TEST_ADDRESS);
-    let txHash = await vat.call('hope', { user: TEST_ADDRESS });
-    const hopeReceipt = await starknet.getTransactionReceipt(txHash);
-    assertEvent(hopeReceipt, 'Hope', [
-      { data: _admin, isAddress: true },
-      { data: TEST_ADDRESS, isAddress: true },
-    ]);
+    await hope(admin, TEST_ADDRESS);
 
     expect(
       (

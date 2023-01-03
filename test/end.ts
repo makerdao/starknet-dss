@@ -64,12 +64,9 @@ describe('end', async function () {
     // vm.expectEmit(true, true, true, true);
     // emit Rely(address(this));
 
-    admin = await useDevnetAccount(0);
-    _admin = admin.starknetContract.address;
-    ali = await useDevnetAccount(1);
-    _ali = ali.starknetContract.address;
-    bob = await useDevnetAccount(2);
-    _bob = bob.starknetContract.address;
+    ({ account: admin, address: _admin } = await useDevnetAccount(0));
+    ({ account: ali, address: _ali } = await useDevnetAccount(1));
+    ({ account: bob, address: _bob } = await useDevnetAccount(2));
     // vat = new Vat();
 
     vat = await simpleDeployL2(

@@ -25,12 +25,10 @@ describe('dai', async function () {
   let dai: any;
 
   before(async () => {
-    admin = await useDevnetAccount(0);
-    _admin = admin.starknetContract.address;
-    user1 = await useDevnetAccount(1);
-    _user1 = user1.starknetContract.address;
-    user2 = await useDevnetAccount(2);
-    _user2 = user2.starknetContract.address;
+    ({ account: admin, address: _admin } = await useDevnetAccount(0));
+    ({ account: user1, address: _user1 } = await useDevnetAccount(1));
+    ({ account: user2, address: _user2 } = await useDevnetAccount(2));
+
     dai = await simpleDeployL2(
       admin,
       'dai',

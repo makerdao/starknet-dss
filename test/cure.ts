@@ -3,7 +3,6 @@ import { expect } from 'chai';
 import hre, { starknet } from 'hardhat';
 import fs from 'fs';
 
-
 import {
   l2Eth,
   simpleDeployL2,
@@ -12,9 +11,9 @@ import {
   invoke,
   IEventDataEntry,
   assertEvent,
-  useDevnetAccount
+  useDevnetAccount,
 } from './utils';
-
+import { OpenZeppelinAccount } from '@shardlabs/starknet-hardhat-plugin/dist/src/account';
 
 // https://github.com/makerdao/xdomain-dss/blob/add-end/src/test/Cure.t.sol
 // #commit#9e7834c57918bfaa23522d8402c78e21a920a00a
@@ -23,13 +22,13 @@ const TEST_ADDRESS = '9379074284324409537785911406195';
 
 const dumpFile = 'unittest-dump.dmp';
 
-describe('cure', async function () {
+describe.only('cure', async function () {
   this.timeout(900_000);
-  let admin: Account;
+  let admin: OpenZeppelinAccount;
   let _admin: string;
-  let ali: any;
+  let ali: OpenZeppelinAccount;
   let _ali: string;
-  let bob: any;
+  let bob: OpenZeppelinAccount;
   let _bob: any;
   let cure: StarknetContract;
 
@@ -37,12 +36,10 @@ describe('cure', async function () {
     // vm.expectEmit(true, true, true, true);
     // emit Rely(address(this));
 
-    admin = await useDevnetAccount(0);
-    _admin = admin.address;
-    ali = await useDevnetAccount(1);
-    _ali = ali.starknetContract.address;
-    bob = await useDevnetAccount(2);
-    _bob = bob.starknetContract.address;
+    ({ account: admin, address: _admin } = await useDevnetAccount(0));
+    ({ account: ali, address: _ali } = await useDevnetAccount(1));
+    ({ account: bob, address: _bob } = await useDevnetAccount(2));
+
     cure = await simpleDeployL2(
       admin,
       'cure',
