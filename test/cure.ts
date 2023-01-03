@@ -22,7 +22,7 @@ const TEST_ADDRESS = '9379074284324409537785911406195';
 
 const dumpFile = 'unittest-dump.dmp';
 
-describe.only('cure', async function () {
+describe('cure', async function () {
   this.timeout(900_000);
   let admin: OpenZeppelinAccount;
   let _admin: string;
@@ -228,11 +228,11 @@ describe.only('cure', async function () {
     // assertEq(cure.pos(addr2), 2);
     // assertEq(cure.srcs(2), addr3);
     // assertEq(cure.pos(addr3), 3);
-    expect(l2Address((await cure.call('srcs', { index: 0n })).res)).to.equal(addr1);
+    expect(l2Address((await cure.call('srcs', { index: 0n })).res)).to.equal(l2Address(addr1));
     expect((await cure.call('pos', { src: addr1 })).res).to.equal(1n);
-    expect(l2Address((await cure.call('srcs', { index: 1n })).res)).to.equal(addr2);
+    expect(l2Address((await cure.call('srcs', { index: 1n })).res)).to.equal(l2Address(addr2));
     expect((await cure.call('pos', { src: addr2 })).res).to.equal(2n);
-    expect(l2Address((await cure.call('srcs', { index: 2n })).res)).to.equal(addr3);
+    expect(l2Address((await cure.call('srcs', { index: 2n })).res)).to.equal(l2Address(addr3));
     expect((await cure.call('pos', { src: addr3 })).res).to.equal(3n);
     // vm.expectEmit(true, true, true, true);
     // emit Drop(addr3);
@@ -247,9 +247,9 @@ describe.only('cure', async function () {
     let dropReceiptData: IEventDataEntry[] = [{ data: addr3, isAddress: true }];
     assertEvent(dropReceipt, 'Drop', dropReceiptData);
     expect((await cure.call('tCount')).res).to.equal(2n);
-    expect(l2Address((await cure.call('srcs', { index: 0n })).res)).to.equal(addr1);
+    expect(l2Address((await cure.call('srcs', { index: 0n })).res)).to.equal(l2Address(addr1));
     expect((await cure.call('pos', { src: addr1 })).res).to.equal(1n);
-    expect(l2Address((await cure.call('srcs', { index: 1n })).res)).to.equal(addr2);
+    expect(l2Address((await cure.call('srcs', { index: 1n })).res)).to.equal(l2Address(addr2));
     expect((await cure.call('pos', { src: addr2 })).res).to.equal(2n);
     // vm.expectEmit(true, true, true, true);
     // emit Lift(addr3);
@@ -267,11 +267,11 @@ describe.only('cure', async function () {
     assertEvent(liftReceipt, 'Lift', liftReceiptData);
     expect((await cure.call('tCount')).res).to.equal(3n);
 
-    expect(l2Address((await cure.call('srcs', { index: 0n })).res)).to.equal(addr1);
+    expect(l2Address((await cure.call('srcs', { index: 0n })).res)).to.equal(l2Address(addr1));
     expect((await cure.call('pos', { src: addr1 })).res).to.equal(1n);
-    expect(l2Address((await cure.call('srcs', { index: 1n })).res)).to.equal(addr2);
+    expect(l2Address((await cure.call('srcs', { index: 1n })).res)).to.equal(l2Address(addr2));
     expect((await cure.call('pos', { src: addr2 })).res).to.equal(2n);
-    expect(l2Address((await cure.call('srcs', { index: 2n })).res)).to.equal(addr3);
+    expect(l2Address((await cure.call('srcs', { index: 2n })).res)).to.equal(l2Address(addr3));
     expect((await cure.call('pos', { src: addr3 })).res).to.equal(3n);
     // vm.expectEmit(true, true, true, true);
     // emit Drop(addr1);
@@ -286,9 +286,9 @@ describe.only('cure', async function () {
     dropReceiptData = [{ data: addr1, isAddress: true }];
     assertEvent(dropReceipt, 'Drop', dropReceiptData);
     expect((await cure.call('tCount')).res).to.equal(2n);
-    expect(l2Address((await cure.call('srcs', { index: 0n })).res)).to.equal(addr3);
+    expect(l2Address((await cure.call('srcs', { index: 0n })).res)).to.equal(l2Address(addr3));
     expect((await cure.call('pos', { src: addr3 })).res).to.equal(1n);
-    expect(l2Address((await cure.call('srcs', { index: 1n })).res)).to.equal(addr2);
+    expect(l2Address((await cure.call('srcs', { index: 1n })).res)).to.equal(l2Address(addr2));
     expect((await cure.call('pos', { src: addr2 })).res).to.equal(2n);
     // vm.expectEmit(true, true, true, true);
     // emit Lift(addr1);
@@ -305,11 +305,11 @@ describe.only('cure', async function () {
     // assertEq(cure.pos(addr2), 2);
     // assertEq(cure.srcs(2), addr1);
     // assertEq(cure.pos(addr1), 3);
-    expect(l2Address((await cure.call('srcs', { index: 0n })).res)).to.equal(addr3);
+    expect(l2Address((await cure.call('srcs', { index: 0n })).res)).to.equal(l2Address(addr3));
     expect((await cure.call('pos', { src: addr3 })).res).to.equal(1n);
-    expect(l2Address((await cure.call('srcs', { index: 1n })).res)).to.equal(addr2);
+    expect(l2Address((await cure.call('srcs', { index: 1n })).res)).to.equal(l2Address(addr2));
     expect((await cure.call('pos', { src: addr2 })).res).to.equal(2n);
-    expect(l2Address((await cure.call('srcs', { index: 2n })).res)).to.equal(addr1);
+    expect(l2Address((await cure.call('srcs', { index: 2n })).res)).to.equal(l2Address(addr1));
     expect((await cure.call('pos', { src: addr1 })).res).to.equal(3n);
     // address addr4 = address(new SourceMock(0));
     const { address: addr4 } = await simpleDeployL2(
@@ -337,13 +337,13 @@ describe.only('cure', async function () {
     // assertEq(cure.pos(addr1), 3);
     // assertEq(cure.srcs(3), addr4);
     // assertEq(cure.pos(addr4), 4);
-    expect(l2Address((await cure.call('srcs', { index: 0n })).res)).to.equal(addr3);
+    expect(l2Address((await cure.call('srcs', { index: 0n })).res)).to.equal(l2Address(addr3));
     expect((await cure.call('pos', { src: addr3 })).res).to.equal(1n);
-    expect(l2Address((await cure.call('srcs', { index: 1n })).res)).to.equal(addr2);
+    expect(l2Address((await cure.call('srcs', { index: 1n })).res)).to.equal(l2Address(addr2));
     expect((await cure.call('pos', { src: addr2 })).res).to.equal(2n);
-    expect(l2Address((await cure.call('srcs', { index: 2n })).res)).to.equal(addr1);
+    expect(l2Address((await cure.call('srcs', { index: 2n })).res)).to.equal(l2Address(addr1));
     expect((await cure.call('pos', { src: addr1 })).res).to.equal(3n);
-    expect(l2Address((await cure.call('srcs', { index: 3n })).res)).to.equal(addr4);
+    expect(l2Address((await cure.call('srcs', { index: 3n })).res)).to.equal(l2Address(addr4));
     expect((await cure.call('pos', { src: addr4 })).res).to.equal(4n);
     // vm.expectEmit(true, true, true, true);
     // emit Drop(addr2);
@@ -360,11 +360,11 @@ describe.only('cure', async function () {
     // assertEq(cure.pos(addr4), 2);
     // assertEq(cure.srcs(2), addr1);
     // assertEq(cure.pos(addr1), 3);
-    expect(l2Address((await cure.call('srcs', { index: 0n })).res)).to.equal(addr3);
+    expect(l2Address((await cure.call('srcs', { index: 0n })).res)).to.equal(l2Address(addr3));
     expect((await cure.call('pos', { src: addr3 })).res).to.equal(1n);
-    expect(l2Address((await cure.call('srcs', { index: 1n })).res)).to.equal(addr4);
+    expect(l2Address((await cure.call('srcs', { index: 1n })).res)).to.equal(l2Address(addr4));
     expect((await cure.call('pos', { src: addr4 })).res).to.equal(2n);
-    expect(l2Address((await cure.call('srcs', { index: 2n })).res)).to.equal(addr1);
+    expect(l2Address((await cure.call('srcs', { index: 2n })).res)).to.equal(l2Address(addr1));
     expect((await cure.call('pos', { src: addr1 })).res).to.equal(3n);
   });
 
