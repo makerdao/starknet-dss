@@ -28,7 +28,7 @@ from starkware.starknet.common.syscalls import (
     get_contract_address,
     get_block_timestamp,
 )
-from contracts.starknet.safe_math import (
+from safe_math import (
     Int256,
     add,
     _add,
@@ -41,7 +41,7 @@ from contracts.starknet.safe_math import (
     div_rem,
     _felt_to_uint,
 )
-from contracts.starknet.assertions import (
+from assertions import (
     assert_either,
     either,
     both,

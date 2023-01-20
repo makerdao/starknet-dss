@@ -23,7 +23,7 @@ from starkware.starknet.common.syscalls import get_contract_address, get_caller_
 from starkware.cairo.common.math import assert_le
 from starkware.cairo.common.uint256 import Uint256, uint256_le, uint256_neg
 
-from contracts.starknet.assertions import _ge_0, check
+from assertions import _ge_0, check
 
 // Based on: https://github.com/makerdao/xdomain-dss/blob/f447e779576942cf983c00ee8b9dafa937d2427f/src/GemJoin.sol
 

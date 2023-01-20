@@ -51,7 +51,6 @@ describe('cure', async function () {
       },
       hre
     );
-
     await starknet.devnet.dump(dumpFile);
   });
 
@@ -95,7 +94,7 @@ describe('cure', async function () {
   }
 
   // function testConstructor() public {
-  it('test constructor', async () => {
+  it.only('test constructor', async () => {
     // assertEq(cure.live(), 1);
     expect((await cure.call('live')).res).to.be.equal(1n);
     // assertEq(cure.wards(address(this)), 1);

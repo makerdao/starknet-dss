@@ -37,8 +37,8 @@ from starkware.cairo.common.uint256 import (
     uint256_check,
 )
 from starkware.cairo.common.alloc import alloc
-from contracts.starknet.assertions import assert_both, is_lt, either, is_eq, is_zero
-from contracts.starknet.safe_math import add, sub
+from assertions import assert_both, is_lt, either, is_eq, is_zero
+from safe_math import add, sub
 
 // interface SourceLike {
 //     function cure() external view returns (uint256);

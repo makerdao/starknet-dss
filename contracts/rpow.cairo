@@ -1,7 +1,7 @@
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.cairo.common.uint256 import Uint256, uint256_eq
-from contracts.starknet.assertions import _ge_0, assert_0, eq_0
-from contracts.starknet.safe_math import Int256, add, _felt_to_uint, div_rem, mul, div, _sub
+from assertions import _ge_0, assert_0, eq_0
+from safe_math import Int256, add, _felt_to_uint, div_rem, mul, div, _sub
 
 // function _rpow(uint256 x, uint256 n, uint256 b) internal pure returns (uint256 z) {
 //       assembly {

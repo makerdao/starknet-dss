@@ -21,7 +21,7 @@
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.cairo.common.uint256 import Uint256, uint256_check, uint256_le
 from starkware.starknet.common.syscalls import get_caller_address
-from contracts.starknet.safe_math import (
+from safe_math import (
     Int256,
     add,
     _add,
@@ -32,7 +32,7 @@ from contracts.starknet.safe_math import (
     add_signed,
     mul_signed256,
 )
-from contracts.starknet.assertions import (
+from assertions import (
     assert_either,
     either,
     both,
@@ -812,6 +812,9 @@ func frob{
 
     // urns[i][u] = urn;
     _urns.write(i, u, Urn(ink, art));
+
+    // ilks[i].Art = Art_;
+    // debt        = debt_;
 
     // emit Frob(i, u, v, w, dink, dart);
     Frob.emit(i, u, v, w, dink, dart);
