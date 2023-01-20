@@ -105,23 +105,10 @@ xdescribe('pot', async function () {
     const dripReceipt = await starknet.getTransactionReceipt(txHash);
     assertEvent(dripReceipt, 'Drip', []);
 
-    const hre: any = (starknet.devnet as any).hre;
-    const options = {
-      feederGatewayUrl: adaptUrl(hre.config.starknet.networkUrl),
-      gatewayUrl: adaptUrl(hre.config.starknet.networkUrl),
-      hash: txHash,
-    };
-
-    const preparedOptions = hre.starknetWrapper.prepareTxQueryOptions(
-      'get_transaction_trace',
-      options
-    );
-    const trace = await hre.starknetWrapper.execute('starknet', preparedOptions);
-    // const selector = '0x1cf90c76feb7c5a66af63456f5cb56384c258c9ab40ebc62ac1f58f3b3a2fbd';
-    const stdout = JSON.parse(trace['stdout']);
-    const result = stdout['function_invocation']['internal_calls'][0]['result'].map((v: string) =>
-      BigInt(v)
-    );
+    const trace = await starknet.getTransactionTrace(txHash);
+    // const selector = '0x1cf90c76feb7c5a66af6
+    if (!trace.function_invocation) throw Error('Trace Invalid.');
+    const result = trace.function_invocation.internal_calls[0].result.map((v: string) => BigInt(v));
     const tmp = { low: result[0], high: result[1] };
     return tmp;
   }
