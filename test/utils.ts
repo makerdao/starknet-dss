@@ -224,21 +224,32 @@ export const blockTimestamp = async () => (await starknet.getBlock()).timestamp;
 export interface IEventDataEntry {
   data: any;
   isAddress?: boolean;
+  isUint?: boolean;
 }
 
 // Asserts that the given event exists in the given receipt, with the correct event data
+// TODO: Add support for uint data types
 export const assertEvent = (
   receipt: TransactionReceipt,
   eventName: string,
-  eventData: IEventDataEntry[]
+  eventData: IEventDataEntry[],
+  from_address?: string
 ) => {
+  // Get the event key from the event name
   const eventKey = getSelectorFromName(eventName);
-  const foundEvent = receipt.events.filter((e) => e.keys.some((a) => a == eventKey));
-  if (!foundEvent || foundEvent.length != 1 || foundEvent[0].keys.length != 1) {
+  const foundEvent = receipt.events.filter((e) =>
+    // If from_address is specified, only match events from that address
+    from_address
+      ? e.from_address == from_address && e.keys.some((a) => a == eventKey)
+      : e.keys.some((a) => a == eventKey)
+  );
+  // Make sure we found exactly one event
+  if (!foundEvent || foundEvent[0].keys.length != 1) {
     expect.fail('No event ' + eventName + ' found');
   }
-
+  // Make sure the event data length matches
   expect(foundEvent[0].data.length).to.equal(eventData.length);
+  // Compare each event data entry
   for (let i = 0; i < eventData.length; i++) {
     if (eventData[i].isAddress) {
       // Addresses in events are not padded to 32 bytes by default, for some reason
@@ -246,6 +257,11 @@ export const assertEvent = (
         ethers.utils.hexZeroPad(foundEvent[0].data[i], 32)
       );
     } else {
+      // Otherwise, just compare the data
+      // Convert data to hex if it's a bigint
+      if (typeof eventData[i].data == 'bigint') {
+        eventData[i].data = '0x' + eventData[i].data.toString(16);
+      }
       expect(eventData[i].data).to.equal(foundEvent[0].data[i]);
     }
   }

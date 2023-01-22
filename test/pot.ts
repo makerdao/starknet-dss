@@ -283,7 +283,8 @@ xdescribe('pot', async function () {
     const joinReceipt = await starknet.getTransactionReceipt(txHash);
     const eventDataJoin: IEventDataEntry[] = [
       { data: _admin, isAddress: true },
-      { data: uint(100n * WAD) },
+      { data: uint(100n * WAD).low },
+      { data: uint(100n * WAD).high },
     ];
     assertEvent(joinReceipt, 'Join', eventDataJoin);
     //     assertEq(vat.dai(address(this)), 0);
@@ -328,7 +329,8 @@ xdescribe('pot', async function () {
     const exitReceipt = await starknet.getTransactionReceipt(txHash);
     const eventDataExit: IEventDataEntry[] = [
       { data: _admin, isAddress: true },
-      { data: uint(100n * WAD) },
+      { data: uint(100n * WAD).low },
+      { data: uint(100n * WAD).high },
     ];
     assertEvent(exitReceipt, 'Exit', eventDataExit);
     //     assertEq(vat.dai(address(this)), 100 * RAD);

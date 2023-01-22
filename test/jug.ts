@@ -203,7 +203,8 @@ xdescribe('jug', async function () {
     const eventDataFile: IEventDataEntry[] = [
       { data: toFelt(ILK) },
       { data: l2String('duty') },
-      { data: uint(1n) },
+      { data: uint(1n).low },
+      { data: uint(1n).high },
     ];
     assertEvent(fileReceipt, 'File_duty', eventDataFile);
 

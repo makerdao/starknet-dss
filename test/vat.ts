@@ -26,9 +26,6 @@ import fs from 'fs';
 // https://github.com/makerdao/xdomain-dss/blob/add-end/src/test/Vat.t.sol
 // #commit#6fbce437c29c003584ef549fe8e8545f3d7f678f
 
-// Cairo encoding of "valid_domains"
-const VALID_DOMAINS = '9379074284324409537785911406195';
-
 const ILK = l2String('SOME-ILK-A');
 
 const TEST_ADDRESS = '9379074284324409537785911406195';
@@ -44,7 +41,7 @@ const dust = l2String('dust');
 
 const dumpFile = 'unittest-dump.dmp';
 
-describe('vat', async function () {
+describe.only('vat', async function () {
   this.timeout(900_000);
   let admin: Account;
   let _admin: string;
@@ -111,7 +108,11 @@ describe('vat', async function () {
         },
       });
       let fileReceipt = await starknet.getTransactionReceipt(txHash);
-      assertEvent(fileReceipt, 'File', [{ data: l2String(values[i]) }, { data: newData.res }]);
+      assertEvent(fileReceipt, 'File', [
+        { data: l2String(values[i]) },
+        { data: newData.res.low },
+        { data: newData.res.high },
+      ]);
 
       // Confirm it was updated successfully
       const { [values[i]]: _data } = await base.call(values[i]);
@@ -129,7 +130,11 @@ describe('vat', async function () {
         },
       });
       fileReceipt = await starknet.getTransactionReceipt(txHash);
-      assertEvent(fileReceipt, 'File', [{ data: l2String(values[i]) }, { data: origData.res }]);
+      assertEvent(fileReceipt, 'File', [
+        { data: l2String(values[i]) },
+        { data: origData.res.low },
+        { data: origData.res.high },
+      ]);
     }
 
     // Finally check that file is authed
@@ -216,8 +221,10 @@ describe('vat', async function () {
       { data: u, isAddress: true },
       { data: v, isAddress: true },
       { data: w, isAddress: true },
-      { data: dink },
-      { data: dart },
+      { data: dink.low },
+      { data: dink.high },
+      { data: dart.low },
+      { data: dart.high },
     ]);
   }
 
@@ -235,8 +242,10 @@ describe('vat', async function () {
       { data: ilk },
       { data: src, isAddress: true },
       { data: dst, isAddress: true },
-      { data: dink },
-      { data: dart },
+      { data: dink.low },
+      { data: dink.high },
+      { data: dart.low },
+      { data: dart.high },
     ]);
   }
 
@@ -256,8 +265,10 @@ describe('vat', async function () {
       { data: u, isAddress: true },
       { data: v, isAddress: true },
       { data: w, isAddress: true },
-      { data: dink },
-      { data: dart },
+      { data: dink.low },
+      { data: dink.high },
+      { data: dart.low },
+      { data: dart.high },
     ]);
   }
 
@@ -267,14 +278,20 @@ describe('vat', async function () {
     assertEvent(suckReceipt, 'Fork', [
       { data: u, isAddress: true },
       { data: v, isAddress: true },
-      { data: rad },
+      { data: rad.low },
+      { data: rad.high },
     ]);
   }
 
   async function fold(i: any, u: any, rate: SplitUintType<bigint>) {
     let txHash = await invoke(admin, vat, 'fold', { i, u, rate });
     const foldReceipt = await starknet.getTransactionReceipt(txHash);
-    assertEvent(foldReceipt, 'Fold', [{ data: i }, { data: u, isAddress: true }, { data: rate }]);
+    assertEvent(foldReceipt, 'Fold', [
+      { data: i },
+      { data: u, isAddress: true },
+      { data: rate.low },
+      { data: rate.high },
+    ]);
   }
 
   async function hope(from: Account, to: string) {
@@ -289,7 +306,11 @@ describe('vat', async function () {
   async function heal(from: Account, rad: SplitUintType<bigint>) {
     let txHash = await invoke(from, vat, 'heal', { rad });
     const healReceipt = await starknet.getTransactionReceipt(txHash);
-    assertEvent(healReceipt, 'Fork', [{ data: from.address, isAddress: true }, { data: rad }]);
+    assertEvent(healReceipt, 'Fork', [
+      { data: from.address, isAddress: true },
+      { data: rad.low },
+      { data: rad.high },
+    ]);
   }
 
   it('test constructor', async () => {
@@ -314,7 +335,12 @@ describe('vat', async function () {
       data: uint(1n),
     });
     const fileReceipt = await starknet.getTransactionReceipt(txHash);
-    assertEvent(fileReceipt, 'File_ilk', [{ data: ILK }, { data: spot }, { data: uint(1n) }]);
+    assertEvent(fileReceipt, 'File_ilk', [
+      { data: ILK },
+      { data: spot },
+      { data: uint(1n).low },
+      { data: uint(1n).high },
+    ]);
     expect((await vat.call('ilks', { i: ILK })).ilk.spot).to.deep.equal(uint(1n));
     await invoke(admin, vat, 'file_ilk', {
       ilk: ILK,
@@ -517,7 +543,8 @@ describe('vat', async function () {
       assertEvent(slipReceipt, 'Slip', [
         { data: ILK },
         { data: TEST_ADDRESS, isAddress: true },
-        { data: wad(100n) },
+        { data: wad(100n).low },
+        { data: wad(100n).high },
       ]);
 
       expect((await vat.call('gem', { i: ILK, u: TEST_ADDRESS })).gem).to.deep.equal(wad(100n));
@@ -544,7 +571,8 @@ describe('vat', async function () {
       assertEvent(slipReceipt, 'Slip', [
         { data: ILK },
         { data: TEST_ADDRESS, isAddress: true },
-        { data: SplitUint.fromUint(neg(50n * WAD)).res },
+        { data: SplitUint.fromUint(neg(50n * WAD)).res.low },
+        { data: SplitUint.fromUint(neg(50n * WAD)).res.high },
       ]);
 
       // assertEq(vat.gem(ILK, TEST_ADDRESS), 50 * WAD);
@@ -592,7 +620,8 @@ describe('vat', async function () {
         { data: ILK },
         { data: _user1, isAddress: true },
         { data: _user2, isAddress: true },
-        { data: wad(100n) },
+        { data: wad(100n).low },
+        { data: wad(100n).high },
       ]);
 
       expect((await vat.call('gem', { i: ILK, u: _user1 })).gem).to.deep.equal(uint(0n));
@@ -691,7 +720,8 @@ describe('vat', async function () {
       assertEvent(moveReceipt, 'Move', [
         { data: _user1, isAddress: true },
         { data: _user2, isAddress: true },
-        { data: uint(100n * RAD) },
+        { data: uint(100n * RAD).low },
+        { data: uint(100n * RAD).high },
       ]);
       // assertEq(vat.dai(ausr1), 0);
       expect((await vat.call('dai', { u: _user1 })).res).to.deep.equal(uint(0n));

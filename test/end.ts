@@ -370,7 +370,7 @@ describe('end', async function () {
     // assertEq(end.wards(address(this)), 1);
     expect((await end.call('wards', { user: _admin })).res).to.equal(1n);
     // assertEq(address(end.vat()), address(vat));
-    expect(l2Address((await end.call('vat')).res)).to.equal(vat.address);
+    expect(l2Address((await end.call('vat')).res)).to.equal(l2Address(vat.address));
   });
 
   //   function testAuth() public {
@@ -531,12 +531,19 @@ describe('end', async function () {
     // end.skim("gold", urn1);
     txHash = await invoke(admin, end, 'skim', { ilk: l2String('gold'), urn: urn1 });
     let skimReceipt = await starknet.getTransactionReceipt(txHash);
-    assertEvent(skimReceipt, 'Skim', [
-      { data: l2String('gold') },
-      { data: urn1, isAddress: true },
-      { data: eth('3').toBigInt() },
-      { data: eth('15').toBigInt() },
-    ]);
+    assertEvent(
+      skimReceipt,
+      'Skim',
+      [
+        { data: l2String('gold') },
+        { data: urn1, isAddress: true },
+        { data: uint(eth('3').toBigInt()).low },
+        { data: uint(eth('3').toBigInt()).high },
+        { data: uint(eth('15').toBigInt()).low },
+        { data: uint(eth('15').toBigInt()).high },
+      ],
+      end.address
+    );
     // // local checks:
     // assertEq(art("gold", urn1), 0);
     // assertEq(ink("gold", urn1), 7 ether);
@@ -564,7 +571,8 @@ describe('end', async function () {
     assertEvent(freeReceipt, 'Free', [
       { data: l2String('gold') },
       { data: ali.address, isAddress: true },
-      { data: eth('7').toBigInt() },
+      { data: uint(eth('7').toBigInt()).low },
+      { data: uint(eth('7').toBigInt()).high },
     ]);
     expect(await ink('gold', urn1)).to.deep.equal(rad(0n));
     expect(await gem('gold', urn1)).to.deep.equal(uint(eth('7').toBigInt()));
@@ -601,7 +609,8 @@ describe('end', async function () {
     let packReceipt = await starknet.getTransactionReceipt(txHash);
     assertEvent(packReceipt, 'Pack', [
       { data: ali.address, isAddress: true },
-      { data: eth('15').toBigInt() },
+      { data: uint(eth('15').toBigInt()).low },
+      { data: uint(eth('15').toBigInt()).high },
     ]);
     // // global checks:
     // assertEq(vat.debt(), rad(15 ether));
@@ -624,7 +633,8 @@ describe('end', async function () {
     assertEvent(cashReceipt, 'Cash', [
       { data: l2String('gold') },
       { data: ali.address, isAddress: true },
-      { data: eth('15').toBigInt() },
+      { data: uint(eth('15').toBigInt()).low },
+      { data: uint(eth('15').toBigInt()).high },
     ]);
     // // local checks:
     // assertEq(dai(urn1), 15 ether);
