@@ -41,7 +41,7 @@ const dust = l2String('dust');
 
 const dumpFile = 'unittest-dump.dmp';
 
-describe.only('vat', async function () {
+describe('vat', async function () {
   this.timeout(900_000);
   let admin: Account;
   let _admin: string;
