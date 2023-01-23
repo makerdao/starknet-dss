@@ -71,6 +71,9 @@ const config: HardhatUserConfig = {
     network: 'starknetLocal',
     recompile: true,
   },
+  paths: {
+    starknetSources: "contracts"
+  }
 };
 
 export default config;

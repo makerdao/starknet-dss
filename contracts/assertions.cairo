@@ -10,7 +10,7 @@ from starkware.cairo.common.uint256 import (
     uint256_le,
     uint256_check,
 )
-from contracts.starknet.safe_math import Int256
+from safe_math import Int256
 
 func either(a: felt, b: felt) -> (res: felt) {
     if (a + b == 0) {

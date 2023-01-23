@@ -2,7 +2,7 @@
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.cairo.common.uint256 import Uint256
-from contracts.starknet.safe_math import mul, div
+from safe_math import mul, div
 from starkware.starknet.common.syscalls import get_caller_address
 
 // interface VatLike {

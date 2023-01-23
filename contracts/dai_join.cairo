@@ -18,8 +18,8 @@
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.starknet.common.syscalls import get_contract_address, get_caller_address
 from starkware.cairo.common.uint256 import Uint256, split_64
-from contracts.starknet.safe_math import mul
-from contracts.starknet.assertions import check
+from safe_math import mul
+from assertions import check
 
 // Based on: https://github.com/makerdao/xdomain-dss/blob/f447e779576942cf983c00ee8b9dafa937d2427f/src/DaiJoin.sol
 

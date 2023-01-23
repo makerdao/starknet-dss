@@ -7,8 +7,8 @@ from starkware.starknet.common.syscalls import (
     get_block_timestamp,
     get_contract_address,
 )
-from contracts.starknet.safe_math import add, mul, div, sub, _felt_to_uint
-from contracts.starknet.rpow import _rpow
+from safe_math import add, mul, div, sub, _felt_to_uint
+from rpow import _rpow
 
 // https://github.com/makerdao/xdomain-dss/blob/add-end/src/Pot.sol
 

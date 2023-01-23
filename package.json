@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "compile:l1": "hardhat compile",
-    "compile:l2": "hardhat starknet-compile ./contracts/starknet/*",
+    "compile:l2": "hardhat starknet-compile",
     "compile": "yarn compile:l1 && yarn compile:l2",
     "deploy": "sh deploy.sh",
     "test:l2": "yarn hardhat test test/*.ts --starknet-network 'starknetLocal'",

@@ -22,9 +22,9 @@
 %lang starknet
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
-from contracts.starknet.safe_math import Int256, add, _felt_to_uint, div_rem, mul, div, _sub
-from contracts.starknet.assertions import _ge_0, assert_0, eq_0
-from contracts.starknet.rpow import _rpow
+from safe_math import Int256, add, _felt_to_uint, div_rem, mul, div, _sub
+from assertions import _ge_0, assert_0, eq_0
+from rpow import _rpow
 from starkware.starknet.common.syscalls import (
     get_caller_address,
     get_contract_address,
