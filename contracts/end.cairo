@@ -217,7 +217,11 @@ namespace CureLike {
 // }
 @contract_interface
 namespace ClaimLike {
-    func transferFrom(src: felt, dst: felt, amount: Uint256) -> (res: felt) {
+    func mint(to: felt, value: Uint256) {
+    }
+    func burn(account: felt, value: Uint256) {
+    }
+    func approve(spender: felt, value: Uint256) {
     }
 }
 
@@ -522,6 +526,12 @@ func vat{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     return (res,);
 }
 
+@view
+func debt{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: Uint256) {
+    let (res) = _debt.read();
+    return (res,);
+}
+
 // --- Math ---
 
 // uint256 constant WAD = 10 ** 18;
@@ -815,8 +825,8 @@ func thaw{
     }
     // require(vat.dai(address(vow)) == 0, "End/surplus-not-zero");
     let (vat) = _vat.read();
+    let (vow) = _vow.read();
     with_attr error_message("End/surplus-not-zero") {
-        let (vow) = _vow.read();
         let (surplus) = VatLike.dai(vat, vow);
         assert_0(surplus);
     }
@@ -834,8 +844,20 @@ func thaw{
     let (cure_debt) = CureLike.tell(cure);
     let (new_debt) = sub(vat_debt, cure_debt);
     _debt.write(new_debt);
+
+    let (self) = get_contract_address();
+    let (claim) = _claim.read();
+
+    // claim.mint(address(this), debt);
+    ClaimLike.mint(claim, self, new_debt);
+
+    // claim.approve(vow, type(uint256).max);
+    let (max) = _felt_to_uint(2 ** 255);
+    ClaimLike.approve(claim, vow, max);
+
     // emit Thaw();
     Thaw.emit();
+
     return ();
 }
 
@@ -896,12 +918,10 @@ func pack{
     }
 
     let (sender) = get_caller_address();
-    with_attr error_message("End/transfer-failed") {
-        let (claim) = _claim.read();
-        let (vow) = _vow.read();
-        let (success) = ClaimLike.transferFrom(claim, sender, vow, wad);
-        assert_not_zero(success);
-    }
+    // claim.burn(msg.sender, wad * RAY);
+    let (value) = mul(wad, Uint256(RAY, 0));
+    let (claim) = _claim.read();
+    ClaimLike.burn(claim, sender, value);
 
     let (bag) = _bag.read(sender);
     let (new_bag) = add(bag, wad);

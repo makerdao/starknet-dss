@@ -586,6 +586,15 @@ describe('end', async function () {
     txHash = await invoke(admin, end, 'thaw');
     let thawReceipt = await starknet.getTransactionReceipt(txHash);
     assertEvent(thawReceipt, 'Thaw', []);
+
+    // assertEq(end.debt(), rad(15 ether));
+    expect((await end.call('debt')).res).to.deep.equal(rad(eth('15').toBigInt()));
+    // assertEq(claimToken.totalSupply(), rad(15 ether));
+    expect((await claimToken.call('totalSupply')).res).to.deep.equal(rad(eth('15').toBigInt()));
+    // assertEq(claimToken.balanceOf(address(end)), rad(15 ether));
+    expect((await claimToken.call('balanceOf', { user: end.address })).res).to.deep.equal(
+      rad(eth('15').toBigInt())
+    );
     // vm.expectEmit(true, true, true, true);
     // emit Flow("gold");
     // end.flow("gold");
@@ -594,17 +603,17 @@ describe('end', async function () {
     assertEvent(flowReceipt, 'Flow', [{ data: l2String('gold') }]);
     // assertTrue(end.fix("gold") != 0);
     expect(await end.call('fix', { ilk: l2String('gold') })).to.not.be.deep.equal(l2Eth(0n));
-    // // dai redemption
-    // claimToken.mint(address(ali), 15 ether);
-    // ali.approveClaim(address(end), 15 ether);
+    // dai redemption
+    // claimToken.mint(address(ali), rad(15 ether));
+    await invoke(admin, claimToken, 'mint', {
+      account: ali.address,
+      amount: rad(eth('15').toBigInt()),
+    });
+    // ali.approveClaim(address(end), rad(15 ether));
+    await approveClaim(ali, end.address, eth('15').toBigInt() * RAY);
     // vm.expectEmit(true, true, true, true);
     // emit Pack(address(ali), 15 ether);
     // ali.pack(15 ether);
-    await invoke(admin, claimToken, 'mint', {
-      account: ali.address,
-      amount: l2Eth(eth('15')).res,
-    });
-    await approveClaim(ali, end.address, eth('15'));
     txHash = await invoke(ali, end, 'pack', { wad: l2Eth(eth('15')).res });
     let packReceipt = await starknet.getTransactionReceipt(txHash);
     assertEvent(packReceipt, 'Pack', [
@@ -612,19 +621,17 @@ describe('end', async function () {
       { data: uint(eth('15').toBigInt()).low },
       { data: uint(eth('15').toBigInt()).high },
     ]);
-    // // global checks:
+    // global checks:
     // assertEq(vat.debt(), rad(15 ether));
-    // assertEq(vat.vice(), rad(15 ether));
-    // assertEq(vat.sin(address(vow)), rad(15 ether));
-    // assertEq(claimToken.balanceOf(address(vow)), 15 ether);
     expect((await vat.call('debt')).debt).to.deep.equal(rad(eth('15').toBigInt()));
+    // assertEq(vat.vice(), rad(15 ether));
     expect((await vat.call('vice')).vice).to.deep.equal(rad(eth('15').toBigInt()));
+    // assertEq(vat.sin(address(vow)), rad(15 ether));
     expect((await vat.call('sin', { u: vow.address })).sin).to.deep.equal(
       rad(eth('15').toBigInt())
     );
-    expect(await claimToken.call('balanceOf', { user: vow.address })).to.deep.equal(
-      l2Eth(eth('15'))
-    );
+    // assertEq(claimToken.balanceOf(address(vow)), 15 ether);
+    expect(await claimToken.call('balanceOf', { user: _ali })).to.deep.equal(l2Eth(eth('0')));
     // vm.expectEmit(true, true, true, true);
     // emit Cash("gold", address(ali), 15 ether);
     // ali.cash("gold", 15 ether);
@@ -636,7 +643,7 @@ describe('end', async function () {
       { data: uint(eth('15').toBigInt()).low },
       { data: uint(eth('15').toBigInt()).high },
     ]);
-    // // local checks:
+    // local checks:
     // assertEq(dai(urn1), 15 ether);
     // assertEq(gem("gold", urn1), 3 ether);
     // ali.exit(gold.gemA, address(this), 3 ether);
@@ -729,29 +736,27 @@ describe('end', async function () {
     // assertTrue(end.fix("gold") != 0);
     expect(await end.call('fix', { ilk: l2String('gold') })).to.not.be.deep.equal(l2Eth(0n));
 
-    // // first dai redemption
-    // claimToken.mint(address(ali), 15 ether);
-    // ali.approveClaim(address(end), 15 ether);
-    // ali.pack(15 ether);
+    // first dai redemption
+    // claimToken.mint(address(ali), rad(15 ether));
     await invoke(admin, claimToken, 'mint', {
       account: ali.address,
-      amount: l2Eth(eth('15')).res,
+      amount: rad(eth('15').toBigInt()),
     });
-    await approveClaim(ali, end.address, eth('15'));
+    // ali.approveClaim(address(end), rad(15 ether));
+    await approveClaim(ali, end.address, eth('15').toBigInt() * RAY);
+    // ali.pack(15 ether);
     await invoke(ali, end, 'pack', { wad: l2Eth(eth('15')).res });
-    // // global checks:
+    // global checks:
     // assertEq(vat.debt(), rad(18 ether));
-    // assertEq(vat.vice(), rad(18 ether));
-    // assertEq(vat.sin(address(vow)), rad(18 ether));
-    // assertEq(claimToken.balanceOf(address(vow)), 15 ether);
     expect((await vat.call('debt')).debt).to.deep.equal(rad(eth('18').toBigInt()));
+    // assertEq(vat.vice(), rad(18 ether));
     expect((await vat.call('vice')).vice).to.deep.equal(rad(eth('18').toBigInt()));
+    // assertEq(vat.sin(address(vow)), rad(18 ether));
     expect((await vat.call('sin', { u: vow.address })).sin).to.deep.equal(
       rad(eth('18').toBigInt())
     );
-    expect(await claimToken.call('balanceOf', { user: vow.address })).to.deep.equal(
-      l2Eth(eth('15'))
-    );
+    // assertEq(claimToken.balanceOf(address(vow)), 15 ether);
+    expect(await claimToken.call('balanceOf', { user: _ali })).to.deep.equal(l2Eth(eth('0')));
     // ali.cash("gold", 15 ether);
     await invoke(ali, end, 'cash', { ilk: l2String('gold'), wad: l2Eth(eth('15')).res });
 
@@ -767,30 +772,28 @@ describe('end', async function () {
     expect(await gem('gold', urn1)).to.deep.equal(fix);
     await invoke(ali, gold.gemA, 'exit', { user: _admin, wad: fix });
 
-    // // second dai redemption
-    // claimToken.mint(address(bob), 3 ether);
-    // bob.approveClaim(address(end), 3 ether);
-    // bob.pack(3 ether);
+    // second dai redemption
+    // claimToken.mint(address(bob), rad(3 ether));
     await invoke(admin, claimToken, 'mint', {
       account: bob.address,
-      amount: l2Eth(eth('3')).res,
+      amount: rad(eth('3').toBigInt()),
     });
-    await approveClaim(bob, end.address, eth('3'));
+    // bob.approveClaim(address(end), rad(3 ether));
+    await approveClaim(bob, end.address, eth('3').toBigInt() * RAY);
+    // bob.pack(3 ether);
     await invoke(bob, end, 'pack', { wad: l2Eth(eth('3')).res });
 
-    // // global checks:
+    // global checks:
     // assertEq(vat.debt(), rad(18 ether));
-    // assertEq(vat.vice(), rad(18 ether));
-    // assertEq(vat.sin(address(vow)), rad(18 ether));
-    // assertEq(claimToken.balanceOf(address(vow)), 18 ether);
     expect((await vat.call('debt')).debt).to.deep.equal(rad(eth('18').toBigInt()));
+    // assertEq(vat.vice(), rad(18 ether));
     expect((await vat.call('vice')).vice).to.deep.equal(rad(eth('18').toBigInt()));
+    // assertEq(vat.sin(address(vow)), rad(18 ether));
     expect((await vat.call('sin', { u: vow.address })).sin).to.deep.equal(
       rad(eth('18').toBigInt())
     );
-    expect(await claimToken.call('balanceOf', { user: vow.address })).to.deep.equal(
-      l2Eth(eth('18'))
-    );
+    // assertEq(claimToken.balanceOf(address(vow)), 18 ether);
+    expect(await claimToken.call('balanceOf', { user: _bob })).to.deep.equal(l2Eth(eth('0')));
 
     // bob.cash("gold", 3 ether);
     await invoke(bob, end, 'cash', { ilk: l2String('gold'), wad: l2Eth(eth('3')).res });
@@ -1014,18 +1017,18 @@ describe('end', async function () {
     // assertTrue(end.fix("gold") != 0);
     expect(await end.call('fix', { ilk: l2String('gold') })).to.not.be.deep.equal(l2Eth(0n));
 
-    // // first dai redemption
-    // claimToken.mint(address(ali), 14 ether);
-    // ali.approveClaim(address(end), 14 ether);
+    // first dai redemption
+    // claimToken.mint(address(ali), rad(14 ether));
+    // ali.approveClaim(address(end), rad(14 ether));
     // ali.pack(14 ether);
     await invoke(admin, claimToken, 'mint', {
       account: ali.address,
-      amount: l2Eth(eth('14')).res,
+      amount: rad(eth('14').toBigInt()),
     });
-    await approveClaim(ali, end.address, eth('14'));
+    await approveClaim(ali, end.address, eth('14').toBigInt() * RAY);
     await invoke(ali, end, 'pack', { wad: l2Eth(eth('14')).res });
 
-    // // global checks:
+    // global checks:
     // assertEq(vat.debt(), rad(17 ether));
     // assertEq(vat.vice(), rad(17 ether));
     expect((await vat.call('debt')).debt).to.deep.equal(rad(eth('17').toBigInt()));
@@ -1046,18 +1049,18 @@ describe('end', async function () {
     expect(await gem('gold', urn1)).to.deep.equal(fix);
     await invoke(ali, gold.gemA, 'exit', { user: _admin, wad: fix });
 
-    // // second dai redemption
-    // claimToken.mint(address(bob), 16 ether);
-    // bob.approveClaim(address(end), 16 ether);
+    // second dai redemption
+    // claimToken.mint(address(bob), rad(16 ether));
+    // bob.approveClaim(address(end), rad(16 ether));
     // bob.pack(3 ether);
     await invoke(admin, claimToken, 'mint', {
       account: bob.address,
-      amount: l2Eth(eth('16')).res,
+      amount: rad(eth('16').toBigInt()),
     });
-    await approveClaim(bob, end.address, eth('16'));
+    await approveClaim(bob, end.address, eth('16').toBigInt() * RAY);
     await invoke(bob, end, 'pack', { wad: l2Eth(eth('3')).res });
 
-    // // global checks:
+    // global checks:
     // assertEq(vat.debt(), rad(17 ether));
     // assertEq(vat.vice(), rad(17 ether));
     expect((await vat.call('debt')).debt).to.deep.equal(rad(eth('17').toBigInt()));
@@ -1065,7 +1068,7 @@ describe('end', async function () {
     // bob.cash("gold", 3 ether);
     await invoke(bob, end, 'cash', { ilk: l2String('gold'), wad: l2Eth(eth('3')).res });
 
-    // // local checks:
+    // local checks:
     // assertEq(dai(urn2), 3 ether);
     expect(await dai(urn2)).to.deep.equal(uint(eth('3').toBigInt()));
     // assertEq(gem("gold", urn2), rmul(fix, 3 ether));
@@ -1149,18 +1152,18 @@ describe('end', async function () {
     await invoke(admin, end, 'flow', { ilk: l2String('gold') });
     // end.flow("coal");
     await invoke(admin, end, 'flow', { ilk: l2String('coal') });
-    // claimToken.mint(address(ali), 1000 ether);
+    // claimToken.mint(address(ali), rad(1000 ether));
     // ali.approveClaim(address(end), type(uint256).max);
     await invoke(admin, claimToken, 'mint', {
       account: ali.address,
-      amount: l2Eth(eth('1000')).res,
+      amount: rad(eth('1000').toBigInt()),
     });
     await approveClaim(ali, end.address, MAX);
-    // claimToken.mint(address(bob), 1000 ether);
+    // claimToken.mint(address(bob), rad(1000 ether));
     // bob.approveClaim(address(end), type(uint256).max);
     await invoke(admin, claimToken, 'mint', {
       account: bob.address,
-      amount: l2Eth(eth('1000')).res,
+      amount: rad(eth('1000').toBigInt()),
     });
     await approveClaim(bob, end.address, MAX);
 
