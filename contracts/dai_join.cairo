@@ -68,6 +68,18 @@ func Join(usr: felt, wad: Uint256) {
 func Exit(usr: felt, wad: Uint256) {
 }
 
+@view
+func vat{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _vat.read();
+    return (res,);
+}
+
+@view
+func dai{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (res: felt) {
+    let (res) = _dai.read();
+    return (res,);
+}
+
 // constructor(address vat_, address dai_) public {
 @constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
