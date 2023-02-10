@@ -174,13 +174,13 @@ func base{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> 
 //     }
 @constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    vat_: felt, ward_: felt
+    vat: felt, ward: felt
 ) {
-    _wards.write(ward_, 1);
+    _wards.write(ward, 1);
 
-    _vat.write(vat_);
+    _vat.write(vat);
 
-    Rely.emit(ward_);
+    Rely.emit(ward);
 
     return ();
 }
