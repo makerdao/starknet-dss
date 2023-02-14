@@ -1,6 +1,6 @@
 from starkware.cairo.common.bitwise import bitwise_and
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
-from starkware.cairo.common.math import assert_not_zero
+from starkware.cairo.common.math import assert_not_zero, assert_lt_felt
 from starkware.cairo.common.math_cmp import is_le_felt
 from starkware.cairo.common.uint256 import (
     Uint256,
@@ -12,6 +12,8 @@ from starkware.cairo.common.uint256 import (
 )
 
 using Int256 = Uint256;
+
+const ETH_ADDRESS_BOUND = 2 ** 160;
 
 func either(a: felt, b: felt) -> (res: felt) {
     if (a + b == 0) {
@@ -84,6 +86,12 @@ func le{range_check_ptr}(a: Uint256, b: Uint256) -> (res: felt) {
     }
 }
 
+func gt{range_check_ptr}(a: Uint256, b: Uint256) -> (res: felt) {
+    alloc_locals;
+    let (local lt) = uint256_lt(b, a);
+    return (res=lt);
+}
+
 func _le{range_check_ptr}(a: Int256, b: Int256) -> (res: felt) {
     alloc_locals;
     let (local lt) = uint256_signed_le(a, b);
@@ -98,6 +106,24 @@ func _le{range_check_ptr}(a: Int256, b: Int256) -> (res: felt) {
 func assert_le{range_check_ptr}(a: Uint256, b: Uint256) -> () {
     let (is_le) = uint256_le(a, b);
     assert is_le = 1;
+    return ();
+}
+
+func assert_ge{range_check_ptr}(a: Uint256, b: Uint256) -> () {
+    let (is_ge) = uint256_le(b, a);
+    assert is_ge = 1;
+    return ();
+}
+
+func assert_lt{range_check_ptr}(a: Uint256, b: Uint256) -> () {
+    let (is_lt) = uint256_lt(a, b);
+    assert is_lt = 1;
+    return ();
+}
+
+func assert_gt{range_check_ptr}(a: Uint256, b: Uint256) -> () {
+    let (is_gt) = uint256_lt(b, a);
+    assert is_gt = 1;
     return ();
 }
 
@@ -143,4 +169,16 @@ func is_zero(value) -> (res: felt) {
     }
 
     return (res=0);
+}
+
+func assert_valid_eth_address{range_check_ptr}(address: felt) {
+    // Check address is valid.
+    with_attr error_message("DomainGuest/address-out-of-range") {
+        assert_lt_felt(address, ETH_ADDRESS_BOUND);
+    }
+
+    with_attr error_message("DomainGuest/zero-address") {
+        assert_not_zero(address);
+    }
+    return ();
 }
