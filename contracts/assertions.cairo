@@ -56,6 +56,12 @@ func assert_0(a: Uint256) {
     return ();
 }
 
+func assert_eq{range_check_ptr}(a: Uint256, b: Uint256) {
+    let (eq) = uint256_eq(a, b);
+    assert eq = 1;
+    return ();
+}
+
 func ge{range_check_ptr}(a: Uint256, b: Uint256) -> (res: felt) {
     let (lt: felt) = uint256_lt(a, b);
     return (res=1 - lt);
