@@ -15,6 +15,8 @@ from starkware.cairo.common.uint256 import (
     uint256_not,
 )
 from starkware.cairo.common.math import assert_lt, assert_lt_felt, split_felt
+from assertions import _ge_0, eq_0
+
 
 const MASK128 = 2 ** 128 - 1;
 const BOUND128 = 2 ** 128;
@@ -251,36 +253,68 @@ func div{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     return (c,);
 }
 
-struct Wad {
-    wad: Uint256,
-}
-
-struct Ray {
-    ray: Uint256,
-}
-
-// WAD = 1 * 10 ^ 18
-const WAD = 10 ** 18;
-const HALF_WAD = WAD / 2;
-
-// RAY = 1 * 10 ^ 27
-const RAY = 10 ** 27;
-const HALF_RAY = RAY / 2;
-
 const UINT128_MAX = 2 ** 128 - 1;
-
-// WAD_RAY_RATIO = 1 * 10 ^ 9
-const WAD_RAY_RATIO = 10 ** 9;
-const HALF_WAD_RAY_RATION = WAD_RAY_RATIO / 2;
-
-func ray() -> (ray: Ray) {
-    return (Ray(Uint256(RAY, 0)),);
-}
-
-func wad() -> (wad: Wad) {
-    return (Wad(Uint256(WAD, 0)),);
-}
 
 func uint256_max() -> (max: Uint256) {
     return (Uint256(UINT128_MAX, UINT128_MAX),);
+}
+
+// function _int256(uint256 x) internal pure returns (int256 y) {
+//     require((y = int256(x)) >= 0, ARITHMETIC_ERROR);
+// }
+func _int256{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(x: Uint256) -> (
+    y: Int256
+) {
+    let (pos) = _ge_0(x);
+    assert pos = 1;
+    return (y=x);
+}
+
+// function _min(uint256 x, uint256 y) internal pure returns (uint256 z) {
+//     z = x <= y ? x : y;
+// }
+func _min{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    x: Uint256, y: Uint256
+) -> (z: Uint256) {
+    let (x_le: felt) = uint256_le(x, y);
+    if (x_le == 1) {
+        return (z=x);
+    } else {
+        return (z=y);
+    }
+}
+
+// function _max(uint256 x, uint256 y) internal pure returns (uint256 z) {
+//     z = x >= y ? x : y;
+// }
+func _max{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    x: Uint256, y: Uint256
+) -> (z: Uint256) {
+    let (x_le: felt) = uint256_le(y, x);
+    if (x_le == 1) {
+        return (z=x);
+    } else {
+        return (z=y);
+    }
+}
+
+// function _divup(uint256 x, uint256 y) internal pure returns (uint256 z) {
+//     unchecked {
+//         z = x != 0 ? ((x - 1) / y) + 1 : 0;
+//     }
+// }
+func _divup{
+    syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*
+}(x: Uint256, y: Uint256) -> (z: Uint256) {
+    alloc_locals;
+    let (is_zero) = eq_0(x);
+    if (is_zero == 1) {
+        return (z=x);
+    }
+
+    let (z) = sub(x, Uint256(1, 0));
+    let (z) = div(z, y);
+    let (z) = add(z, Uint256(1, 0));
+
+    return (z=z);
 }
