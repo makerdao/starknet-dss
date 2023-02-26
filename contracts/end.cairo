@@ -764,7 +764,7 @@ func skim{
 
     // require(wad <= 2**255 && art <= 2**255, "End/overflow");
     with_attr error_message("End/overflow") {
-        let (max) = _felt_to_uint(2 ** 255);
+        let max =  Uint256(2 ** 128 - 1, 2 ** 128 - 1);
         let (wad_overflow) = le(wad, max);
         let (art_overflow) = le(art, max);
         assert_both(wad_overflow, art_overflow);
@@ -798,7 +798,7 @@ func free{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(ilk: 
     }
     // require(ink <= 2**255, "End/overflow");
     with_attr error_message("End/overflow") {
-        let (max) = _felt_to_uint(2 ** 255);
+        let max = Uint256(2 ** 128 - 1, 2 ** 128 - 1);
         assert_le(ink, max);
     }
     let (vow) = _vow.read();
@@ -852,7 +852,7 @@ func thaw{
     ClaimLike.mint(claim, self, new_debt);
 
     // claim.approve(vow, type(uint256).max);
-    let (max) = _felt_to_uint(2 ** 255);
+    let max = Uint256(2 ** 128 - 1, 2 ** 128 - 1);
     ClaimLike.approve(claim, vow, max);
 
     // emit Thaw();
