@@ -17,7 +17,6 @@ from starkware.cairo.common.uint256 import (
 from starkware.cairo.common.math import assert_lt, assert_lt_felt, split_felt
 from assertions import _ge_0, eq_0
 
-
 const MASK128 = 2 ** 128 - 1;
 const BOUND128 = 2 ** 128;
 

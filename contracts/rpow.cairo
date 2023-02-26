@@ -46,7 +46,7 @@ func _rpow{
         let (half, _) = div_rem(b, Uint256(2, 0));
         let (init_n, _) = div_rem(n, Uint256(2, 0));
         let (end_z) = _loop(x, init_n, half, _z, b);
-        return (z=end_z,);
+        return (z=end_z);
     }
 }
 

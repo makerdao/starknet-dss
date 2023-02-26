@@ -764,7 +764,7 @@ func skim{
 
     // require(wad <= 2**255 && art <= 2**255, "End/overflow");
     with_attr error_message("End/overflow") {
-        let max =  Uint256(2 ** 128 - 1, 2 ** 128 - 1);
+        let max = Uint256(2 ** 128 - 1, 2 ** 128 - 1);
         let (wad_overflow) = le(wad, max);
         let (art_overflow) = le(art, max);
         assert_both(wad_overflow, art_overflow);
