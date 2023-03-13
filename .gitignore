@@ -1,0 +1,24 @@
+artifacts
+**/__pycache__
+env/
+build
+.idea
+node_modules
+cache/
+starknet-artifacts/
+.vscode/
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Local deployments
+.env
+deployed_contracts/local.json
+
+*.DS_Store
+dump.pkl
+unittest-dump.dmp
+*.dmp
