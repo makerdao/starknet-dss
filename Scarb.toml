@@ -1,0 +1,7 @@
+[package]
+name = "starknet_dss"
+version = "0.1.0"
+description = "Starknet dss"
+homepage = "https://github.com/makerdao/starknet-dss"
+
+[[target.starknet-contract]]
